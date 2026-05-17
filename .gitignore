@@ -15,3 +15,7 @@ Thumbs.db
 
 # Build output (none for this static site)
 dist/
+
+.dev.vars*
+!.dev.vars.example
+!.env.example
