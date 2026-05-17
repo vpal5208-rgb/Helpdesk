@@ -12,9 +12,159 @@
 <link rel="stylesheet" href="css/dashboard.css"/>
 <link rel="stylesheet" href="css/email.css"/>
 <link rel="stylesheet" href="css/users.css"/>
+<link rel="stylesheet" href="css/portal.css"/>
 </head>
 <body>
+
+<!-- ======= ADMIN LOGIN SCREEN ======= -->
+<div id="admin-login-screen" style="
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#0d1117 0%,#1a2744 50%,#0d1117 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Inter',sans-serif;
+">
+  <!-- animated blobs -->
+  <div style="position:absolute;width:500px;height:500px;background:rgba(88,166,255,0.15);border-radius:50%;filter:blur(80px);top:-100px;left:-100px;animation:blobA 8s infinite alternate;pointer-events:none"></div>
+  <div style="position:absolute;width:400px;height:400px;background:rgba(188,140,255,0.12);border-radius:50%;filter:blur(80px);bottom:-80px;right:-80px;animation:blobA 10s infinite alternate-reverse;pointer-events:none"></div>
+  <style>
+    @keyframes blobA{0%{transform:scale(1) translate(0,0)}100%{transform:scale(1.25) translate(30px,20px)}}
+    #admin-login-screen input,#admin-login-screen select{width:100%;padding:11px 14px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-family:'Inter',sans-serif;font-size:.9rem;outline:none;transition:.2s;box-sizing:border-box}
+    #admin-login-screen input:focus,#admin-login-screen select:focus{border-color:#58a6ff;background:rgba(255,255,255,0.12)}
+    #admin-login-screen input::placeholder{color:rgba(255,255,255,0.35)}
+    #admin-login-screen select option{background:#1a2744;color:#fff}
+    #al-submit{width:100%;padding:13px;background:linear-gradient(135deg,#58a6ff,#bc8cff);border:none;border-radius:8px;color:#fff;font-family:'Inter',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-top:8px;transition:.2s}
+    #al-submit:hover{opacity:.9;transform:translateY(-1px)}
+    #al-submit:disabled{opacity:.6;cursor:not-allowed;transform:none}
+    #al-error{color:#f85149;font-size:.82rem;margin-top:8px;min-height:18px;text-align:center}
+    .al-field{margin-bottom:14px}
+    .al-field label{display:block;font-size:.78rem;font-weight:600;color:rgba(255,255,255,0.55);margin-bottom:6px}
+    .al-divider{border:none;border-top:1px solid rgba(255,255,255,0.1);margin:18px 0}
+    .al-demo-hint{font-size:.78rem;color:rgba(255,255,255,0.35);text-align:center;margin-top:14px;line-height:1.6}
+    .al-demo-cred{display:inline-block;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:2px 8px;font-family:monospace;font-size:.8rem;color:rgba(255,255,255,0.6);cursor:pointer}
+    .al-demo-cred:hover{background:rgba(255,255,255,0.12)}
+  </style>
+
+  <div style="position:relative;z-index:1;background:rgba(255,255,255,0.06);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:40px;width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+
+    <!-- Brand -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">
+      <div style="width:44px;height:44px;background:linear-gradient(135deg,#58a6ff,#bc8cff);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">⚡</div>
+      <div>
+        <div style="font-size:1.15rem;font-weight:800;color:#fff">HelpDesk<span style="color:#58a6ff">Pro</span></div>
+        <div style="font-size:.75rem;color:rgba(255,255,255,0.45);margin-top:2px">Admin Portal</div>
+      </div>
+    </div>
+
+    <h1 style="font-size:1.6rem;font-weight:800;color:#fff;margin-bottom:6px">Sign In</h1>
+    <p style="color:rgba(255,255,255,0.45);font-size:.88rem;margin-bottom:24px">Enter your admin credentials to continue</p>
+
+    <div class="al-field">
+      <label>Email Address</label>
+      <input type="email" id="al-email" placeholder="admin@company.com" autocomplete="email"/>
+    </div>
+    <div class="al-field">
+      <label>Password</label>
+      <div style="position:relative">
+        <input type="password" id="al-password" placeholder="••••••••" autocomplete="current-password" style="padding-right:42px"/>
+        <button onclick="var i=document.getElementById('al-password');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:rgba(255,255,255,0.4)">👁</button>
+      </div>
+    </div>
+    <div class="al-field" style="display:flex;align-items:center;justify-content:space-between">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0">
+        <input type="checkbox" id="al-remember" style="width:auto;padding:0"/> <span style="font-size:.82rem;color:rgba(255,255,255,0.5)">Remember me</span>
+      </label>
+    </div>
+
+    <button id="al-submit" onclick="doAdminLogin()">Sign In →</button>
+    <div id="al-error"></div>
+
+    <hr class="al-divider"/>
+
+    <div class="al-demo-hint">
+      Demo credentials &nbsp;·&nbsp;
+      Email: <span class="al-demo-cred" onclick="document.getElementById('al-email').value='admin@helpdesk.com'">admin@helpdesk.com</span>
+      &nbsp; Password: <span class="al-demo-cred" onclick="document.getElementById('al-password').value='Admin@123'">Admin@123</span>
+    </div>
+    <div style="text-align:center;margin-top:18px">
+      <a href="portal.html" style="color:rgba(255,255,255,0.3);font-size:.78rem;text-decoration:none">👤 Go to User Portal</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const ADMIN_ACCOUNTS = [
+  { email:'admin@helpdesk.com',   password:'Admin@123',   name:'Admin User',   role:'IT Manager' },
+  { email:'manager@helpdesk.com', password:'Manager@123', name:'IT Manager',   role:'IT Manager' },
+  { email:'agent@helpdesk.com',   password:'Agent@123',   name:'Support Agent',role:'IT Agent' },
+];
+const LS_ADMIN_AUTH = 'hd_admin_auth_v1';
+
+function doAdminLogin() {
+  const email = document.getElementById('al-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('al-password').value;
+  const err   = document.getElementById('al-error');
+  const btn   = document.getElementById('al-submit');
+  const remember = document.getElementById('al-remember').checked;
+  err.textContent = '';
+  if (!email) { err.textContent = 'Please enter your email address.'; return; }
+  if (!pass)  { err.textContent = 'Please enter your password.'; return; }
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  setTimeout(() => {
+    btn.disabled = false; btn.textContent = 'Sign In →';
+    const match = ADMIN_ACCOUNTS.find(a => a.email === email && a.password === pass);
+    if (!match) { err.textContent = '❌ Invalid email or password. Try the demo credentials below.'; return; }
+    const session = { name: match.name, email: match.email, role: match.role, ts: Date.now() };
+    if (remember) localStorage.setItem(LS_ADMIN_AUTH, JSON.stringify(session));
+    else          sessionStorage.setItem(LS_ADMIN_AUTH, JSON.stringify(session));
+    document.getElementById('admin-login-screen').style.display = 'none';
+    // update sidebar user display
+    const nameEl = document.querySelector('.user-name');
+    const roleEl = document.querySelector('.user-role');
+    const avatarEl = document.querySelector('.user-avatar');
+    if (nameEl)   nameEl.textContent = match.name;
+    if (roleEl)   roleEl.textContent = match.role;
+    if (avatarEl) avatarEl.textContent = match.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  }, 600);
+}
+
+// Check existing session on load
+(function checkAdminSession() {
+  const s = sessionStorage.getItem(LS_ADMIN_AUTH) || localStorage.getItem(LS_ADMIN_AUTH);
+  if (s) {
+    try {
+      const sess = JSON.parse(s);
+      // expire after 8 hours
+      if (Date.now() - sess.ts < 8 * 3600 * 1000) {
+        document.getElementById('admin-login-screen').style.display = 'none';
+        return;
+      }
+    } catch(e){}
+  }
+  // show login — hide body scroll while login is visible
+  document.body.style.overflow = 'hidden';
+  document.getElementById('admin-login-screen').addEventListener('transitionend', () => {
+    if (document.getElementById('admin-login-screen').style.display === 'none')
+      document.body.style.overflow = '';
+  });
+  // allow Enter key
+  document.getElementById('al-password').addEventListener('keydown', e => { if(e.key==='Enter') doAdminLogin(); });
+  document.getElementById('al-email').addEventListener('keydown',    e => { if(e.key==='Enter') document.getElementById('al-password').focus(); });
+})();
+
+// Expose logout for nav
+function adminLogout() {
+  sessionStorage.removeItem('hd_admin_auth_v1');
+  localStorage.removeItem('hd_admin_auth_v1');
+  document.getElementById('admin-login-screen').style.display = 'flex';
+  document.getElementById('al-email').value = '';
+  document.getElementById('al-password').value = '';
+  document.getElementById('al-error').textContent = '';
+  document.body.style.overflow = 'hidden';
+}
+</script>
+
 <!-- Sidebar -->
+
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
     <div class="brand-icon">⚡</div>
@@ -52,7 +202,7 @@
       <div class="notif-btn" id="notif-btn">
         🔔<span class="notif-badge" id="notif-badge">3</span>
       </div>
-      <a href="portal.html" class="btn btn-ghost" target="_blank" style="font-size:.82rem">🌐 User Portal</a>
+      <a href="portal.html" class="btn btn-ghost" target="_blank" style="font-size:.82rem" id="user-portal-link">🌐 User Portal</a>
       <button class="btn btn-primary" id="new-ticket-btn">+ New Ticket</button>
     </div>
   </header>
@@ -745,7 +895,7 @@ support@company.com | +1 (800) 555-0199</textarea>
 <!-- Toast container -->
 <div class="toast-container" id="toast-container"></div>
 
-<link rel="stylesheet" href="css/users.css"/>
+
 <script src="js/data.js"></script>
 <script src="js/tickets.js"></script>
 <script src="js/dashboard.js"></script>
