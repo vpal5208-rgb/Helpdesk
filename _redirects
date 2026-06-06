@@ -1,2 +1,2 @@
-/portal  /portal.html  200
-/portal/ /portal.html  200
+# Cloudflare Pages _redirects - clean routing
+/portal    /portal.html   200
