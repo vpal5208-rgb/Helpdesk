@@ -4,29 +4,34 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   // Init data
-  initTickets();
+  try { initTickets(); } catch(e) { console.error('initTickets error:', e); }
 
   // Init UI
-  initTheme();
-  initThemeEvents();
-  initSidebarToggle();
-  initNotifications();
-  initTicketEvents();
-  initSettings();
-  initEmailConfig();
+  try { initTheme(); } catch(e) { console.error('initTheme error:', e); }
+  try { initThemeEvents(); } catch(e) { console.error('initThemeEvents error:', e); }
+  try { initSidebarToggle(); } catch(e) { console.error('initSidebarToggle error:', e); }
+  try { initNotifications(); } catch(e) { console.error('initNotifications error:', e); }
+  try { initTicketEvents(); } catch(e) { console.error('initTicketEvents error:', e); }
+  try { initSettings(); } catch(e) { console.error('initSettings error:', e); }
+  try { initEmailConfig(); } catch(e) { console.error('initEmailConfig error:', e); }
 
   // Render initial views
-  updateDashboard();
-  renderAgentsView();
-  initUsersView();
+  try { updateDashboard(); } catch(e) { console.error('updateDashboard error:', e); }
+  try { renderAgentsView(); } catch(e) { console.error('renderAgentsView error:', e); }
+  try { initUsersView(); } catch(e) { console.error('initUsersView error:', e); }
 
   // Navigation — use delegation so clicks on child spans still work
-  document.querySelector('.sidebar-nav').addEventListener('click', e => {
-    const btn = e.target.closest('.nav-item[data-view]');
-    if (!btn) return;
-    e.preventDefault();
-    navigateTo(btn.dataset.view);
-  });
+  try {
+    const sidebarNav = document.querySelector('.sidebar-nav');
+    if (sidebarNav) {
+      sidebarNav.addEventListener('click', e => {
+        const btn = e.target.closest('.nav-item[data-view]');
+        if (!btn) return;
+        e.preventDefault();
+        navigateTo(btn.dataset.view);
+      });
+    }
+  } catch(e) { console.error('Navigation init error:', e); }
 
   // Chart resize observer
   const resizeObserver = new ResizeObserver(() => {
@@ -56,15 +61,19 @@ function navigateTo(view) {
   const target = document.getElementById(`view-${view}`);
   if (target) target.classList.add('active');
 
-  if (view === 'dashboard') updateDashboard();
-  if (view === 'tickets') { applyFilters(); }
-  if (view === 'agents') renderAgentsView();
-  if (view === 'users') refreshUsersView();
-  if (view === 'reports') {
-    setTimeout(() => {
-      renderMonthlyChart();
-      renderResolutionChart();
-      renderAgentPerfChart();
-    }, 50);
-  }
+  try {
+    if (view === 'dashboard') updateDashboard();
+    if (view === 'tickets') { applyFilters(); }
+    if (view === 'agents') renderAgentsView();
+    if (view === 'users') refreshUsersView();
+    if (view === 'reports') {
+      setTimeout(() => {
+        try {
+          renderMonthlyChart();
+          renderResolutionChart();
+          renderAgentPerfChart();
+        } catch (e) { console.error('Reports charts error:', e); }
+      }, 50);
+    }
+  } catch (e) { console.error(`Error navigating to ${view}:`, e); }
 }
