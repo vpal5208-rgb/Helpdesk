@@ -124,7 +124,10 @@ const LS_SLA='hd_sla_v1';
 function loadTickets(){
   try{
     const raw=localStorage.getItem(LS_KEY);
-    if(raw) return JSON.parse(raw);
+    if(raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+    }
   }catch(e){}
   const seed=generateSeedTickets();
   saveTickets(seed);

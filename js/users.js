@@ -27,7 +27,13 @@ let pendingImportUsers = [];
 
 /* ===== STORAGE ===== */
 function loadUsers() {
-  try { const r = localStorage.getItem(LS_USERS); if (r) return JSON.parse(r); } catch(e){}
+  try { 
+    const r = localStorage.getItem(LS_USERS); 
+    if (r) {
+      const parsed = JSON.parse(r);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+    }
+  } catch(e){}
   saveUsers(SEED_USERS);
   return [...SEED_USERS];
 }
