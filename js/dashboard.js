@@ -100,8 +100,9 @@ function getLast7DayCounts(type) {
 function drawLineChart(ctx, canvas, labels, datasets) {
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width * dpr || canvas.parentElement.clientWidth * dpr;
-  canvas.height = (canvas.getAttribute('height') || 200) * dpr;
+  const parentWidth = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
+  canvas.width = Math.max(0, (rect.width || parentWidth) * dpr);
+  canvas.height = Math.max(0, (canvas.getAttribute('height') || 200) * dpr);
   ctx.scale(dpr, dpr);
   const w = canvas.width / dpr;
   const h = canvas.height / dpr;
@@ -187,7 +188,9 @@ function renderPriorityChart() {
 
 function drawDonutChart(ctx, canvas, labels, data, colors) {
   const dpr = window.devicePixelRatio || 1;
-  const size = Math.min(canvas.parentElement.clientWidth - 40, 200);
+  const parentWidth = canvas.parentElement ? canvas.parentElement.clientWidth : 200;
+  const size = Math.max(0, Math.min(parentWidth - 40, 200));
+  if (size <= 0) return;
   canvas.width = size * dpr; canvas.height = size * dpr;
   ctx.scale(dpr, dpr);
   const cx = size/2, cy = size/2, r = size/2 - 20, inner = r * 0.55;
@@ -246,8 +249,9 @@ function renderCategoryChart() {
 function drawBarChart(ctx, canvas, labels, data, colors, horizontal=false) {
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
-  canvas.width = (rect.width || canvas.parentElement.clientWidth) * dpr;
-  canvas.height = (canvas.getAttribute('height') || 220) * dpr;
+  const parentWidth = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
+  canvas.width = Math.max(0, (rect.width || parentWidth) * dpr);
+  canvas.height = Math.max(0, (canvas.getAttribute('height') || 220) * dpr);
   ctx.scale(dpr, dpr);
   const w = canvas.width/dpr, h = canvas.height/dpr;
   const pad = { top:12, right:16, bottom:12, left:80 };
