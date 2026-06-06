@@ -38,11 +38,22 @@ function applyFilters() {
   const search = (document.getElementById('ticket-search').value || document.getElementById('global-search').value || '').toLowerCase();
 
   filteredTickets = allTickets.filter(t => {
-    if (status && t.status !== status) return false;
-    if (priority && t.priority !== priority) return false;
-    if (category && t.category !== category) return false;
-    if (agentId && t.agentId !== agentId) return false;
-    if (search && !t.subject.toLowerCase().includes(search) && !t.id.toLowerCase().includes(search) && !t.requester.toLowerCase().includes(search)) return false;
+    if (!t) return false;
+    const tStatus = t.status || '';
+    const tPriority = t.priority || '';
+    const tCategory = t.category || '';
+    const tAgentId = t.agentId || '';
+    const tSubject = t.subject || '';
+    const tId = t.id || '';
+    const tRequester = t.requester || '';
+
+    if (status && tStatus !== status) return false;
+    if (priority && tPriority !== priority) return false;
+    if (category && tCategory !== category) return false;
+    if (agentId && tAgentId !== agentId) return false;
+    if (search) {
+      if (!tSubject.toLowerCase().includes(search) && !tId.toLowerCase().includes(search) && !tRequester.toLowerCase().includes(search)) return false;
+    }
     return true;
   });
 
