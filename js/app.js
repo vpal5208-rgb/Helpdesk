@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   try { initTicketEvents(); } catch(e) { console.error('initTicketEvents error:', e); }
   try { initSettings(); } catch(e) { console.error('initSettings error:', e); }
   try { initEmailConfig(); } catch(e) { console.error('initEmailConfig error:', e); }
+  try { initAuditTrail(); } catch(e) { console.error('initAuditTrail error:', e); }
 
   // Render initial views
   try { updateDashboard(); } catch(e) { console.error('updateDashboard error:', e); }
@@ -66,6 +67,7 @@ function navigateTo(view) {
     if (view === 'tickets') { applyFilters(); }
     if (view === 'agents') renderAgentsView();
     if (view === 'users') refreshUsersView();
+    if (view === 'audit-trail') renderAuditTrail();
     if (view === 'reports') {
       setTimeout(() => {
         try {

@@ -176,6 +176,7 @@ function adminLogout() {
     <button class="nav-item" data-view="agents"><span class="nav-icon">👥</span><span class="nav-label">Agents</span></button>
     <button class="nav-item" data-view="users"><span class="nav-icon">🧑‍💼</span><span class="nav-label">Users</span><span class="nav-badge" id="users-count">0</span></button>
     <button class="nav-item" data-view="reports"><span class="nav-icon">📈</span><span class="nav-label">Reports</span></button>
+    <button class="nav-item" data-view="audit-trail"><span class="nav-icon">📋</span><span class="nav-label">Audit Trail</span></button>
     <button class="nav-item" data-view="settings"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></button>
   </nav>
   <div class="sidebar-footer">
@@ -801,6 +802,46 @@ support@company.com | +1 (800) 555-0199</textarea>
 
     </section>
 
+    <!-- AUDIT TRAIL VIEW -->
+    <section class="view" id="view-audit-trail">
+      <div class="view-header">
+        <h1>Audit Trail</h1>
+        <p class="view-sub">Chronological timeline of all system and ticket actions</p>
+      </div>
+
+      <div class="toolbar" style="margin-bottom: 20px;">
+        <div class="toolbar-left" style="display:flex; gap:10px; width: 100%;">
+          <input type="text" id="audit-search" class="form-input" style="max-width: 300px;" placeholder="Search by action, user or ticket ID..."/>
+          <select id="audit-filter-action" class="form-input" style="max-width: 180px;">
+            <option value="">All Action Types</option>
+            <option value="created">Created</option>
+            <option value="status">Status Changes</option>
+            <option value="assigned">Assignments</option>
+            <option value="comment">Comments / Notes</option>
+            <option value="escalated">Escalated</option>
+            <option value="closed">Closed</option>
+          </select>
+          <button class="btn btn-ghost" id="clear-audit-filters">Clear</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 15%">Date &amp; Time</th>
+              <th style="width: 12%">Ticket ID</th>
+              <th style="width: 15%">Actor</th>
+              <th style="width: 58%">Action Details</th>
+            </tr>
+          </thead>
+          <tbody id="audit-trail-table-body">
+            <!-- Dynamic rows will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
   </div><!-- /views-container -->
 </main>
 
@@ -1001,6 +1042,7 @@ support@company.com | +1 (800) 555-0199</textarea>
 <script src="js/ui.js?v=2"></script>
 <script src="js/email.js?v=2"></script>
 <script src="js/users.js?v=2"></script>
+<script src="js/audit.js?v=2"></script>
 <script src="js/app.js?v=2"></script>
 </body>
 </html>
