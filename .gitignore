@@ -15,3 +15,8 @@ Thumbs.db
 
 # Build output (none for this static site)
 dist/
+
+# Puppeteer Verification Scripts
+test_*.js
+*.png
+*.webp
