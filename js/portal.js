@@ -4,91 +4,140 @@ let portalUser = null;
 
 /* ===== AUTH ===== */
 function initPortal() {
-  const saved = localStorage.getItem(LS_USER);
-  if (saved) { portalUser = JSON.parse(saved); showPortal(); }
-  else showLogin();
+  try {
+    const saved = localStorage.getItem(LS_USER);
+    if (saved) { portalUser = JSON.parse(saved); showPortal(); }
+    else showLogin();
+  } catch (e) {
+    console.error("Error loading portal user session:", e);
+    showLogin();
+  }
 
-  document.getElementById('login-btn').addEventListener('click', doLogin);
-  document.getElementById('login-email').addEventListener('keydown', e => e.key==='Enter' && doLogin());
-  document.getElementById('portal-logout').addEventListener('click', () => {
-    localStorage.removeItem(LS_USER); portalUser = null; showLogin();
+  const setupListener = (id, event, handler) => {
+    try {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener(event, handler);
+    } catch(e) {
+      console.error(`Error setting up listener for ${id}:`, e);
+    }
+  };
+
+  setupListener('login-btn', 'click', doLogin);
+  setupListener('login-email', 'keydown', e => e.key==='Enter' && doLogin());
+  setupListener('portal-logout', 'click', () => {
+    try {
+      localStorage.removeItem(LS_USER); portalUser = null; showLogin();
+    } catch(e) {}
   });
-  document.getElementById('quick-track-link').addEventListener('click', e => {
+  setupListener('quick-track-link', 'click', e => {
     e.preventDefault(); showPortal(); switchTab('track');
   });
 
   // Nav tabs
-  document.querySelectorAll('.pnav-btn[data-tab]').forEach(btn => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-  });
+  try {
+    document.querySelectorAll('.pnav-btn[data-tab]').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+  } catch(e) {}
 
   // Submit ticket
-  document.getElementById('submit-ticket-btn').addEventListener('click', submitTicket);
+  setupListener('submit-ticket-btn', 'click', submitTicket);
 
   // Track
-  document.getElementById('track-btn').addEventListener('click', doTrack);
-  document.getElementById('track-id-input').addEventListener('keydown', e => e.key==='Enter' && doTrack());
+  setupListener('track-btn', 'click', doTrack);
+  setupListener('track-id-input', 'keydown', e => e.key==='Enter' && doTrack());
 
   // Filters
-  document.getElementById('mt-filter-status').addEventListener('change', renderMyTickets);
-  document.getElementById('mt-search').addEventListener('input', renderMyTickets);
+  setupListener('mt-filter-status', 'change', renderMyTickets);
+  setupListener('mt-search', 'input', renderMyTickets);
 
   // Modals
-  document.getElementById('success-close-btn').addEventListener('click', () => {
+  setupListener('success-close-btn', 'click', () => {
     closeModal('success-overlay'); switchTab('my-tickets');
   });
-  document.getElementById('success-track-btn').addEventListener('click', () => {
-    const id = document.getElementById('success-ticket-id').textContent;
-    closeModal('success-overlay');
-    switchTab('track');
-    document.getElementById('track-id-input').value = id;
-    doTrack();
+  setupListener('success-track-btn', 'click', () => {
+    try {
+      const idEl = document.getElementById('success-ticket-id');
+      const id = idEl ? idEl.textContent : '';
+      closeModal('success-overlay');
+      switchTab('track');
+      const trackInput = document.getElementById('track-id-input');
+      if (trackInput) trackInput.value = id;
+      doTrack();
+    } catch(e) {}
   });
-  document.getElementById('escalate-cancel-btn').addEventListener('click', () => closeModal('escalate-overlay'));
-  document.getElementById('escalate-submit-btn').addEventListener('click', doEscalate);
+  setupListener('escalate-cancel-btn', 'click', () => closeModal('escalate-overlay'));
+  setupListener('escalate-submit-btn', 'click', doEscalate);
 }
 
 function doLogin() {
-  const name  = document.getElementById('login-name').value.trim();
-  const email = document.getElementById('login-email').value.trim();
-  const dept  = document.getElementById('login-dept').value;
-  const err   = document.getElementById('login-error');
-  if (!name)  { err.textContent = 'Please enter your full name.'; return; }
-  if (!email || !email.includes('@')) { err.textContent = 'Please enter a valid email address.'; return; }
-  if (!dept)  { err.textContent = 'Please select your department.'; return; }
-  err.textContent = '';
-  portalUser = { name, email, dept };
-  localStorage.setItem(LS_USER, JSON.stringify(portalUser));
-  showPortal();
+  try {
+    const nameEl  = document.getElementById('login-name');
+    const emailEl = document.getElementById('login-email');
+    const deptEl  = document.getElementById('login-dept');
+    const errEl   = document.getElementById('login-error');
+    if (!nameEl || !emailEl || !deptEl || !errEl) return;
+
+    const name  = nameEl.value.trim();
+    const email = emailEl.value.trim();
+    const dept  = deptEl.value;
+    if (!name)  { errEl.textContent = 'Please enter your full name.'; return; }
+    if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email address.'; return; }
+    if (!dept)  { errEl.textContent = 'Please select your department.'; return; }
+    errEl.textContent = '';
+    portalUser = { name, email, dept };
+    localStorage.setItem(LS_USER, JSON.stringify(portalUser));
+    showPortal();
+  } catch(e) {
+    console.error("Error during login execution:", e);
+  }
 }
 
 function showLogin() {
-  document.getElementById('login-screen').classList.add('active');
-  document.getElementById('portal-screen').classList.remove('active');
+  try {
+    const loginScr = document.getElementById('login-screen');
+    const portalScr = document.getElementById('portal-screen');
+    if (loginScr) loginScr.classList.add('active');
+    if (portalScr) portalScr.classList.remove('active');
+  } catch(e) {}
 }
 
 function showPortal() {
-  document.getElementById('login-screen').classList.remove('active');
-  document.getElementById('portal-screen').classList.add('active');
-  if (portalUser) {
-    const initials = portalUser.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    document.getElementById('portal-user-badge').textContent = initials + ' ' + portalUser.name.split(' ')[0];
-    const hour = new Date().getHours();
-    const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-    document.getElementById('hero-greeting').textContent = greet + ', ' + portalUser.name.split(' ')[0] + '!';
-    document.getElementById('hero-sub').textContent = 'How can IT support you today?';
+  try {
+    const loginScr = document.getElementById('login-screen');
+    const portalScr = document.getElementById('portal-screen');
+    if (loginScr) loginScr.classList.remove('active');
+    if (portalScr) portalScr.classList.add('active');
+
+    if (portalUser) {
+      const initials = portalUser.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      const badge = document.getElementById('portal-user-badge');
+      if (badge) badge.textContent = initials + ' ' + portalUser.name.split(' ')[0];
+      const hour = new Date().getHours();
+      const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+      const greeting = document.getElementById('hero-greeting');
+      if (greeting) greeting.textContent = greet + ', ' + portalUser.name.split(' ')[0] + '!';
+      const sub = document.getElementById('hero-sub');
+      if (sub) sub.textContent = 'How can IT support you today?';
+    }
+  } catch(e) {
+    console.error("Error showing portal:", e);
   }
-  switchTab('dashboard');
-  renderHeroStats();
-  renderRecentTickets();
+  try { switchTab('dashboard'); } catch(e) {}
+  try { renderHeroStats(); } catch(e) {}
+  try { renderRecentTickets(); } catch(e) {}
 }
 
 /* ===== NAVIGATION ===== */
 function switchTab(tab) {
-  document.querySelectorAll('.pnav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  document.querySelectorAll('.ptab').forEach(p => p.classList.toggle('active', p.id === 'ptab-' + tab));
-  if (tab === 'my-tickets') renderMyTickets();
-  if (tab === 'dashboard') { renderHeroStats(); renderRecentTickets(); }
+  try {
+    document.querySelectorAll('.pnav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.ptab').forEach(p => p.classList.toggle('active', p.id === 'ptab-' + tab));
+    if (tab === 'my-tickets') renderMyTickets();
+    if (tab === 'dashboard') { renderHeroStats(); renderRecentTickets(); }
+  } catch(e) {
+    console.error("Error switching tabs:", e);
+  }
 }
 
 function setCategory(cat) {
