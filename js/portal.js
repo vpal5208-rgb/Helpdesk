@@ -68,6 +68,72 @@ function initPortal() {
   });
   setupListener('escalate-cancel-btn', 'click', () => closeModal('escalate-overlay'));
   setupListener('escalate-submit-btn', 'click', doEscalate);
+
+  try {
+    populateDemoUsers();
+  } catch(e) {
+    console.error("Error populating demo users:", e);
+  }
+}
+
+function populateDemoUsers() {
+  const select = document.getElementById('demo-user-select');
+  if (!select) return;
+
+  let usersList = [];
+  try {
+    const raw = localStorage.getItem('hd_users_v1');
+    if (raw) {
+      usersList = JSON.parse(raw);
+    }
+  } catch (e) {
+    console.error("Error reading hd_users_v1:", e);
+  }
+
+  // Fallback to REQUESTERS if local storage is empty
+  if (!usersList || !usersList.length) {
+    // Map existing REQUESTERS list to standard user fields
+    // Requesters in data.js have name, email. Let's map departments based on known data or fallback.
+    const deptMap = {
+      'James Wilson': 'Marketing',
+      'Emily Davis': 'Engineering',
+      'Robert Martinez': 'Finance',
+      'Jennifer Thompson': 'HR',
+      'Daniel Garcia': 'Sales',
+      'Ashley Johnson': 'Operations',
+      'Christopher Lee': 'Engineering',
+      'Amanda White': 'Design',
+      'Kevin Brown': 'Legal',
+      'Stephanie Harris': 'Marketing'
+    };
+    usersList = (typeof REQUESTERS !== 'undefined' ? REQUESTERS : []).map(r => ({
+      fname: r.name.split(' ')[0],
+      lname: r.name.split(' ').slice(1).join(' '),
+      email: r.email,
+      dept: deptMap[r.name] || 'Engineering'
+    }));
+  }
+
+  // Filter list to valid elements
+  usersList = usersList.filter(u => u && u.fname && u.email);
+
+  select.innerHTML = '<option value="">Select a demo user to autofill...</option>' +
+    usersList.map(u => {
+      const name = `${u.fname} ${u.lname || ''}`.trim();
+      return `<option value="${name}|${u.email}|${u.dept || 'Engineering'}">${name} (${u.dept || 'Engineering'})</option>`;
+    }).join('');
+
+  select.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if (!val) return;
+    const [name, email, dept] = val.split('|');
+    const nameEl  = document.getElementById('login-name');
+    const emailEl = document.getElementById('login-email');
+    const deptEl  = document.getElementById('login-dept');
+    if (nameEl) nameEl.value = name;
+    if (emailEl) emailEl.value = email;
+    if (deptEl) deptEl.value = dept;
+  });
 }
 
 function doLogin() {
