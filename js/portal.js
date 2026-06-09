@@ -66,6 +66,68 @@ function initPortal() {
       doTrack();
     } catch(e) {}
   });
+  setupListener('login-btn', 'click', doLogin);
+  setupListener('login-email', 'keydown', e => e.key==='Enter' && doLogin());
+  setupListener('login-password', 'keydown', e => e.key==='Enter' && doLogin());
+  setupListener('portal-logout', 'click', () => {
+    try {
+      localStorage.removeItem(LS_USER); portalUser = null; showLogin();
+    } catch(e) {}
+  });
+  setupListener('quick-track-link', 'click', e => {
+    e.preventDefault(); showPortal(); switchTab('track');
+  });
+
+  // Toggle login and register screens
+  setupListener('go-to-register-link', 'click', () => {
+    document.getElementById('login-form-container').style.display = 'none';
+    document.getElementById('register-form-container').style.display = 'block';
+    document.getElementById('login-error').textContent = '';
+    document.getElementById('reg-error').textContent = '';
+  });
+  setupListener('go-to-login-link', 'click', () => {
+    document.getElementById('register-form-container').style.display = 'none';
+    document.getElementById('login-form-container').style.display = 'block';
+    document.getElementById('login-error').textContent = '';
+    document.getElementById('reg-error').textContent = '';
+  });
+
+  setupListener('register-btn', 'click', doRegister);
+  setupListener('reg-confirm-password', 'keydown', e => e.key==='Enter' && doRegister());
+
+  // Nav tabs
+  try {
+    document.querySelectorAll('.pnav-btn[data-tab]').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+  } catch(e) {}
+
+  // Submit ticket
+  setupListener('submit-ticket-btn', 'click', submitTicket);
+
+  // Track
+  setupListener('track-btn', 'click', doTrack);
+  setupListener('track-id-input', 'keydown', e => e.key==='Enter' && doTrack());
+
+  // Filters
+  setupListener('mt-filter-status', 'change', renderMyTickets);
+  setupListener('mt-search', 'input', renderMyTickets);
+
+  // Modals
+  setupListener('success-close-btn', 'click', () => {
+    closeModal('success-overlay'); switchTab('my-tickets');
+  });
+  setupListener('success-track-btn', 'click', () => {
+    try {
+      const idEl = document.getElementById('success-ticket-id');
+      const id = idEl ? idEl.textContent : '';
+      closeModal('success-overlay');
+      switchTab('track');
+      const trackInput = document.getElementById('track-id-input');
+      if (trackInput) trackInput.value = id;
+      doTrack();
+    } catch(e) {}
+  });
   setupListener('escalate-cancel-btn', 'click', () => closeModal('escalate-overlay'));
   setupListener('escalate-submit-btn', 'click', doEscalate);
 
@@ -76,24 +138,16 @@ function initPortal() {
   }
 }
 
-function populateDemoUsers() {
-  const select = document.getElementById('demo-user-select');
-  if (!select) return;
-
-  let usersList = [];
+function getPortalUsers() {
+  let list = [];
   try {
     const raw = localStorage.getItem('hd_users_v1');
     if (raw) {
-      usersList = JSON.parse(raw);
+      list = JSON.parse(raw).filter(Boolean);
     }
-  } catch (e) {
-    console.error("Error reading hd_users_v1:", e);
-  }
-
-  // Fallback to REQUESTERS if local storage is empty
-  if (!usersList || !usersList.length) {
-    // Map existing REQUESTERS list to standard user fields
-    // Requesters in data.js have name, email. Let's map departments based on known data or fallback.
+  } catch(e) {}
+  
+  if (!list || !list.length) {
     const deptMap = {
       'James Wilson': 'Marketing',
       'Emily Davis': 'Engineering',
@@ -106,52 +160,84 @@ function populateDemoUsers() {
       'Kevin Brown': 'Legal',
       'Stephanie Harris': 'Marketing'
     };
-    usersList = (typeof REQUESTERS !== 'undefined' ? REQUESTERS : []).map(r => ({
+    list = (typeof REQUESTERS !== 'undefined' ? REQUESTERS : []).map(r => ({
       fname: r.name.split(' ')[0],
       lname: r.name.split(' ').slice(1).join(' '),
       email: r.email,
-      dept: deptMap[r.name] || 'Engineering'
+      dept: deptMap[r.name] || 'Engineering',
+      status: 'active',
+      role: 'end-user'
     }));
   }
+  
+  let modified = false;
+  list.forEach(u => {
+    if (!u.password) {
+      u.password = 'User@123';
+      modified = true;
+    }
+  });
+  if (modified) {
+    try {
+      localStorage.setItem('hd_users_v1', JSON.stringify(list));
+    } catch(e) {}
+  }
+  return list;
+}
 
-  // Filter list to valid elements
-  usersList = usersList.filter(u => u && u.fname && u.email);
+function populateDemoUsers() {
+  const select = document.getElementById('demo-user-select');
+  if (!select) return;
+
+  const usersList = getPortalUsers().filter(u => u && u.fname && u.email && u.status !== 'suspended');
 
   select.innerHTML = '<option value="">Select a demo user to autofill...</option>' +
     usersList.map(u => {
       const name = `${u.fname} ${u.lname || ''}`.trim();
-      return `<option value="${name}|${u.email}|${u.dept || 'Engineering'}">${name} (${u.dept || 'Engineering'})</option>`;
+      return `<option value="${u.email}|${u.password}">${name} (${u.dept || 'Engineering'})</option>`;
     }).join('');
 
   select.addEventListener('change', (e) => {
     const val = e.target.value;
     if (!val) return;
-    const [name, email, dept] = val.split('|');
-    const nameEl  = document.getElementById('login-name');
+    const [email, password] = val.split('|');
     const emailEl = document.getElementById('login-email');
-    const deptEl  = document.getElementById('login-dept');
-    if (nameEl) nameEl.value = name;
+    const passEl  = document.getElementById('login-password');
     if (emailEl) emailEl.value = email;
-    if (deptEl) deptEl.value = dept;
+    if (passEl) passEl.value = password;
   });
 }
 
 function doLogin() {
   try {
-    const nameEl  = document.getElementById('login-name');
     const emailEl = document.getElementById('login-email');
-    const deptEl  = document.getElementById('login-dept');
+    const passEl  = document.getElementById('login-password');
     const errEl   = document.getElementById('login-error');
-    if (!nameEl || !emailEl || !deptEl || !errEl) return;
+    if (!emailEl || !passEl || !errEl) return;
 
-    const name  = nameEl.value.trim();
-    const email = emailEl.value.trim();
-    const dept  = deptEl.value;
-    if (!name)  { errEl.textContent = 'Please enter your full name.'; return; }
+    const email = emailEl.value.trim().toLowerCase();
+    const pass  = passEl.value;
+
     if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email address.'; return; }
-    if (!dept)  { errEl.textContent = 'Please select your department.'; return; }
+    if (!pass) { errEl.textContent = 'Please enter your password.'; return; }
     errEl.textContent = '';
-    portalUser = { name, email, dept };
+
+    const users = getPortalUsers();
+    const u = users.find(x => x.email && x.email.toLowerCase() === email);
+    if (!u) {
+      errEl.textContent = 'No account found with this email.';
+      return;
+    }
+    if (u.status === 'suspended') {
+      errEl.textContent = 'Your account has been suspended.';
+      return;
+    }
+    if (u.password !== pass) {
+      errEl.textContent = 'Incorrect password.';
+      return;
+    }
+
+    portalUser = { name: `${u.fname} ${u.lname || ''}`.trim(), email: u.email, dept: u.dept || 'Engineering' };
     try {
       localStorage.setItem(LS_USER, JSON.stringify(portalUser));
     } catch(err) {
@@ -163,12 +249,88 @@ function doLogin() {
   }
 }
 
+function doRegister() {
+  try {
+    const fnameEl   = document.getElementById('reg-fname');
+    const lnameEl   = document.getElementById('reg-lname');
+    const emailEl   = document.getElementById('reg-email');
+    const deptEl    = document.getElementById('reg-dept');
+    const passEl    = document.getElementById('reg-password');
+    const confirmEl = document.getElementById('reg-confirm-password');
+    const errEl     = document.getElementById('reg-error');
+
+    if (!fnameEl || !lnameEl || !emailEl || !deptEl || !passEl || !confirmEl || !errEl) return;
+
+    const fname   = fnameEl.value.trim();
+    const lname   = lnameEl.value.trim();
+    const email   = emailEl.value.trim();
+    const dept    = deptEl.value;
+    const pass    = passEl.value;
+    const confirm = confirmEl.value;
+
+    if (!fname) { errEl.textContent = 'Please enter your first name.'; return; }
+    if (!lname) { errEl.textContent = 'Please enter your last name.'; return; }
+    if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email address.'; return; }
+    if (!dept) { errEl.textContent = 'Please select your department.'; return; }
+    if (!pass) { errEl.textContent = 'Please enter a password.'; return; }
+    if (pass.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+    if (pass !== confirm) { errEl.textContent = 'Passwords do not match.'; return; }
+    errEl.textContent = '';
+
+    const users = getPortalUsers();
+    if (users.some(x => x.email && x.email.toLowerCase() === email.toLowerCase())) {
+      errEl.textContent = 'Work email is already registered.';
+      return;
+    }
+
+    const newUser = {
+      id: 'u' + Date.now(),
+      fname,
+      lname,
+      email,
+      dept,
+      role: 'end-user',
+      status: 'active',
+      password: pass,
+      created: new Date().toISOString().split('T')[0],
+      lastActive: new Date().toISOString().split('T')[0]
+    };
+
+    users.unshift(newUser);
+    try {
+      localStorage.setItem('hd_users_v1', JSON.stringify(users));
+    } catch(err) {
+      console.warn("Unable to save new registered user:", err);
+    }
+
+    portalUser = { name: `${fname} ${lname}`.trim(), email, dept };
+    try {
+      localStorage.setItem(LS_USER, JSON.stringify(portalUser));
+    } catch(err) {
+      console.warn("Unable to save portal session:", err);
+    }
+
+    // Reset fields
+    [fnameEl, lnameEl, emailEl, passEl, confirmEl].forEach(el => el.value = '');
+    deptEl.value = '';
+
+    showPortal();
+  } catch(e) {
+    console.error("Error during registration execution:", e);
+  }
+}
+
 function showLogin() {
   try {
     const loginScr = document.getElementById('login-screen');
     const portalScr = document.getElementById('portal-screen');
     if (loginScr) loginScr.classList.add('active');
     if (portalScr) portalScr.classList.remove('active');
+    
+    const loginForm = document.getElementById('login-form-container');
+    const regForm = document.getElementById('register-form-container');
+    if (loginForm) loginForm.style.display = 'block';
+    if (regForm) regForm.style.display = 'none';
   } catch(e) {}
 }
 

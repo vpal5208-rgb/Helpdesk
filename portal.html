@@ -26,41 +26,83 @@
         <div class="login-brand-sub">Self-Service Support Portal</div>
       </div>
     </div>
-    <h1 class="login-title">Welcome Back</h1>
-    <p class="login-desc">Sign in to submit tickets and track your requests</p>
-    <div class="login-form">
-      <div class="login-field">
-        <label>Full Name</label>
-        <input type="text" id="login-name" class="portal-input" placeholder="e.g. John Smith" autocomplete="name"/>
+    <!-- LOGIN CONTAINER -->
+    <div id="login-form-container">
+      <h1 class="login-title">Welcome Back</h1>
+      <p class="login-desc">Sign in to submit tickets and track your requests</p>
+      <div class="login-form">
+        <div class="login-field">
+          <label>Work Email</label>
+          <input type="email" id="login-email" class="portal-input" placeholder="you@company.com" autocomplete="email"/>
+        </div>
+        <div class="login-field">
+          <label>Password</label>
+          <input type="password" id="login-password" class="portal-input" placeholder="••••••••" autocomplete="current-password"/>
+        </div>
+        <div class="login-field" style="margin-top: 20px;">
+          <label>Quick Demo Login (Optional)</label>
+          <select id="demo-user-select" class="portal-input" style="border-color: rgba(96, 165, 250, 0.4); background: rgba(96, 165, 250, 0.05);">
+            <option value="">Select a demo user to autofill...</option>
+          </select>
+        </div>
+        <button class="portal-btn portal-btn-primary" id="login-btn">Access Portal →</button>
+        <div class="login-error" id="login-error"></div>
       </div>
-      <div class="login-field">
-        <label>Work Email</label>
-        <input type="email" id="login-email" class="portal-input" placeholder="you@company.com" autocomplete="email"/>
+      <div class="login-footer">
+        Don't have an account? <a href="javascript:void(0)" id="go-to-register-link">Register here →</a>
       </div>
-      <div class="login-field">
-        <label>Department</label>
-        <select id="login-dept" class="portal-input">
-          <option value="">Select department…</option>
-          <option>Engineering</option>
-          <option>Marketing</option>
-          <option>Finance</option>
-          <option>HR</option>
-          <option>Sales</option>
-          <option>Operations</option>
-          <option>Design</option>
-          <option>Legal</option>
-        </select>
-      </div>
-      <div class="login-field" style="margin-top: 20px;">
-        <label>Quick Demo Login (Optional)</label>
-        <select id="demo-user-select" class="portal-input" style="border-color: rgba(96, 165, 250, 0.4); background: rgba(96, 165, 250, 0.05);">
-          <option value="">Select a demo user to autofill...</option>
-        </select>
-      </div>
-      <button class="portal-btn portal-btn-primary" id="login-btn">Access Portal →</button>
-      <div class="login-error" id="login-error"></div>
     </div>
-    <div class="login-footer">
+
+    <!-- REGISTER CONTAINER (Hidden by default) -->
+    <div id="register-form-container" style="display: none;">
+      <h1 class="login-title">Create Account</h1>
+      <p class="login-desc">Register to access the self-service portal</p>
+      <div class="login-form">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+          <div class="login-field" style="margin-bottom: 0;">
+            <label>First Name</label>
+            <input type="text" id="reg-fname" class="portal-input" placeholder="John" autocomplete="given-name"/>
+          </div>
+          <div class="login-field" style="margin-bottom: 0;">
+            <label>Last Name</label>
+            <input type="text" id="reg-lname" class="portal-input" placeholder="Smith" autocomplete="family-name"/>
+          </div>
+        </div>
+        <div class="login-field">
+          <label>Work Email</label>
+          <input type="email" id="reg-email" class="portal-input" placeholder="john.smith@company.com" autocomplete="email"/>
+        </div>
+        <div class="login-field">
+          <label>Department</label>
+          <select id="reg-dept" class="portal-input">
+            <option value="">Select department…</option>
+            <option>Engineering</option>
+            <option>Marketing</option>
+            <option>Finance</option>
+            <option>HR</option>
+            <option>Sales</option>
+            <option>Operations</option>
+            <option>Design</option>
+            <option>Legal</option>
+          </select>
+        </div>
+        <div class="login-field">
+          <label>Password</label>
+          <input type="password" id="reg-password" class="portal-input" placeholder="••••••••" autocomplete="new-password"/>
+        </div>
+        <div class="login-field">
+          <label>Confirm Password</label>
+          <input type="password" id="reg-confirm-password" class="portal-input" placeholder="••••••••" autocomplete="new-password"/>
+        </div>
+        <button class="portal-btn portal-btn-primary" id="register-btn" style="background: linear-gradient(135deg,#3b82f6,#7c3aed); color:#fff; width:100%; margin-top:8px; padding:13px; font-size:1rem;">Register & Sign In →</button>
+        <div class="login-error" id="reg-error"></div>
+      </div>
+      <div class="login-footer" style="margin-top: 20px;">
+        Already have an account? <a href="javascript:void(0)" id="go-to-login-link">Log In →</a>
+      </div>
+    </div>
+
+    <div class="login-footer" style="margin-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 15px;">
       Already know your ticket ID?
       <a href="javascript:void(0)" id="quick-track-link">Quick track →</a>
     </div>

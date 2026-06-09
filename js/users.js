@@ -5,18 +5,18 @@ const USER_COLORS = ['#58a6ff','#3fb950','#bc8cff','#d29922','#f85149','#26d4b0'
 const DEPTS = ['Engineering','Marketing','Finance','HR','Sales','Operations','Design','Legal'];
 
 const SEED_USERS = [
-  { id:'u1', fname:'James', lname:'Wilson', email:'j.wilson@company.com', dept:'Marketing', role:'end-user', status:'active', phone:'+1 555-0101', location:'HQ Floor 2', notes:'', created:'2025-01-10', lastActive:'2026-05-17' },
-  { id:'u2', fname:'Emily', lname:'Davis', email:'e.davis@company.com', dept:'Engineering', role:'power-user', status:'active', phone:'+1 555-0102', location:'HQ Floor 3', notes:'Senior dev, needs extended access', created:'2024-11-05', lastActive:'2026-05-16' },
-  { id:'u3', fname:'Robert', lname:'Martinez', email:'r.martinez@company.com', dept:'Finance', role:'end-user', status:'active', phone:'+1 555-0103', location:'Branch Office', notes:'', created:'2025-03-22', lastActive:'2026-05-10' },
-  { id:'u4', fname:'Jennifer', lname:'Thompson', email:'j.thompson@company.com', dept:'HR', role:'manager', status:'active', phone:'+1 555-0104', location:'HQ Floor 1', notes:'HR Manager', created:'2024-06-15', lastActive:'2026-05-17' },
-  { id:'u5', fname:'Daniel', lname:'Garcia', email:'d.garcia@company.com', dept:'Sales', role:'end-user', status:'suspended', phone:'+1 555-0105', location:'Remote', notes:'Account suspended pending investigation', created:'2025-02-01', lastActive:'2026-04-20' },
-  { id:'u6', fname:'Ashley', lname:'Johnson', email:'a.johnson@company.com', dept:'Operations', role:'end-user', status:'active', phone:'+1 555-0106', location:'HQ Floor 2', notes:'', created:'2025-07-19', lastActive:'2026-05-15' },
-  { id:'u7', fname:'Christopher', lname:'Lee', email:'c.lee@company.com', dept:'Engineering', role:'agent', status:'active', phone:'+1 555-0107', location:'HQ Floor 3', notes:'IT Agent', created:'2024-09-30', lastActive:'2026-05-17' },
-  { id:'u8', fname:'Amanda', lname:'White', email:'a.white@company.com', dept:'Design', role:'end-user', status:'pending', phone:'+1 555-0108', location:'HQ Floor 4', notes:'New hire, waiting for system access', created:'2026-05-14', lastActive:'Never' },
-  { id:'u9', fname:'Kevin', lname:'Brown', email:'k.brown@company.com', dept:'Legal', role:'end-user', status:'active', phone:'+1 555-0109', location:'HQ Floor 1', notes:'', created:'2025-05-11', lastActive:'2026-05-12' },
-  { id:'u10', fname:'Stephanie', lname:'Harris', email:'s.harris@company.com', dept:'Marketing', role:'power-user', status:'active', phone:'+1 555-0110', location:'Remote', notes:'Marketing lead', created:'2024-12-01', lastActive:'2026-05-17' },
-  { id:'u11', fname:'Michael', lname:'Chang', email:'m.chang@company.com', dept:'Engineering', role:'end-user', status:'active', phone:'+1 555-0111', location:'HQ Floor 3', notes:'', created:'2025-08-25', lastActive:'2026-05-14' },
-  { id:'u12', fname:'Laura', lname:'Patel', email:'l.patel@company.com', dept:'Finance', role:'end-user', status:'suspended', phone:'+1 555-0112', location:'Branch Office', notes:'Suspended: maternity leave', created:'2025-01-30', lastActive:'2026-02-10' },
+  { id:'u1', fname:'James', lname:'Wilson', email:'j.wilson@company.com', dept:'Marketing', role:'end-user', status:'active', phone:'+1 555-0101', location:'HQ Floor 2', notes:'', created:'2025-01-10', lastActive:'2026-05-17', password:'User@123' },
+  { id:'u2', fname:'Emily', lname:'Davis', email:'e.davis@company.com', dept:'Engineering', role:'power-user', status:'active', phone:'+1 555-0102', location:'HQ Floor 3', notes:'Senior dev, needs extended access', created:'2024-11-05', lastActive:'2026-05-16', password:'User@123' },
+  { id:'u3', fname:'Robert', lname:'Martinez', email:'r.martinez@company.com', dept:'Finance', role:'end-user', status:'active', phone:'+1 555-0103', location:'Branch Office', notes:'', created:'2025-03-22', lastActive:'2026-05-10', password:'User@123' },
+  { id:'u4', fname:'Jennifer', lname:'Thompson', email:'j.thompson@company.com', dept:'HR', role:'manager', status:'active', phone:'+1 555-0104', location:'HQ Floor 1', notes:'HR Manager', created:'2024-06-15', lastActive:'2026-05-17', password:'User@123' },
+  { id:'u5', fname:'Daniel', lname:'Garcia', email:'d.garcia@company.com', dept:'Sales', role:'end-user', status:'suspended', phone:'+1 555-0105', location:'Remote', notes:'Account suspended pending investigation', created:'2025-02-01', lastActive:'2026-04-20', password:'User@123' },
+  { id:'u6', fname:'Ashley', lname:'Johnson', email:'a.johnson@company.com', dept:'Operations', role:'end-user', status:'active', phone:'+1 555-0106', location:'HQ Floor 2', notes:'', created:'2025-07-19', lastActive:'2026-05-15', password:'User@123' },
+  { id:'u7', fname:'Christopher', lname:'Lee', email:'c.lee@company.com', dept:'Engineering', role:'agent', status:'active', phone:'+1 555-0107', location:'HQ Floor 3', notes:'IT Agent', created:'2024-09-30', lastActive:'2026-05-17', password:'User@123' },
+  { id:'u8', fname:'Amanda', lname:'White', email:'a.white@company.com', dept:'Design', role:'end-user', status:'pending', phone:'+1 555-0108', location:'HQ Floor 4', notes:'New hire, waiting for system access', created:'2026-05-14', lastActive:'Never', password:'User@123' },
+  { id:'u9', fname:'Kevin', lname:'Brown', email:'k.brown@company.com', dept:'Legal', role:'end-user', status:'active', phone:'+1 555-0109', location:'HQ Floor 1', notes:'', created:'2025-05-11', lastActive:'2026-05-12', password:'User@123' },
+  { id:'u10', fname:'Stephanie', lname:'Harris', email:'s.harris@company.com', dept:'Marketing', role:'power-user', status:'active', phone:'+1 555-0110', location:'Remote', notes:'Marketing lead', created:'2024-12-01', lastActive:'2026-05-17', password:'User@123' },
+  { id:'u11', fname:'Michael', lname:'Chang', email:'m.chang@company.com', dept:'Engineering', role:'end-user', status:'active', phone:'+1 555-0111', location:'HQ Floor 3', notes:'', created:'2025-08-25', lastActive:'2026-05-14', password:'User@123' },
+  { id:'u12', fname:'Laura', lname:'Patel', email:'l.patel@company.com', dept:'Finance', role:'end-user', status:'suspended', phone:'+1 555-0112', location:'Branch Office', notes:'Suspended: maternity leave', created:'2025-01-30', lastActive:'2026-02-10', password:'User@123' },
 ];
 
 let allUsersData = [];
@@ -31,7 +31,18 @@ function loadUsers() {
     const r = localStorage.getItem(LS_USERS); 
     if (r) {
       const parsed = JSON.parse(r);
-      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+      if (Array.isArray(parsed)) {
+        let modified = false;
+        const list = parsed.filter(Boolean).map(u => {
+          if (!u.password) {
+            u.password = 'User@123';
+            modified = true;
+          }
+          return u;
+        });
+        if (modified) saveUsers(list);
+        return list;
+      }
     }
   } catch(e){}
   saveUsers(SEED_USERS);
