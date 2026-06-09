@@ -148,7 +148,7 @@ function updateOpenCount() {
 // ====== TICKET CRUD ======
 function createTicket(data) {
   const now = new Date().toISOString();
-  const id = `TKT-${String(allTickets.length + 1).padStart(4,'0')}`;
+  const id = generateTicketId(allTickets.length + 1);
   const ticket = {
     id, subject: data.subject, requester: data.requester, email: data.email,
     category: data.category, priority: data.priority, status: data.status,

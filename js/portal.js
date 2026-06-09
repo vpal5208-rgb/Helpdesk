@@ -181,7 +181,7 @@ function submitTicket() {
     btn.disabled = false; btn.textContent = 'Submit Ticket →';
     const all = loadTickets();
     const now = new Date().toISOString();
-    const id  = 'TKT-' + String(all.length + 1).padStart(4,'0');
+    const id  = generateTicketId(all.length + 1);
     const fullDesc = desc + (device ? `\n\nDevice: ${device}` : '') + `\nUsers affected: ${affected}`;
     const ticket = {
       id, subject,
@@ -342,13 +342,24 @@ function attachCardEvents(container) {
 
 /* ===== TRACK ===== */
 function doTrack() {
-  const raw = document.getElementById('track-id-input').value.trim().toUpperCase();
-  const id  = raw.startsWith('TKT-') ? raw : 'TKT-' + raw.replace(/\D/g,'').padStart(4,'0');
+  const raw = document.getElementById('track-id-input').value.trim();
+  if (!raw) return;
   const container = document.getElementById('track-result');
   const all = loadTickets();
-  const t   = all.find(x => x.id === id);
+  
+  // Resilient lookup: exact match or numeric suffix match
+  let t = all.find(x => x.id.toLowerCase() === raw.toLowerCase());
   if (!t) {
-    container.innerHTML = `<div class="track-not-found"><div style="font-size:2.5rem">🔍</div><h3 style="margin:12px 0 6px">Ticket not found</h3><p style="color:var(--text-2)">No ticket found with ID <strong>${raw||id}</strong>. Please check the ID and try again.</p></div>`;
+    const numbersOnly = raw.replace(/\D/g, '');
+    if (numbersOnly) {
+      t = all.find(x => {
+        const match = x.id.match(/\d+$/);
+        return match && parseInt(match[0]) === parseInt(numbersOnly);
+      });
+    }
+  }
+  if (!t) {
+    container.innerHTML = `<div class="track-not-found"><div style="font-size:2.5rem">🔍</div><h3 style="margin:12px 0 6px">Ticket not found</h3><p style="color:var(--text-2)">No ticket found with ID <strong>${raw}</strong>. Please check the ID and try again.</p></div>`;
     return;
   }
   renderTicketDetail(t, container);

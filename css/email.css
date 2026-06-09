@@ -273,4 +273,16 @@
   .full-width-card { grid-column: 1; }
   .trigger-recv-sel { width: 130px; }
   .email-form-grid { grid-template-columns: 1fr; }
+  .email-template-editor-grid { grid-template-columns: 1fr; }
+}
+
+/* ====== EMAIL TEMPLATE EDITOR ====== */
+.email-template-editor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 20px;
+}
+.email-template-editor-grid .form-group.full-width {
+  grid-column: 1 / -1;
 }

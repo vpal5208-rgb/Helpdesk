@@ -3,6 +3,56 @@
 ============================================= */
 
 const LS_EMAIL_CONFIG = 'hd_email_config_v1';
+const LS_EMAIL_TEMPLATES = 'hd_email_templates_custom_v1';
+
+const TEMPLATE_DEFAULTS = {
+  new_ticket: {
+    subject: 'New Support Ticket Created',
+    header: 'New Ticket Submitted',
+    body: 'A new support ticket has been submitted and requires attention.',
+    cta: 'View Ticket'
+  },
+  assigned: {
+    subject: 'Ticket Assigned to You',
+    header: 'Ticket Assignment',
+    body: 'A support ticket has been assigned to you and requires your attention.',
+    cta: 'Work on Ticket'
+  },
+  resolved: {
+    subject: 'Your Ticket Has Been Resolved',
+    header: 'Ticket Resolved',
+    body: 'Great news! Your support ticket has been resolved by our IT team. Please review the resolution and let us know if the issue persists.',
+    cta: 'View Resolution'
+  },
+  sla_breach: {
+    subject: '⚠ SLA Breach Warning — Immediate Action Required',
+    header: 'SLA Breach Alert',
+    body: 'URGENT: The following ticket has breached its SLA deadline and requires immediate attention.',
+    cta: 'Resolve Now'
+  }
+};
+
+function loadEmailTemplates() {
+  try {
+    const r = localStorage.getItem(LS_EMAIL_TEMPLATES);
+    if (r) return JSON.parse(r);
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(TEMPLATE_DEFAULTS));
+}
+
+function saveEmailTemplates(templates) {
+  localStorage.setItem(LS_EMAIL_TEMPLATES, JSON.stringify(templates));
+}
+
+function replacePlaceholders(text, data) {
+  if (!text) return '';
+  return text
+    .replace(/{ticketId}/g, data.ticketId || '')
+    .replace(/{subject}/g, data.ticketSubject || '')
+    .replace(/{priority}/g, data.priority || '')
+    .replace(/{status}/g, data.status || '')
+    .replace(/{requester}/g, data.requester || '');
+}
 
 const EMAIL_DEFAULTS = {
   smtpHost: 'smtp.company.com',
@@ -28,54 +78,82 @@ const EMAIL_DEFAULTS = {
 };
 
 const EMAIL_TEMPLATES = {
-  new_ticket: (cfg) => renderEmailPreview({
-    icon:'🎫', subject:'New Support Ticket Created',
-    headerTitle:'New Ticket Submitted', headerSub:'IT Support Management',
-    greeting:`Hello ${cfg.fromName} Team,`,
-    body:`A new support ticket has been submitted and requires attention.`,
-    ticketId:'TKT-0064', ticketSubject:'VPN connection dropping intermittently',
-    priority:'High', status:'Open', requester:'John Smith',
-    badgeClass:'badge-high',
-    cta:'View Ticket', ctaHref:'#',
-    footer:`This notification was sent to: All Agents\nTicket notifications are managed in Settings › Email Configuration`,
-    sig: cfg.signature,
-  }),
-  assigned: (cfg) => renderEmailPreview({
-    icon:'👤', subject:'Ticket Assigned to You',
-    headerTitle:'Ticket Assignment', headerSub:'IT Support Management',
-    greeting:`Hello Sarah Chen,`,
-    body:`A support ticket has been assigned to you and requires your attention.`,
-    ticketId:'TKT-0042', ticketSubject:'Printer offline on 3rd floor',
-    priority:'Medium', status:'In Progress', requester:'Emily Davis',
-    badgeClass:'badge-medium',
-    cta:'Work on Ticket', ctaHref:'#',
-    footer:`You received this because you were assigned to this ticket.\nManage notification settings in Settings › Email Configuration`,
-    sig: cfg.signature,
-  }),
-  resolved: (cfg) => renderEmailPreview({
-    icon:'✅', subject:'Your Ticket Has Been Resolved',
-    headerTitle:'Ticket Resolved', headerSub:'IT Support Management',
-    greeting:`Hello James Wilson,`,
-    body:`Great news! Your support ticket has been resolved by our IT team. Please review the resolution and let us know if the issue persists.`,
-    ticketId:'TKT-0031', ticketSubject:'Outlook not syncing emails',
-    priority:'High', status:'Resolved', requester:'James Wilson',
-    badgeClass:'badge-resolved',
-    cta:'View Resolution', ctaHref:'#',
-    footer:`If the issue is not resolved, please reply to this email or reopen the ticket.\nHelpDesk Pro | IT Support`,
-    sig: cfg.signature,
-  }),
-  sla_breach: (cfg) => renderEmailPreview({
-    icon:'🚨', subject:'⚠ SLA Breach Warning — Immediate Action Required',
-    headerTitle:'SLA Breach Alert', headerSub:'IT Support Management',
-    greeting:`Hello IT Manager,`,
-    body:`<span style="color:#f85149;font-weight:700">URGENT:</span> The following ticket has breached its SLA deadline and requires immediate attention.`,
-    ticketId:'TKT-0005', ticketSubject:'Malware detected on workstation',
-    priority:'Critical', status:'Open', requester:'Robert Martinez',
-    badgeClass:'badge-critical',
-    cta:'Resolve Now', ctaHref:'#',
-    footer:`SLA Configuration: Critical = 2h | High = 8h | Medium = 24h | Low = 72h\nManage SLA thresholds in Settings › SLA Configuration`,
-    sig: cfg.signature,
-  }),
+  new_ticket: (cfg) => {
+    const tpls = loadEmailTemplates();
+    const t = tpls.new_ticket || TEMPLATE_DEFAULTS.new_ticket;
+    const data = {
+      ticketId: 'TKT-0064', ticketSubject: 'VPN connection dropping intermittently',
+      priority: 'High', status: 'Open', requester: 'John Smith'
+    };
+    return renderEmailPreview({
+      icon:'🎫', subject: replacePlaceholders(t.subject, data),
+      headerTitle: replacePlaceholders(t.header, data), headerSub: 'IT Support Management',
+      greeting:`Hello ${cfg.fromName} Team,`,
+      body: replacePlaceholders(t.body, data),
+      ...data,
+      badgeClass:'badge-high',
+      cta: replacePlaceholders(t.cta, data), ctaHref:'#',
+      footer:`This notification was sent to: All Agents\nTicket notifications are managed in Settings › Email Configuration`,
+      sig: cfg.signature,
+    });
+  },
+  assigned: (cfg) => {
+    const tpls = loadEmailTemplates();
+    const t = tpls.assigned || TEMPLATE_DEFAULTS.assigned;
+    const data = {
+      ticketId: 'TKT-0042', ticketSubject: 'Printer offline on 3rd floor',
+      priority: 'Medium', status: 'In Progress', requester: 'Emily Davis'
+    };
+    return renderEmailPreview({
+      icon:'👤', subject: replacePlaceholders(t.subject, data),
+      headerTitle: replacePlaceholders(t.header, data), headerSub: 'IT Support Management',
+      greeting:`Hello Sarah Chen,`,
+      body: replacePlaceholders(t.body, data),
+      ...data,
+      badgeClass:'badge-medium',
+      cta: replacePlaceholders(t.cta, data), ctaHref:'#',
+      footer:`You received this because you were assigned to this ticket.\nManage notification settings in Settings › Email Configuration`,
+      sig: cfg.signature,
+    });
+  },
+  resolved: (cfg) => {
+    const tpls = loadEmailTemplates();
+    const t = tpls.resolved || TEMPLATE_DEFAULTS.resolved;
+    const data = {
+      ticketId: 'TKT-0031', ticketSubject: 'Outlook not syncing emails',
+      priority: 'High', status: 'Resolved', requester: 'James Wilson'
+    };
+    return renderEmailPreview({
+      icon:'✅', subject: replacePlaceholders(t.subject, data),
+      headerTitle: replacePlaceholders(t.header, data), headerSub: 'IT Support Management',
+      greeting:`Hello James Wilson,`,
+      body: replacePlaceholders(t.body, data),
+      ...data,
+      badgeClass:'badge-resolved',
+      cta: replacePlaceholders(t.cta, data), ctaHref:'#',
+      footer:`If the issue is not resolved, please reply to this email or reopen the ticket.\nHelpDesk Pro | IT Support`,
+      sig: cfg.signature,
+    });
+  },
+  sla_breach: (cfg) => {
+    const tpls = loadEmailTemplates();
+    const t = tpls.sla_breach || TEMPLATE_DEFAULTS.sla_breach;
+    const data = {
+      ticketId: 'TKT-0005', ticketSubject: 'Malware detected on workstation',
+      priority: 'Critical', status: 'Open', requester: 'Robert Martinez'
+    };
+    return renderEmailPreview({
+      icon:'🚨', subject: replacePlaceholders(t.subject, data),
+      headerTitle: replacePlaceholders(t.header, data), headerSub: 'IT Support Management',
+      greeting:`Hello IT Manager,`,
+      body: replacePlaceholders(t.body, data),
+      ...data,
+      badgeClass:'badge-critical',
+      cta: replacePlaceholders(t.cta, data), ctaHref:'#',
+      footer:`SLA Configuration: Critical = 2h | High = 8h | Medium = 24h | Low = 72h\nManage SLA thresholds in Settings › SLA Configuration`,
+      sig: cfg.signature,
+    });
+  },
   summary: (cfg) => renderSummaryPreview(cfg),
 };
 
@@ -242,6 +320,52 @@ function initEmailConfig() {
   applyEmailConfigToForm(cfg);
   updateEmailPreview();
 
+  // Load custom templates config
+  let customTemplates = loadEmailTemplates();
+
+  const tempSelect = document.getElementById('template-select');
+  const tempSub = document.getElementById('template-subject');
+  const tempHead = document.getElementById('template-header');
+  const tempCta = document.getElementById('template-cta');
+  const tempBody = document.getElementById('template-body');
+
+  const populateTemplateFields = () => {
+    if (!tempSelect) return;
+    const key = tempSelect.value;
+    const t = customTemplates[key] || TEMPLATE_DEFAULTS[key];
+    if (t) {
+      if (tempSub) tempSub.value = t.subject || '';
+      if (tempHead) tempHead.value = t.header || '';
+      if (tempCta) tempCta.value = t.cta || '';
+      if (tempBody) tempBody.value = t.body || '';
+    }
+  };
+
+  if (tempSelect) {
+    tempSelect.addEventListener('change', populateTemplateFields);
+    populateTemplateFields();
+  }
+
+  const updateCurrentTemplate = () => {
+    if (!tempSelect) return;
+    const key = tempSelect.value;
+    if (!customTemplates[key]) customTemplates[key] = {};
+    if (tempSub) customTemplates[key].subject = tempSub.value;
+    if (tempHead) customTemplates[key].header = tempHead.value;
+    if (tempCta) customTemplates[key].cta = tempCta.value;
+    if (tempBody) customTemplates[key].body = tempBody.value;
+    
+    saveEmailTemplates(customTemplates);
+    markUnsaved();
+
+    clearTimeout(window._previewTimer);
+    window._previewTimer = setTimeout(updateEmailPreview, 400);
+  };
+
+  [tempSub, tempHead, tempCta, tempBody].forEach(el => {
+    if (el) el.addEventListener('input', updateCurrentTemplate);
+  });
+
   // Settings Tabs
   document.querySelectorAll('.settings-tab').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -330,6 +454,12 @@ function initEmailConfig() {
     if (!confirm('Reset all email settings to defaults?')) return;
     applyEmailConfigToForm(EMAIL_DEFAULTS);
     saveEmailConfigToStorage(EMAIL_DEFAULTS);
+    
+    // Reset custom templates as well
+    customTemplates = JSON.parse(JSON.stringify(TEMPLATE_DEFAULTS));
+    saveEmailTemplates(customTemplates);
+    populateTemplateFields();
+
     markSaved();
     showToast('Email configuration reset to defaults.', 'info');
     updateEmailPreview();

@@ -144,6 +144,47 @@ function loadSLA(){
 }
 function saveSLA(sla){ localStorage.setItem(LS_SLA,JSON.stringify(sla)); }
 
+/* ===== TICKET ID CUSTOMIZATION ===== */
+const LS_TKT_ID = 'hd_tkt_id_config_v1';
+const TKT_ID_DEFAULTS = {
+  prefix: 'TKT',
+  separator: '-',
+  dateComp: 'none',
+  padding: 4
+};
+
+function loadTicketIdConfig() {
+  try {
+    const r = localStorage.getItem(LS_TKT_ID);
+    if (r) return JSON.parse(r);
+  } catch(e) {}
+  return { ...TKT_ID_DEFAULTS };
+}
+
+function saveTicketIdConfig(cfg) {
+  localStorage.setItem(LS_TKT_ID, JSON.stringify(cfg));
+}
+
+function generateTicketId(indexVal) {
+  const cfg = loadTicketIdConfig();
+  let parts = [cfg.prefix];
+  
+  if (cfg.dateComp !== 'none') {
+    const d = new Date();
+    const yyyy = String(d.getFullYear());
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    if (cfg.dateComp === 'yyyy') parts.push(yyyy);
+    else if (cfg.dateComp === 'yyyymm') parts.push(yyyy + mm);
+    else if (cfg.dateComp === 'yyyymmdd') parts.push(yyyy + mm + dd);
+  }
+  
+  const seq = String(indexVal).padStart(parseInt(cfg.padding) || 4, '0');
+  parts.push(seq);
+  
+  return parts.join(cfg.separator);
+}
+
 function getSLAHours(priority,sla){
   return sla[priority]||24;
 }

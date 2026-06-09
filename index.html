@@ -368,6 +368,7 @@ function adminLogout() {
         <button class="settings-tab" data-stab="sla">⏱ SLA</button>
         <button class="settings-tab" data-stab="appearance">🎨 Appearance</button>
         <button class="settings-tab" data-stab="notif">🔔 Notifications</button>
+        <button class="settings-tab" data-stab="ticket-id">🎫 Ticket ID</button>
       </div>
 
       <!-- ── EMAIL CONFIGURATION TAB ── -->
@@ -615,6 +616,52 @@ support@company.com | +1 (800) 555-0199</textarea>
             </div>
           </div>
 
+          <!-- Email Templates Editor -->
+          <div class="settings-card email-card full-width-card">
+            <div class="email-card-header">
+              <div class="email-card-icon templates-icon" style="background: rgba(210,153,34,0.15)">📝</div>
+              <div>
+                <h3>Email Templates</h3>
+                <p class="email-card-sub">Customize the content and subject of email notifications</p>
+              </div>
+            </div>
+            
+            <div class="email-template-editor-grid">
+              <div class="form-group">
+                <label>Select Template to Edit</label>
+                <select id="template-select" class="form-input">
+                  <option value="new_ticket">New Ticket Created</option>
+                  <option value="assigned">Ticket Assigned</option>
+                  <option value="resolved">Ticket Resolved</option>
+                  <option value="sla_breach">SLA Breach Warning</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label>Email Subject</label>
+                <input type="text" id="template-subject" class="form-input" placeholder="Subject line"/>
+              </div>
+
+              <div class="form-group">
+                <label>Header Title</label>
+                <input type="text" id="template-header" class="form-input" placeholder="Header Title"/>
+              </div>
+
+              <div class="form-group">
+                <label>CTA Button Text</label>
+                <input type="text" id="template-cta" class="form-input" placeholder="Button Label"/>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Email Body</label>
+                <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:6px">
+                  Available placeholders: <code>{ticketId}</code>, <code>{subject}</code>, <code>{priority}</code>, <code>{status}</code>, <code>{requester}</code>
+                </div>
+                <textarea id="template-body" class="form-input" rows="4" placeholder="Email body content..."></textarea>
+              </div>
+            </div>
+          </div>
+
           <!-- Test Email -->
           <div class="settings-card email-card full-width-card">
             <div class="email-card-header">
@@ -696,6 +743,58 @@ support@company.com | +1 (800) 555-0199</textarea>
             <div class="setting-item"><label>SLA breach alerts</label><input type="checkbox" id="notif-sla" checked/></div>
             <div class="setting-item"><label>Daily summary</label><input type="checkbox" id="notif-summary"/></div>
             <div class="setting-item"><label>Agent assignment alerts</label><input type="checkbox" id="notif-assign" checked/></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TICKET ID CONFIGURATION TAB ── -->
+      <div class="stab-panel" id="stab-ticket-id">
+        <div class="settings-grid">
+          <div class="settings-card">
+            <h3>Ticket ID Generator Configuration</h3>
+            <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:16px">Configure the structure of generated ticket IDs (e.g. prefix, separator, date component, padding).</p>
+            
+            <div class="email-form-grid" style="padding: 0; margin-bottom: 20px;">
+              <div class="form-group">
+                <label>Prefix *</label>
+                <input type="text" id="tkt-id-prefix" class="form-input" value="TKT" placeholder="e.g. INC, TKT, REQ"/>
+              </div>
+              <div class="form-group">
+                <label>Separator</label>
+                <select id="tkt-id-separator" class="form-input">
+                  <option value="-">- (Dash)</option>
+                  <option value="/">/ (Slash)</option>
+                  <option value=".">. (Dot)</option>
+                  <option value="">None</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Date Component</label>
+                <select id="tkt-id-date" class="form-input">
+                  <option value="none">None (e.g. TKT-0042)</option>
+                  <option value="yyyy">Year - YYYY (e.g. TKT-2026-0042)</option>
+                  <option value="yyyymm">Year & Month - YYYYMM (e.g. TKT-202606-0042)</option>
+                  <option value="yyyymmdd">Full Date - YYYYMMDD (e.g. TKT-20260609-0042)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Sequence Number Padding</label>
+                <select id="tkt-id-padding" class="form-input">
+                  <option value="3">3 digits (e.g. 042)</option>
+                  <option value="4" selected>4 digits (e.g. 0042)</option>
+                  <option value="5">5 digits (e.g. 00042)</option>
+                  <option value="6">6 digits (e.g. 000042)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Live Preview of generated ID -->
+            <div style="padding:16px;background:var(--bg-elevated);border-radius:var(--radius-sm);border:1.5px dashed var(--border);margin-bottom: 20px;">
+              <div style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:6px">LIVE PREVIEW GENERATOR</div>
+              <div id="tkt-id-preview" style="font-size:1.5rem;font-weight:800;color:var(--accent-blue)">TKT-0042</div>
+            </div>
+
+            <button class="btn btn-primary" id="save-tkt-id">Save Ticket ID Settings</button>
           </div>
         </div>
       </div>

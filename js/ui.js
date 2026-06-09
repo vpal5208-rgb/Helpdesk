@@ -101,22 +101,88 @@ function addNotification(text) {
 
 // ====== SETTINGS ======
 function initSettings() {
-  document.getElementById('save-sla').addEventListener('click', () => {
-    const sla = {
-      Critical: parseInt(document.getElementById('sla-critical').value) || 2,
-      High: parseInt(document.getElementById('sla-high').value) || 8,
-      Medium: parseInt(document.getElementById('sla-medium').value) || 24,
-      Low: parseInt(document.getElementById('sla-low').value) || 72,
-    };
-    saveSLA(sla);
-    showToast('SLA settings saved!', 'success');
-    applyFilters();
-  });
+  // SLA Settings Save
+  const saveSlaBtn = document.getElementById('save-sla');
+  if (saveSlaBtn) {
+    saveSlaBtn.addEventListener('click', () => {
+      const sla = {
+        Critical: parseInt(document.getElementById('sla-critical').value) || 2,
+        High: parseInt(document.getElementById('sla-high').value) || 8,
+        Medium: parseInt(document.getElementById('sla-medium').value) || 24,
+        Low: parseInt(document.getElementById('sla-low').value) || 72,
+      };
+      saveSLA(sla);
+      showToast('SLA settings saved!', 'success');
+      applyFilters();
+    });
+  }
 
   // Load current SLA values
   const sla = loadSLA();
-  document.getElementById('sla-critical').value = sla.Critical;
-  document.getElementById('sla-high').value = sla.High;
-  document.getElementById('sla-medium').value = sla.Medium;
-  document.getElementById('sla-low').value = sla.Low;
+  const slaCrit = document.getElementById('sla-critical');
+  const slaHigh = document.getElementById('sla-high');
+  const slaMed = document.getElementById('sla-medium');
+  const slaLow = document.getElementById('sla-low');
+  if (slaCrit) slaCrit.value = sla.Critical;
+  if (slaHigh) slaHigh.value = sla.High;
+  if (slaMed) slaMed.value = sla.Medium;
+  if (slaLow) slaLow.value = sla.Low;
+
+  // Ticket ID Settings
+  const tktCfg = loadTicketIdConfig ? loadTicketIdConfig() : { prefix: 'TKT', separator: '-', dateComp: 'none', padding: 4 };
+  const tktPrefixInput = document.getElementById('tkt-id-prefix');
+  const tktSeparatorSelect = document.getElementById('tkt-id-separator');
+  const tktDateSelect = document.getElementById('tkt-id-date');
+  const tktPaddingSelect = document.getElementById('tkt-id-padding');
+  const tktPreview = document.getElementById('tkt-id-preview');
+
+  if (tktPrefixInput) tktPrefixInput.value = tktCfg.prefix;
+  if (tktSeparatorSelect) tktSeparatorSelect.value = tktCfg.separator;
+  if (tktDateSelect) tktDateSelect.value = tktCfg.dateComp;
+  if (tktPaddingSelect) tktPaddingSelect.value = tktCfg.padding;
+
+  const updateIdPreview = () => {
+    if (!tktPreview || !tktPrefixInput) return;
+    let parts = [tktPrefixInput.value.trim() || 'TKT'];
+    if (tktDateSelect && tktDateSelect.value !== 'none') {
+      const d = new Date();
+      const yyyy = String(d.getFullYear());
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      if (tktDateSelect.value === 'yyyy') parts.push(yyyy);
+      else if (tktDateSelect.value === 'yyyymm') parts.push(yyyy + mm);
+      else if (tktDateSelect.value === 'yyyymmdd') parts.push(yyyy + mm + dd);
+    }
+    const paddingVal = tktPaddingSelect ? parseInt(tktPaddingSelect.value) : 4;
+    const seq = String(42).padStart(paddingVal || 4, '0');
+    parts.push(seq);
+    const sep = tktSeparatorSelect ? tktSeparatorSelect.value : '-';
+    tktPreview.textContent = parts.join(sep);
+  };
+
+  [tktPrefixInput, tktSeparatorSelect, tktDateSelect, tktPaddingSelect].forEach(el => {
+    if (el) el.addEventListener('input', updateIdPreview);
+  });
+  updateIdPreview();
+
+  const saveTktBtn = document.getElementById('save-tkt-id');
+  if (saveTktBtn) {
+    saveTktBtn.addEventListener('click', () => {
+      const prefix = tktPrefixInput ? tktPrefixInput.value.trim() : 'TKT';
+      if (!prefix) {
+        showToast('Prefix is required.', 'error');
+        return;
+      }
+      const newCfg = {
+        prefix,
+        separator: tktSeparatorSelect ? tktSeparatorSelect.value : '-',
+        dateComp: tktDateSelect ? tktDateSelect.value : 'none',
+        padding: tktPaddingSelect ? (parseInt(tktPaddingSelect.value) || 4) : 4
+      };
+      if (saveTicketIdConfig) {
+        saveTicketIdConfig(newCfg);
+        showToast('Ticket ID settings saved!', 'success');
+      }
+    });
+  }
 }
