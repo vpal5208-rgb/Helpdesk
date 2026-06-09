@@ -133,7 +133,13 @@ function loadTickets(){
   saveTickets(seed);
   return seed;
 }
-function saveTickets(tickets){ localStorage.setItem(LS_KEY,JSON.stringify(tickets)); }
+function saveTickets(tickets){ 
+  try {
+    localStorage.setItem(LS_KEY,JSON.stringify(tickets)); 
+  } catch(e) {
+    console.warn("localStorage saveTickets failed:", e);
+  }
+}
 
 function loadSLA(){
   try{
@@ -142,7 +148,13 @@ function loadSLA(){
   }catch(e){}
   return { Critical:2, High:8, Medium:24, Low:72 };
 }
-function saveSLA(sla){ localStorage.setItem(LS_SLA,JSON.stringify(sla)); }
+function saveSLA(sla){ 
+  try {
+    localStorage.setItem(LS_SLA,JSON.stringify(sla)); 
+  } catch(e) {
+    console.warn("localStorage saveSLA failed:", e);
+  }
+}
 
 /* ===== TICKET ID CUSTOMIZATION ===== */
 const LS_TKT_ID = 'hd_tkt_id_config_v1';
@@ -162,7 +174,11 @@ function loadTicketIdConfig() {
 }
 
 function saveTicketIdConfig(cfg) {
-  localStorage.setItem(LS_TKT_ID, JSON.stringify(cfg));
+  try {
+    localStorage.setItem(LS_TKT_ID, JSON.stringify(cfg));
+  } catch(e) {
+    console.warn("localStorage saveTicketIdConfig failed:", e);
+  }
 }
 
 function generateTicketId(indexVal) {

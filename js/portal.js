@@ -152,7 +152,11 @@ function doLogin() {
     if (!dept)  { errEl.textContent = 'Please select your department.'; return; }
     errEl.textContent = '';
     portalUser = { name, email, dept };
-    localStorage.setItem(LS_USER, JSON.stringify(portalUser));
+    try {
+      localStorage.setItem(LS_USER, JSON.stringify(portalUser));
+    } catch(err) {
+      console.warn("Unable to save portal session to localStorage:", err);
+    }
     showPortal();
   } catch(e) {
     console.error("Error during login execution:", e);
