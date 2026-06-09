@@ -393,11 +393,39 @@ function renderAgentsView() {
 function initReports() {
   const csvBtn = document.getElementById('export-reports-csv-btn');
   const pdfBtn = document.getElementById('export-reports-pdf-btn');
+  const reportsToggle = document.getElementById('reports-orientation-toggle');
   
   if (csvBtn) csvBtn.addEventListener('click', exportReportsToCSV);
   if (pdfBtn) {
     pdfBtn.addEventListener('click', () => {
       window.print();
+    });
+  }
+  
+  if (reportsToggle) {
+    reportsToggle.addEventListener('click', e => {
+      const btn = e.target.closest('.toggle-btn');
+      if (!btn) return;
+      reportsToggle.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      const grid = document.querySelector('.reports-grid');
+      if (grid) {
+        if (btn.dataset.orientation === 'list') {
+          grid.classList.add('list-orientation');
+        } else {
+          grid.classList.remove('list-orientation');
+        }
+      }
+      
+      // Re-render charts to fit the updated dimensions
+      setTimeout(() => {
+        try {
+          renderMonthlyChart();
+          renderResolutionChart();
+          renderAgentPerfChart();
+        } catch (err) {}
+      }, 150);
     });
   }
 }

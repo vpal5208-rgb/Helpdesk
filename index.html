@@ -283,7 +283,11 @@ function adminLogout() {
           <h1>Reports</h1>
           <p class="view-sub">Analytics and performance metrics</p>
         </div>
-        <div style="display:flex; gap:10px;">
+        <div style="display:flex; gap:10px; align-items:center;">
+          <div class="toggle-group" id="reports-orientation-toggle" style="margin-right:10px;">
+            <button class="toggle-btn active" data-orientation="grid">⊞ Grid</button>
+            <button class="toggle-btn" data-orientation="list">☰ List</button>
+          </div>
           <button class="btn btn-ghost" id="export-reports-csv-btn">⬇ Export CSV Data</button>
           <button class="btn btn-primary" id="export-reports-pdf-btn">🖨 Print / Save PDF</button>
         </div>
@@ -823,8 +827,8 @@ support@company.com | +1 (800) 555-0199</textarea>
         </div>
       </div>
 
-      <div class="toolbar" style="margin-bottom: 20px;">
-        <div class="toolbar-left" style="display:flex; gap:10px; width: 100%;">
+      <div class="toolbar" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div class="toolbar-left" style="display:flex; gap:10px; flex: 1;">
           <input type="text" id="audit-search" class="form-input" style="max-width: 300px;" placeholder="Search by action, user or ticket ID..."/>
           <select id="audit-filter-action" class="form-input" style="max-width: 180px;">
             <option value="">All Action Types</option>
@@ -837,9 +841,16 @@ support@company.com | +1 (800) 555-0199</textarea>
           </select>
           <button class="btn btn-ghost" id="clear-audit-filters">Clear</button>
         </div>
+        <div class="toolbar-right">
+          <div class="toggle-group" id="audit-orientation-toggle">
+            <button class="toggle-btn active" data-orientation="table">📋 Table</button>
+            <button class="toggle-btn" data-orientation="timeline">⏳ Timeline</button>
+          </div>
+        </div>
       </div>
 
-      <div class="table-container">
+      <!-- Table Orientation Container -->
+      <div class="table-container" id="audit-table-orientation">
         <table class="data-table">
           <thead>
             <tr>
@@ -853,6 +864,13 @@ support@company.com | +1 (800) 555-0199</textarea>
             <!-- Dynamic rows will be inserted here -->
           </tbody>
         </table>
+      </div>
+
+      <!-- Timeline Orientation Container (Initially hidden) -->
+      <div id="audit-timeline-orientation" style="display: none;">
+        <div class="audit-timeline" id="audit-timeline-flow">
+          <!-- Dynamic timeline events will be inserted here -->
+        </div>
       </div>
     </section>
 
