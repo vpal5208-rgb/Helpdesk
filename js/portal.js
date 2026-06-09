@@ -225,8 +225,8 @@ function prefillAndGo(subject, category, priority) {
 /* ===== TICKET DATA ===== */
 function getMyTickets() {
   const all = loadTickets();
-  if (!portalUser) return all;
-  return all.filter(t => t.email && t.email.toLowerCase() === portalUser.email.toLowerCase());
+  if (!portalUser) return [];
+  return (all || []).filter(t => t && t.email && typeof t.email === 'string' && t.email.toLowerCase() === portalUser.email.toLowerCase());
 }
 
 function getAllTickets() { return loadTickets(); }
@@ -327,7 +327,15 @@ function ticketCardHTML(t, showTimeline) {
   const priCls    = { Critical:'pbadge-critical',High:'pbadge-high',Medium:'pbadge-medium',Low:'pbadge-low' }[t.priority]||'pbadge-medium';
   const catIcons  = { Network:'📶', Hardware:'🖥', Software:'💻', Account:'👤', Security:'🔒', Other:'📋' };
   const icon = catIcons[t.category]||'📋';
-  const created = new Date(t.created).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+
+  let created = 'Unknown';
+  if (t && t.created) {
+    const d = new Date(t.created);
+    if (!isNaN(d.getTime())) {
+      created = d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    }
+  }
+
   const escalatedTag = t.escalated ? '<span class="escalated-tag">🚨 Escalated</span>' : '';
   const canEscalate  = !t.escalated && (t.status==='Open'||t.status==='In Progress');
   const canClose     = t.status==='Resolved';
@@ -360,7 +368,7 @@ function ticketCardHTML(t, showTimeline) {
       <button class="portal-btn portal-btn-ghost btn-sm track-detail-btn" data-id="${t.id}">🔍 View Details</button>
       ${canEscalate ? `<button class="portal-btn btn-sm escalate-btn" data-id="${t.id}" style="background:var(--red-light);color:var(--red);border:1.5px solid var(--red)">🚨 Escalate</button>` : ''}
       ${canClose ? `<button class="portal-btn portal-btn-ghost btn-sm close-ticket-btn" data-id="${t.id}">✓ Mark Closed</button>` : ''}
-      ${t.comments.length ? `<span class="tc-meta-item" style="margin-left:auto">💬 ${t.comments.length} comment${t.comments.length>1?'s':''}</span>` : ''}
+      ${(Array.isArray(t.comments) && t.comments.length) ? `<span class="tc-meta-item" style="margin-left:auto">💬 ${t.comments.length} comment${t.comments.length>1?'s':''}</span>` : ''}
     </div>
   </div>`;
 }
@@ -381,13 +389,14 @@ function buildTimeline(status) {
 }
 
 function buildSLABar(t) {
-  if (t.status==='Resolved'||t.status==='Closed') return '';
+  if (!t || t.status==='Resolved'||t.status==='Closed') return '';
   const slaH = { Critical:2, High:8, Medium:24, Low:72 }[t.priority]||24;
-  const elapsed = (Date.now() - new Date(t.created).getTime()) / 3600000;
+  const createdTime = t.created ? new Date(t.created).getTime() : Date.now();
+  const elapsed = (Date.now() - (isNaN(createdTime) ? Date.now() : createdTime)) / 3600000;
   const pct = Math.min((elapsed/slaH)*100, 100);
   const color = pct>100?'var(--red)':pct>75?'var(--orange)':'var(--green)';
   const remaining = slaH - elapsed;
-  const label = remaining < 0 ? '⚠ SLA Breached' : remaining < 2 ? `⚡ ${remaining.toFixed(1)}h left` : `${remaining.toFixed(0)}h remaining`;
+  const label = isNaN(remaining) ? 'SLA Pending' : (remaining < 0 ? '⚠ SLA Breached' : remaining < 2 ? `⚡ ${remaining.toFixed(1)}h left` : `${remaining.toFixed(0)}h remaining`);
   return `<div class="sla-timer-bar">
     <div class="sla-bar-track"><div class="sla-bar-fill" style="width:${pct}%;background:${color}"></div></div>
     <div style="font-size:.7rem;color:${color};font-weight:600;margin-top:2px">${label}</div>
@@ -438,18 +447,37 @@ function doTrack() {
 function renderTicketDetail(t, container) {
   const statusCls = { Open:'pbadge-open','In Progress':'pbadge-inprogress','Resolved':'pbadge-resolved','Closed':'pbadge-closed' }[t.status]||'';
   const priCls    = { Critical:'pbadge-critical',High:'pbadge-high',Medium:'pbadge-medium',Low:'pbadge-low' }[t.priority]||'';
-  const created   = new Date(t.created).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  
+  let created = 'Unknown';
+  let createdTime = Date.now();
+  if (t && t.created) {
+    const d = new Date(t.created);
+    if (!isNaN(d.getTime())) {
+      created = d.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      createdTime = d.getTime();
+    }
+  }
+
   const agent     = getAgentById ? getAgentById(t.agentId) : null;
   const canEsc    = !t.escalated && (t.status==='Open'||t.status==='In Progress');
   const slaH      = { Critical:2, High:8, Medium:24, Low:72 }[t.priority]||24;
-  const elapsed   = (Date.now()-new Date(t.created).getTime())/3600000;
+  const elapsed   = (Date.now() - createdTime)/3600000;
   const remaining = slaH - elapsed;
-  const slaText   = (t.status==='Resolved'||t.status==='Closed') ? 'N/A' : remaining<0 ? '⚠ Breached' : remaining.toFixed(0)+'h remaining';
+  const slaText   = (t.status==='Resolved'||t.status==='Closed') ? 'N/A' : (isNaN(remaining) ? 'Pending' : (remaining<0 ? '⚠ Breached' : remaining.toFixed(0)+'h remaining'));
   const slaColor  = remaining<0 ? 'var(--red)' : remaining<2 ? 'var(--orange)' : 'var(--green)';
 
-  const comments = t.comments.filter(c=>!c.internal);
+  const comments = Array.isArray(t.comments) ? t.comments.filter(c => c && !c.internal) : [];
   const commentsHTML = comments.length
-    ? comments.map(c=>`<div class="dc-comment"><div class="dc-author">${c.author} · ${new Date(c.time).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>${c.text}</div>`).join('')
+    ? comments.map(c=>{
+        let timeStr = 'Unknown';
+        if (c && c.time) {
+          const d = new Date(c.time);
+          if (!isNaN(d.getTime())) {
+            timeStr = d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+          }
+        }
+        return `<div class="dc-comment"><div class="dc-author">${c.author} · ${timeStr}</div>${c.text}</div>`;
+      }).join('')
     : '<p style="color:var(--text-3);font-size:.83rem">No comments yet.</p>';
 
   const timeline = buildTimeline(t.status);
