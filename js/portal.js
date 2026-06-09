@@ -131,11 +131,7 @@ function initPortal() {
   setupListener('escalate-cancel-btn', 'click', () => closeModal('escalate-overlay'));
   setupListener('escalate-submit-btn', 'click', doEscalate);
 
-  try {
-    populateDemoUsers();
-  } catch(e) {
-    console.error("Error populating demo users:", e);
-  }
+
 }
 
 function getPortalUsers() {
@@ -185,28 +181,6 @@ function getPortalUsers() {
   return list;
 }
 
-function populateDemoUsers() {
-  const select = document.getElementById('demo-user-select');
-  if (!select) return;
-
-  const usersList = getPortalUsers().filter(u => u && u.fname && u.email && u.status !== 'suspended');
-
-  select.innerHTML = '<option value="">Select a demo user to autofill...</option>' +
-    usersList.map(u => {
-      const name = `${u.fname} ${u.lname || ''}`.trim();
-      return `<option value="${u.email}|${u.password}">${name} (${u.dept || 'Engineering'})</option>`;
-    }).join('');
-
-  select.addEventListener('change', (e) => {
-    const val = e.target.value;
-    if (!val) return;
-    const [email, password] = val.split('|');
-    const emailEl = document.getElementById('login-email');
-    const passEl  = document.getElementById('login-password');
-    if (emailEl) emailEl.value = email;
-    if (passEl) passEl.value = password;
-  });
-}
 
 function doLogin() {
   try {
