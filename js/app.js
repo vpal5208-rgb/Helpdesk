@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   try { initSettings(); } catch(e) { console.error('initSettings error:', e); }
   try { initEmailConfig(); } catch(e) { console.error('initEmailConfig error:', e); }
   try { initAuditTrail(); } catch(e) { console.error('initAuditTrail error:', e); }
+  try { initReports(); } catch(e) { console.error('initReports error:', e); }
 
   // Render initial views
   try { updateDashboard(); } catch(e) { console.error('updateDashboard error:', e); }

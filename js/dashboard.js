@@ -388,3 +388,64 @@ function renderAgentsView() {
     grid.appendChild(card);
   });
 }
+
+/* ====== REPORTS EXPORT ====== */
+function initReports() {
+  const csvBtn = document.getElementById('export-reports-csv-btn');
+  const pdfBtn = document.getElementById('export-reports-pdf-btn');
+  
+  if (csvBtn) csvBtn.addEventListener('click', exportReportsToCSV);
+  if (pdfBtn) {
+    pdfBtn.addEventListener('click', () => {
+      window.print();
+    });
+  }
+}
+
+function exportReportsToCSV() {
+  const tickets = loadTickets();
+  const agents = AGENTS;
+  
+  let csvContent = "--- MONTHLY TICKET TREND ---\r\n";
+  csvContent += "Month,Volume\r\n";
+  const monthlyData = {};
+  tickets.forEach(t => {
+    const month = new Date(t.created).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    monthlyData[month] = (monthlyData[month] || 0) + 1;
+  });
+  Object.entries(monthlyData).forEach(([m, count]) => {
+    csvContent += `"${m}",${count}\r\n`;
+  });
+  csvContent += "\r\n";
+  
+  csvContent += "--- TICKET STATUS DISTRIBUTION ---\r\n";
+  csvContent += "Status,Count\r\n";
+  const statusData = { 'Open': 0, 'In Progress': 0, 'Resolved': 0, 'Closed': 0 };
+  tickets.forEach(t => {
+    if (statusData[t.status] !== undefined) statusData[t.status]++;
+  });
+  Object.entries(statusData).forEach(([status, count]) => {
+    csvContent += `"${status}",${count}\r\n`;
+  });
+  csvContent += "\r\n";
+  
+  csvContent += "--- AGENT PERFORMANCE METRICS ---\r\n";
+  csvContent += "Agent Name,Email,Assigned Tickets,Open,Resolved\r\n";
+  agents.forEach(a => {
+    const assigned = tickets.filter(t => t.agentId === a.id);
+    const open = assigned.filter(t => ['Open', 'In Progress'].includes(t.status)).length;
+    const resolved = assigned.filter(t => ['Resolved', 'Closed'].includes(t.status)).length;
+    csvContent += `"${a.name}","${a.email}",${assigned.length},${open},${resolved}\r\n`;
+  });
+  
+  const encodedUri = "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "HelpDesk_Analytics_Report.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  if (typeof showToast === 'function') {
+    showToast("Reports CSV downloaded!", "success");
+  }
+}

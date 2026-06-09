@@ -6,6 +6,7 @@ function initAuditTrail() {
   const searchInput = document.getElementById('audit-search');
   const actionFilter = document.getElementById('audit-filter-action');
   const clearBtn = document.getElementById('clear-audit-filters');
+  const exportBtn = document.getElementById('export-audit-csv-btn');
 
   if (searchInput) searchInput.addEventListener('input', renderAuditTrail);
   if (actionFilter) actionFilter.addEventListener('change', renderAuditTrail);
@@ -15,6 +16,48 @@ function initAuditTrail() {
       if (actionFilter) actionFilter.value = '';
       renderAuditTrail();
     });
+  }
+  if (exportBtn) exportBtn.addEventListener('click', exportAuditTrailToCSV);
+}
+
+function exportAuditTrailToCSV() {
+  const tickets = loadTickets();
+  let auditLogs = [];
+  
+  tickets.forEach(t => {
+    if (Array.isArray(t.auditLog)) {
+      t.auditLog.forEach(log => {
+        auditLogs.push({
+          time: log.time,
+          ticketId: t.id,
+          ticketSubject: t.subject,
+          by: log.by || 'System',
+          action: log.action
+        });
+      });
+    }
+  });
+  
+  auditLogs.sort((a, b) => new Date(b.time) - new Date(a.time));
+  
+  let csvContent = "Date & Time,Ticket ID,Subject,Actor,Action Details\r\n";
+  
+  auditLogs.forEach(log => {
+    const timeStr = new Date(log.time).toISOString();
+    const escapedSubject = log.ticketSubject.replace(/"/g, '""');
+    const escapedAction = log.action.replace(/"/g, '""');
+    csvContent += `"${timeStr}","${log.ticketId}","${escapedSubject}","${log.by}","${escapedAction}"\r\n`;
+  });
+  
+  const encodedUri = "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "HelpDesk_Audit_Trail.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  if (typeof showToast === 'function') {
+    showToast("Audit Trail CSV downloaded!", "success");
   }
 }
 

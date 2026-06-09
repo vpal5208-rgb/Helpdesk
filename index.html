@@ -278,7 +278,16 @@ function adminLogout() {
 
     <!-- REPORTS VIEW -->
     <section class="view" id="view-reports">
-      <div class="view-header"><h1>Reports</h1><p class="view-sub">Analytics and performance metrics</p></div>
+      <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+        <div>
+          <h1>Reports</h1>
+          <p class="view-sub">Analytics and performance metrics</p>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-ghost" id="export-reports-csv-btn">⬇ Export CSV Data</button>
+          <button class="btn btn-primary" id="export-reports-pdf-btn">🖨 Print / Save PDF</button>
+        </div>
+      </div>
       <div class="reports-grid">
         <div class="chart-card wide"><div class="chart-header"><h3>Monthly Ticket Trend</h3></div><canvas id="chart-monthly" height="220"></canvas></div>
         <div class="chart-card"><div class="chart-header"><h3>Resolution Rate</h3></div><canvas id="chart-resolution" height="220"></canvas></div>
@@ -804,9 +813,14 @@ support@company.com | +1 (800) 555-0199</textarea>
 
     <!-- AUDIT TRAIL VIEW -->
     <section class="view" id="view-audit-trail">
-      <div class="view-header">
-        <h1>Audit Trail</h1>
-        <p class="view-sub">Chronological timeline of all system and ticket actions</p>
+      <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+        <div>
+          <h1>Audit Trail</h1>
+          <p class="view-sub">Chronological timeline of all system and ticket actions</p>
+        </div>
+        <div>
+          <button class="btn btn-ghost" id="export-audit-csv-btn">⬇ Export Audit Trail (CSV)</button>
+        </div>
       </div>
 
       <div class="toolbar" style="margin-bottom: 20px;">
