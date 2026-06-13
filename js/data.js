@@ -121,27 +121,55 @@ function generateSeedTickets(){
 const LS_KEY='hd_tickets_v1';
 const LS_SLA='hd_sla_v1';
 
+function updateAgentRatings(tickets) {
+  if (!Array.isArray(tickets)) return;
+  AGENTS.forEach(ag => {
+    const rated = tickets.filter(t => t.agentId === ag.id && typeof t.rating === 'number' && t.rating >= 1 && t.rating <= 5);
+    if (rated.length > 0) {
+      const sum = rated.reduce((acc, t) => acc + t.rating, 0);
+      const baselineCount = 5;
+      const baselineRating = ag.baselineRating || ag.rating;
+      if (!ag.baselineRating) {
+        ag.baselineRating = ag.rating;
+      }
+      ag.rating = parseFloat(((baselineRating * baselineCount + sum) / (baselineCount + rated.length)).toFixed(1));
+    } else {
+      if (ag.baselineRating) {
+        ag.rating = ag.baselineRating;
+      }
+    }
+  });
+}
+
 function loadTickets(){
+  let tickets = [];
   try{
     const raw=localStorage.getItem(LS_KEY);
     if(raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+      if (Array.isArray(parsed)) {
+        tickets = parsed.filter(Boolean);
+      }
     }
   }catch(e){}
   
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  if (isLocal) {
-    const seed=generateSeedTickets();
-    saveTickets(seed);
-    return seed;
+  if (tickets.length === 0) {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocal) {
+      tickets = generateSeedTickets();
+      saveTickets(tickets);
+    } else {
+      saveTickets([]);
+    }
   }
-  saveTickets([]);
-  return [];
+  
+  updateAgentRatings(tickets);
+  return tickets;
 }
 function saveTickets(tickets){ 
   try {
     localStorage.setItem(LS_KEY,JSON.stringify(tickets)); 
+    updateAgentRatings(tickets);
   } catch(e) {
     console.warn("localStorage saveTickets failed:", e);
   }

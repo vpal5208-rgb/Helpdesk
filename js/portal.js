@@ -787,6 +787,26 @@ function renderTicketDetail(t, container) {
         <div style="margin-top:16px;padding:14px;background:var(--bg);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.6">
           <strong style="font-size:.78rem;color:var(--text-2)">DESCRIPTION</strong><br/>${t.description.replace(/\n/g,'<br/>')}
         </div>
+        ${(agent && (t.status === 'Resolved' || t.status === 'Closed')) ? `
+          <div class="rating-box" style="margin-top:16px;padding:14px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border);font-size:.85rem;line-height:1.6">
+            <strong style="font-size:.78rem;color:var(--text-2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Agent Rating</strong>
+            ${t.rating ? `
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="color:var(--text-2)">Your feedback:</span>
+                <span class="stars" style="color:#d97706;font-size:1.15rem">${'★'.repeat(t.rating)}${'☆'.repeat(5 - t.rating)}</span>
+              </div>
+            ` : `
+              <p style="color:var(--text-2);font-size:0.8rem;margin-bottom:8px">How would you rate the support provided by <strong>${agent.name}</strong>?</p>
+              <div class="star-rating-input" data-ticket-id="${t.id}" style="display:flex;gap:6px;font-size:1.6rem;color:var(--text-3);cursor:pointer">
+                <span class="star-rating-star" data-value="1" onclick="submitAgentRating('${t.id}', 1)" onmouseover="highlightStars(this, 1)" onmouseout="resetStars(this)">★</span>
+                <span class="star-rating-star" data-value="2" onclick="submitAgentRating('${t.id}', 2)" onmouseover="highlightStars(this, 2)" onmouseout="resetStars(this)">★</span>
+                <span class="star-rating-star" data-value="3" onclick="submitAgentRating('${t.id}', 3)" onmouseover="highlightStars(this, 3)" onmouseout="resetStars(this)">★</span>
+                <span class="star-rating-star" data-value="4" onclick="submitAgentRating('${t.id}', 4)" onmouseover="highlightStars(this, 4)" onmouseout="resetStars(this)">★</span>
+                <span class="star-rating-star" data-value="5" onclick="submitAgentRating('${t.id}', 5)" onmouseover="highlightStars(this, 5)" onmouseout="resetStars(this)">★</span>
+              </div>
+            `}
+          </div>
+        ` : ''}
       </div>
       <div>
         <div style="font-size:.78rem;font-weight:700;color:var(--text-2);margin-bottom:10px">ACTIONS</div>
@@ -857,7 +877,53 @@ function closeUserTicket(id) {
 
   pToast('Ticket closed. Thank you for confirming the resolution!','success');
   renderMyTickets();
-  if (document.getElementById('ptab-track').classList.contains('active')) doTrack();
+  
+  // Switch to track tab and show details so they can rate the agent
+  switchTab('track');
+  document.getElementById('track-id-input').value = id;
+  doTrack();
+}
+
+/* ===== SUBMIT AGENT RATING ===== */
+function submitAgentRating(ticketId, ratingValue) {
+  const all = loadTickets();
+  const idx = all.findIndex(t => t.id === ticketId);
+  if (idx === -1) return;
+  const t = all[idx];
+  t.rating = ratingValue;
+  t.auditLog.push({ action: `Agent rated ${ratingValue} stars by user.`, time: new Date().toISOString(), by: portalUser?.name || 'User' });
+  saveTickets(all);
+  
+  pToast(`Thank you! You rated the agent ${ratingValue} star${ratingValue > 1 ? 's' : ''}.`, 'success');
+  
+  // Re-render ticket detail
+  const container = document.getElementById('track-result');
+  if (container) {
+    renderTicketDetail(t, container);
+  }
+}
+
+function highlightStars(el, val) {
+  const container = el.closest('.star-rating-input');
+  if (!container) return;
+  const stars = container.querySelectorAll('.star-rating-star');
+  stars.forEach(s => {
+    const v = parseInt(s.getAttribute('data-value'));
+    if (v <= val) {
+      s.style.color = '#d97706';
+    } else {
+      s.style.color = 'var(--text-3)';
+    }
+  });
+}
+
+function resetStars(el) {
+  const container = el.closest('.star-rating-input');
+  if (!container) return;
+  const stars = container.querySelectorAll('.star-rating-star');
+  stars.forEach(s => {
+    s.style.color = '';
+  });
 }
 
 /* ===== MODALS ===== */
