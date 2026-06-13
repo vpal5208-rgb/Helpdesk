@@ -3,11 +3,11 @@
 const LS_ROLES = 'hd_roles_v1';
 
 const DEFAULT_ROLES = [
-  { key: 'end-user', name: 'End User', color: 'gray', desc: 'Standard portal user, can view and create their own tickets.', isDefault: true },
-  { key: 'power-user', name: 'Power User', color: 'gray', desc: 'Advanced portal user with elevated access within their department.', isDefault: true },
-  { key: 'agent', name: 'IT Agent', color: 'blue', desc: 'IT support agent, can be assigned tickets, update status, and chat with users.', isDefault: true },
-  { key: 'manager', name: 'IT Manager', color: 'purple', desc: 'IT team manager, can assign tickets, manage settings, and view reports.', isDefault: true },
-  { key: 'admin', name: 'Administrator', color: 'red', desc: 'Full system administrator access, including role management and advanced settings.', isDefault: true }
+  { key: 'end-user', name: 'End User', color: 'gray', desc: 'Standard portal user, can view and create their own tickets.', isDefault: true, permissions: [] },
+  { key: 'power-user', name: 'Power User', color: 'gray', desc: 'Advanced portal user with elevated access within their department.', isDefault: true, permissions: ['dashboard'] },
+  { key: 'agent', name: 'IT Agent', color: 'blue', desc: 'IT support agent, can be assigned tickets, update status, and chat with users.', isDefault: true, permissions: ['dashboard', 'tickets', 'live-chats'] },
+  { key: 'manager', name: 'IT Manager', color: 'purple', desc: 'IT team manager, can assign tickets, manage settings, and view reports.', isDefault: true, permissions: ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail'] },
+  { key: 'admin', name: 'Administrator', color: 'red', desc: 'Full system administrator access, including role management and advanced settings.', isDefault: true, permissions: ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings'] }
 ];
 
 function loadRoles() {
@@ -16,7 +16,18 @@ function loadRoles() {
     if (data) {
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        // Migration: ensure every role has a permissions array
+        let migrated = false;
+        const list = parsed.map(r => {
+          if (!r.permissions) {
+            const defMatch = DEFAULT_ROLES.find(x => x.key === r.key);
+            r.permissions = defMatch ? [...defMatch.permissions] : ['dashboard'];
+            migrated = true;
+          }
+          return r;
+        });
+        if (migrated) saveRoles(list);
+        return list;
       }
     }
   } catch (e) {
@@ -35,7 +46,7 @@ function saveRoles(list) {
   }
 }
 
-function addRole(name, color, desc) {
+function addRole(name, color, desc, permissions = []) {
   const list = loadRoles();
   const cleanName = name.trim();
   if (!cleanName) return { success: false, error: 'Role name cannot be empty.' };
@@ -55,6 +66,7 @@ function addRole(name, color, desc) {
     name: cleanName,
     color,
     desc: desc.trim(),
+    permissions: Array.isArray(permissions) ? permissions : [],
     isDefault: false
   };
 
@@ -63,7 +75,7 @@ function addRole(name, color, desc) {
   return { success: true, role: newRole };
 }
 
-function updateRole(key, name, color, desc) {
+function updateRole(key, name, color, desc, permissions = []) {
   const list = loadRoles();
   const idx = list.findIndex(r => r.key === key);
   if (idx === -1) return { success: false, error: 'Role not found.' };
@@ -72,14 +84,17 @@ function updateRole(key, name, color, desc) {
   const cleanName = name.trim();
   if (!cleanName) return { success: false, error: 'Role name cannot be empty.' };
 
-  // For default roles, we do not rename key, and keep name standard if desired (or allow customization of color and description only)
+  const perms = Array.isArray(permissions) ? permissions : [];
+
   if (roleObj.isDefault) {
     roleObj.color = color;
     roleObj.desc = desc.trim();
+    roleObj.permissions = perms;
   } else {
     roleObj.name = cleanName;
     roleObj.color = color;
     roleObj.desc = desc.trim();
+    roleObj.permissions = perms;
   }
 
   saveRoles(list);
@@ -100,9 +115,45 @@ function deleteRole(key) {
   return { success: true };
 }
 
+function getCurrentUserRole() {
+  const LS_ADMIN_AUTH = 'hd_admin_auth_v1';
+  const s = sessionStorage.getItem(LS_ADMIN_AUTH) || localStorage.getItem(LS_ADMIN_AUTH);
+  if (!s) return 'end-user';
+  try {
+    const sess = JSON.parse(s);
+    const role = sess.role;
+    if (role === 'IT Manager') return 'manager';
+    if (role === 'IT Agent') return 'agent';
+    return role; // e.g. 'admin', 'auditor'
+  } catch (e) {
+    return 'end-user';
+  }
+}
+
+function applyRolePermissions() {
+  const roles = loadRoles();
+  const userRole = getCurrentUserRole();
+  const roleObj = roles.find(r => r.key === userRole) || { permissions: [] };
+
+  const allViews = ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings'];
+
+  allViews.forEach(view => {
+    const navBtn = document.querySelector(`.sidebar-nav .nav-item[data-view="${view}"]`);
+    if (navBtn) {
+      if (roleObj.permissions && roleObj.permissions.includes(view)) {
+        navBtn.style.display = 'flex';
+      } else {
+        navBtn.style.display = 'none';
+      }
+    }
+  });
+}
+
 // Bind helpers to window
 window.loadRoles = loadRoles;
 window.saveRoles = saveRoles;
 window.addRole = addRole;
 window.updateRole = updateRole;
 window.deleteRole = deleteRole;
+window.getCurrentUserRole = getCurrentUserRole;
+window.applyRolePermissions = applyRolePermissions;

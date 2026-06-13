@@ -199,6 +199,7 @@ function initSettings() {
       document.getElementById('rm-name').disabled = false;
       document.getElementById('rm-color').value = 'gray';
       document.getElementById('rm-desc').value = '';
+      document.querySelectorAll('.rm-perm').forEach(cb => cb.checked = false);
       document.getElementById('role-modal-overlay').classList.add('open');
     });
   }
@@ -219,6 +220,7 @@ function initSettings() {
       const name = document.getElementById('rm-name').value.trim();
       const color = document.getElementById('rm-color').value;
       const desc = document.getElementById('rm-desc').value.trim();
+      const permissions = [...document.querySelectorAll('.rm-perm:checked')].map(cb => cb.value);
 
       if (!name) {
         showToast('Role Name is required.', 'error');
@@ -227,17 +229,18 @@ function initSettings() {
 
       let res;
       if (key) {
-        res = updateRole(key, name, color, desc);
+        res = updateRole(key, name, color, desc, permissions);
       } else {
-        res = addRole(name, color, desc);
+        res = addRole(name, color, desc, permissions);
       }
 
       if (res.success) {
         showToast(key ? 'Role updated successfully!' : 'Role created successfully!', 'success');
         closeRoleModal();
         renderSettingsRolesTable();
-        // Refresh users list so role updates propagate
+        // Refresh users list and immediate sidebar permissions
         if (window.refreshUsersView) refreshUsersView();
+        if (window.applyRolePermissions) applyRolePermissions();
       } else {
         showToast(res.error || 'Failed to save role.', 'error');
       }
@@ -264,6 +267,13 @@ function initSettings() {
         document.getElementById('rm-name').disabled = !!role.isDefault;
         document.getElementById('rm-color').value = role.color;
         document.getElementById('rm-desc').value = role.desc || '';
+        
+        // Populate permission checkboxes
+        const perms = role.permissions || [];
+        document.querySelectorAll('.rm-perm').forEach(cb => {
+          cb.checked = perms.includes(cb.value);
+        });
+
         document.getElementById('role-modal-overlay').classList.add('open');
       }
       
@@ -275,6 +285,7 @@ function initSettings() {
             showToast('Role deleted successfully!', 'success');
             renderSettingsRolesTable();
             if (window.refreshUsersView) refreshUsersView();
+            if (window.applyRolePermissions) applyRolePermissions();
           } else {
             showToast(res.error || 'Failed to delete role.', 'error');
           }
@@ -290,6 +301,17 @@ function renderSettingsRolesTable() {
   const roles = loadRoles();
   tbody.innerHTML = '';
   
+  const permLabels = {
+    dashboard: '📊 Dashboard',
+    tickets: '🎫 Tickets',
+    agents: '👥 Agents',
+    users: '🧑‍💼 Users',
+    reports: '📈 Reports',
+    'live-chats': '💬 Support',
+    'audit-trail': '📋 Audit',
+    settings: '⚙️ Settings'
+  };
+
   roles.forEach(r => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '1px solid var(--border)';
@@ -305,11 +327,15 @@ function renderSettingsRolesTable() {
     
     const colorBadge = `<span class="role-pill" style="${badgeStyle}">${r.color.charAt(0).toUpperCase() + r.color.slice(1)}</span>`;
     
+    const permsHtml = (r.permissions || []).length > 0
+      ? (r.permissions || []).map(p => `<span class="role-pill" style="font-size:0.68rem;padding:1px 5px;margin:2px 2px 2px 0;display:inline-block;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);">${permLabels[p] || p}</span>`).join('')
+      : '<span style="color:var(--text-muted);font-style:italic;font-size:0.75rem;">None (Portal Only)</span>';
+
     tr.innerHTML = `
       <td style="padding:10px 12px; font-weight:600; color:var(--text-primary)">${r.name}</td>
       <td style="padding:10px 12px; font-family:monospace; color:var(--text-secondary)">${r.key}</td>
       <td style="padding:10px 12px;">${colorBadge}</td>
-      <td style="padding:10px 12px; color:var(--text-secondary); max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.desc || '—'}</td>
+      <td style="padding:10px 12px; max-width:320px; line-height:1.4;">${permsHtml}</td>
       <td style="padding:10px 12px; text-align:right;">
         <button class="btn btn-ghost btn-sm btn-edit-role" data-key="${r.key}" style="padding:4px 8px; font-size:0.8rem; margin-right:4px;">✏ Edit</button>
         <button class="btn btn-ghost btn-sm btn-delete-role" data-key="${r.key}" style="padding:4px 8px; font-size:0.8rem; color:var(--accent-red);" ${r.isDefault ? 'disabled title="System role cannot be deleted"' : ''}>🗑 Delete</button>

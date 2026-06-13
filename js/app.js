@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
   try { updateDashboard(); } catch(e) { console.error('updateDashboard error:', e); }
   try { renderAgentsView(); } catch(e) { console.error('renderAgentsView error:', e); }
   try { initUsersView(); } catch(e) { console.error('initUsersView error:', e); }
+  try { applyRolePermissions(); } catch(e) { console.error('applyRolePermissions error:', e); }
 
   // Navigation — use delegation so clicks on child spans still work
   try {
@@ -57,6 +58,23 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function navigateTo(view) {
+  // Check permission
+  const roles = typeof loadRoles === 'function' ? loadRoles() : [];
+  const userRole = typeof getCurrentUserRole === 'function' ? getCurrentUserRole() : 'end-user';
+  const roleObj = roles.find(r => r.key === userRole);
+  
+  if (roleObj && roleObj.permissions && !roleObj.permissions.includes(view)) {
+    if (typeof showToast === 'function') {
+      showToast(`Access Denied: Your role does not have permission to view the ${view} tab.`, 'error');
+    }
+    // Redirect to the first permitted tab
+    const firstPermitted = roleObj.permissions[0];
+    if (firstPermitted && firstPermitted !== view) {
+      navigateTo(firstPermitted);
+    }
+    return;
+  }
+
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`.nav-item[data-view="${view}"]`)?.classList.add('active');
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));

@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="css/components.css?v=3"/>
 <link rel="stylesheet" href="css/dashboard.css?v=3"/>
 <link rel="stylesheet" href="css/email.css?v=3"/>
-<link rel="stylesheet" href="css/users.css?v=10"/>
+<link rel="stylesheet" href="css/users.css?v=11"/>
 <link rel="stylesheet" href="css/portal.css?v=3"/>
 <link rel="stylesheet" href="css/chat.css?v=4"/>
 </head>
@@ -115,19 +115,62 @@ function doAdminLogin() {
   btn.disabled = true; btn.textContent = 'Signing in…';
   setTimeout(() => {
     btn.disabled = false; btn.textContent = 'Sign In →';
-    const match = ADMIN_ACCOUNTS.find(a => a.email === email && a.password === pass);
-    if (!match) { err.textContent = '❌ Invalid email or password. Try the demo credentials below.'; return; }
+    
+    // 1. Try hardcoded demo accounts first
+    let match = ADMIN_ACCOUNTS.find(a => a.email.toLowerCase() === email && a.password === pass);
+    
+    // 2. Query DB users if no demo account matched
+    if (!match) {
+      const dbUsers = (typeof loadUsers === 'function') ? loadUsers() : [];
+      const dbMatch = dbUsers.find(u => u.email.toLowerCase() === email && u.password === pass);
+      if (dbMatch) {
+        match = {
+          name: dbMatch.fname + ' ' + dbMatch.lname,
+          email: dbMatch.email,
+          role: dbMatch.role
+        };
+      }
+    }
+    
+    if (!match) {
+      err.textContent = '❌ Invalid email or password. Try the demo credentials below.';
+      return;
+    }
+
+    // 3. Check role access permission
+    const roles = (typeof loadRoles === 'function') ? loadRoles() : [];
+    const normalizedRole = match.role === 'IT Manager' ? 'manager' : (match.role === 'IT Agent' ? 'agent' : match.role);
+    const roleObj = roles.find(r => r.key === normalizedRole) || { permissions: [] };
+    
+    if (!roleObj || !roleObj.permissions || roleObj.permissions.length === 0) {
+      err.textContent = '❌ Access Denied: This account does not have permission to access the Admin Dashboard.';
+      return;
+    }
+
     const session = { name: match.name, email: match.email, role: match.role, ts: Date.now() };
     if (remember) localStorage.setItem(LS_ADMIN_AUTH, JSON.stringify(session));
     else          sessionStorage.setItem(LS_ADMIN_AUTH, JSON.stringify(session));
+    
     document.getElementById('admin-login-screen').style.display = 'none';
-    // update sidebar user display
+    
+    // update sidebar display
     const nameEl = document.querySelector('.user-name');
     const roleEl = document.querySelector('.user-role');
     const avatarEl = document.querySelector('.user-avatar');
     if (nameEl)   nameEl.textContent = match.name;
-    if (roleEl)   roleEl.textContent = match.role;
+    
+    const displayRole = roleObj.name || match.role;
+    if (roleEl)   roleEl.textContent = displayRole;
     if (avatarEl) avatarEl.textContent = match.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+
+    // Restrict tabs immediately
+    if (typeof applyRolePermissions === 'function') applyRolePermissions();
+    
+    // Navigate to first authorized view
+    if (roleObj.permissions && roleObj.permissions.length > 0) {
+      const firstPerm = roleObj.permissions[0];
+      if (typeof navigateTo === 'function') navigateTo(firstPerm);
+    }
   }, 600);
 }
 
@@ -164,6 +207,8 @@ function adminLogout() {
   document.getElementById('al-password').value = '';
   document.getElementById('al-error').textContent = '';
   document.body.style.overflow = 'hidden';
+  // Restore sidebar items for next login
+  document.querySelectorAll('.sidebar-nav .nav-item').forEach(btn => btn.style.display = 'flex');
 }
 </script>
 
@@ -1225,7 +1270,20 @@ support@company.com | +1 (800) 555-0199</textarea>
       </div>
       <div class="form-group" style="margin-bottom:16px">
         <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Description</label>
-        <textarea id="rm-desc" class="form-input" style="width:100%;height:80px;resize:vertical;" placeholder="Describe the permissions or purpose of this role..."></textarea>
+        <textarea id="rm-desc" class="form-input" style="width:100%;height:80px;resize:vertical;margin-bottom:0;" placeholder="Describe the permissions or purpose of this role..."></textarea>
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Permissions / Access Controls</label>
+        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; padding: 12px; background: var(--bg-elevated); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+          <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="dashboard" style="width:auto;margin:0"/> 📊 Dashboard</label>
+          <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="tickets" style="width:auto;margin:0"/> 🎫 Tickets</label>
+          <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="agents" style="width:auto;margin:0"/> 👥 Agents</label>
+          <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="users" style="width:auto;margin:0"/> 🧑‍💼 Users</label>
+          <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="reports" style="width:auto;margin:0"/> 📈 Reports</label>
+          <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="live-chats" style="width:auto;margin:0"/> 💬 Live Support</label>
+          <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="audit-trail" style="width:auto;margin:0"/> 📋 Audit Trail</label>
+          <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="settings" style="width:auto;margin:0"/> ⚙️ Settings</label>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1247,15 +1305,15 @@ support@company.com | +1 (800) 555-0199</textarea>
 <div class="toast-container" id="toast-container"></div>
 
 
-<script src="js/data.js?v=10"></script>
-<script src="js/tickets.js?v=10"></script>
-<script src="js/dashboard.js?v=10"></script>
-<script src="js/ui.js?v=10"></script>
-<script src="js/email.js?v=10"></script>
-<script src="js/roles.js?v=10"></script>
-<script src="js/users.js?v=10"></script>
-<script src="js/audit.js?v=10"></script>
-<script src="js/chat.js?v=10"></script>
-<script src="js/app.js?v=10"></script>
+<script src="js/data.js?v=11"></script>
+<script src="js/tickets.js?v=11"></script>
+<script src="js/dashboard.js?v=11"></script>
+<script src="js/ui.js?v=11"></script>
+<script src="js/email.js?v=11"></script>
+<script src="js/roles.js?v=11"></script>
+<script src="js/users.js?v=11"></script>
+<script src="js/audit.js?v=11"></script>
+<script src="js/chat.js?v=11"></script>
+<script src="js/app.js?v=11"></script>
 </body>
 </html>
