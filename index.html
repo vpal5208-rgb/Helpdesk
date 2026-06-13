@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="css/components.css?v=3"/>
 <link rel="stylesheet" href="css/dashboard.css?v=3"/>
 <link rel="stylesheet" href="css/email.css?v=3"/>
-<link rel="stylesheet" href="css/users.css?v=9"/>
+<link rel="stylesheet" href="css/users.css?v=10"/>
 <link rel="stylesheet" href="css/portal.css?v=3"/>
 <link rel="stylesheet" href="css/chat.css?v=4"/>
 </head>
@@ -462,6 +462,7 @@ Type 'help' for commands.</div>
         <button class="settings-tab" data-stab="appearance">🎨 Appearance</button>
         <button class="settings-tab" data-stab="notif">🔔 Notifications</button>
         <button class="settings-tab" data-stab="ticket-id">🎫 Ticket ID</button>
+        <button class="settings-tab" data-stab="roles">👥 User Roles</button>
       </div>
 
       <!-- ── EMAIL CONFIGURATION TAB ── -->
@@ -894,6 +895,38 @@ support@company.com | +1 (800) 555-0199</textarea>
         </div>
       </div>
 
+      <!-- ── USER ROLES CONFIGURATION TAB ── -->
+      <div class="stab-panel" id="stab-roles">
+        <div class="settings-grid">
+          <div class="settings-card" style="max-width:100%">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+              <div>
+                <h3>User Roles Management</h3>
+                <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:2px;">Define custom roles for users, set colors, and assign them in User Management.</p>
+              </div>
+              <button class="btn btn-primary" id="btn-add-custom-role">+ Add Custom Role</button>
+            </div>
+            
+            <div class="table-responsive" style="overflow-x:auto;">
+              <table class="data-table" style="width:100%; border-collapse:collapse; font-size:0.875rem;">
+                <thead>
+                  <tr style="border-bottom:1.5px solid var(--border); text-align:left;">
+                    <th style="padding:10px 12px; font-weight:600; color:var(--text-secondary)">Role Name</th>
+                    <th style="padding:10px 12px; font-weight:600; color:var(--text-secondary)">Key</th>
+                    <th style="padding:10px 12px; font-weight:600; color:var(--text-secondary)">Color Preview</th>
+                    <th style="padding:10px 12px; font-weight:600; color:var(--text-secondary)">Description</th>
+                    <th style="padding:10px 12px; font-weight:600; color:var(--text-secondary); text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="roles-tbody">
+                  <!-- Roles populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </section>
 
     <!-- AUDIT TRAIL VIEW -->
@@ -1168,6 +1201,40 @@ support@company.com | +1 (800) 555-0199</textarea>
     </div>
   </div>
 </div>
+
+<!-- ROLE EDIT/CREATE MODAL -->
+<div class="modal-overlay" id="role-modal-overlay">
+  <div class="modal" id="role-modal">
+    <div class="modal-header"><h2 id="role-modal-title">👥 Add Custom Role</h2><button class="modal-close" id="role-modal-close">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="rm-key" value=""/>
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Role Name *</label>
+        <input type="text" id="rm-name" class="form-input" style="width:100%" placeholder="e.g. Security Auditor"/>
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Badge Color *</label>
+        <select id="rm-color" class="form-input" style="width:100%">
+          <option value="gray">Gray (Default)</option>
+          <option value="blue">Blue</option>
+          <option value="green">Green</option>
+          <option value="red">Red</option>
+          <option value="orange">Orange</option>
+          <option value="purple">Purple</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Description</label>
+        <textarea id="rm-desc" class="form-input" style="width:100%;height:80px;resize:vertical;" placeholder="Describe the permissions or purpose of this role..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="role-modal-cancel">Cancel</button>
+      <button class="btn btn-primary" id="role-modal-save">Save Role</button>
+    </div>
+  </div>
+</div>
+
 <div class="notif-panel" id="notif-panel">
   <div class="notif-panel-header"><h4>Notifications</h4><button class="btn btn-ghost btn-sm" id="mark-all-read">Mark all read</button></div>
   <div class="notif-list" id="notif-list"></div>
@@ -1180,14 +1247,15 @@ support@company.com | +1 (800) 555-0199</textarea>
 <div class="toast-container" id="toast-container"></div>
 
 
-<script src="js/data.js?v=9"></script>
-<script src="js/tickets.js?v=9"></script>
-<script src="js/dashboard.js?v=9"></script>
-<script src="js/ui.js?v=9"></script>
-<script src="js/email.js?v=9"></script>
-<script src="js/users.js?v=9"></script>
-<script src="js/audit.js?v=9"></script>
-<script src="js/chat.js?v=9"></script>
-<script src="js/app.js?v=9"></script>
+<script src="js/data.js?v=10"></script>
+<script src="js/tickets.js?v=10"></script>
+<script src="js/dashboard.js?v=10"></script>
+<script src="js/ui.js?v=10"></script>
+<script src="js/email.js?v=10"></script>
+<script src="js/roles.js?v=10"></script>
+<script src="js/users.js?v=10"></script>
+<script src="js/audit.js?v=10"></script>
+<script src="js/chat.js?v=10"></script>
+<script src="js/app.js?v=10"></script>
 </body>
 </html>

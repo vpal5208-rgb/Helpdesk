@@ -129,8 +129,16 @@ function renderUsersTable() {
     const color   = userColor(u);
     const initials= userInitials(u);
     const stCls   = { active:'badge-active', suspended:'badge-suspended', pending:'badge-pending' }[u.status]||'';
-    const roleCls = { manager:'role-manager', agent:'role-agent', admin:'role-admin' }[u.role]||'role-pill';
-    const roleLabel= { 'end-user':'End User','power-user':'Power User','agent':'IT Agent','manager':'IT Manager','admin':'Administrator' }[u.role]||u.role;
+    const roles = loadRoles();
+    const roleObj = roles.find(r => r.key === u.role) || { key: u.role, name: u.role, color: 'gray' };
+    const roleLabel = roleObj.name;
+    let badgeStyle = '';
+    if (roleObj.color === 'red') badgeStyle = 'background:var(--red-glow);color:var(--accent-red);';
+    else if (roleObj.color === 'blue') badgeStyle = 'background:var(--blue-glow);color:var(--accent-blue);';
+    else if (roleObj.color === 'green') badgeStyle = 'background:var(--green-glow);color:var(--accent-green);';
+    else if (roleObj.color === 'orange') badgeStyle = 'background:var(--orange-glow);color:var(--accent-orange);';
+    else if (roleObj.color === 'purple') badgeStyle = 'background:var(--purple-glow);color:var(--accent-purple);';
+    else badgeStyle = 'background:var(--bg-elevated);color:var(--text-secondary);';
     const tickets = userTicketCount(u.email);
     const la      = lastActiveLabel(u.lastActive);
     const tr = document.createElement('tr');
@@ -143,7 +151,7 @@ function renderUsersTable() {
       </div></td>
       <td>${u.email}</td>
       <td>${u.dept}</td>
-      <td><span class="role-pill ${roleCls}">${roleLabel}</span></td>
+      <td><span class="role-pill" style="${badgeStyle}">${roleLabel}</span></td>
       <td><span class="badge ${stCls}">${u.status.charAt(0).toUpperCase()+u.status.slice(1)}</span></td>
       <td><span style="font-weight:600">${tickets}</span></td>
       <td><span class="activity-dot ${la.cls}"></span>${la.label}</td>
@@ -194,6 +202,7 @@ function syncBulkBtn() {
 function editUser(id) {
   const u = allUsersData.find(x=>x.id===id);
   if (!u) return;
+  populateRoleDropdown();
   document.getElementById('user-modal-title').textContent = 'Edit User';
   document.getElementById('um-id').value = u.id;
   document.getElementById('um-fname').value = u.fname;
@@ -505,6 +514,7 @@ function initUsersView() {
 
   // Add user button
   document.getElementById('add-user-btn').addEventListener('click', () => {
+    populateRoleDropdown();
     document.getElementById('user-modal-title').textContent = 'Add User';
     document.getElementById('um-id').value='';
     ['um-fname','um-lname','um-email','um-phone','um-location','um-notes'].forEach(id=>document.getElementById(id).value='');
@@ -585,3 +595,11 @@ function initUsersView() {
   document.getElementById('reset-btn-generate').addEventListener('click', generateRandomResetPassword);
   document.getElementById('reset-modal-overlay').addEventListener('click', e=>{if(e.target===e.currentTarget) e.currentTarget.classList.remove('open');});
 }
+
+function populateRoleDropdown() {
+  const select = document.getElementById('um-role');
+  if (!select) return;
+  const roles = loadRoles();
+  select.innerHTML = roles.map(r => `<option value="${r.key}">${r.name}</option>`).join('');
+}
+window.populateRoleDropdown = populateRoleDropdown;

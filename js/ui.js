@@ -185,4 +185,137 @@ function initSettings() {
       }
     });
   }
+
+  // Load and render user roles table
+  renderSettingsRolesTable();
+
+  // Add Custom Role button click
+  const addCustomRoleBtn = document.getElementById('btn-add-custom-role');
+  if (addCustomRoleBtn) {
+    addCustomRoleBtn.addEventListener('click', () => {
+      document.getElementById('role-modal-title').textContent = '👥 Add Custom Role';
+      document.getElementById('rm-key').value = '';
+      document.getElementById('rm-name').value = '';
+      document.getElementById('rm-name').disabled = false;
+      document.getElementById('rm-color').value = 'gray';
+      document.getElementById('rm-desc').value = '';
+      document.getElementById('role-modal-overlay').classList.add('open');
+    });
+  }
+
+  // Role modal close / cancel listeners
+  const closeRoleModal = () => document.getElementById('role-modal-overlay').classList.remove('open');
+  document.getElementById('role-modal-close')?.addEventListener('click', closeRoleModal);
+  document.getElementById('role-modal-cancel')?.addEventListener('click', closeRoleModal);
+  document.getElementById('role-modal-overlay')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeRoleModal();
+  });
+
+  // Save Role button click
+  const saveRoleBtn = document.getElementById('role-modal-save');
+  if (saveRoleBtn) {
+    saveRoleBtn.addEventListener('click', () => {
+      const key = document.getElementById('rm-key').value;
+      const name = document.getElementById('rm-name').value.trim();
+      const color = document.getElementById('rm-color').value;
+      const desc = document.getElementById('rm-desc').value.trim();
+
+      if (!name) {
+        showToast('Role Name is required.', 'error');
+        return;
+      }
+
+      let res;
+      if (key) {
+        res = updateRole(key, name, color, desc);
+      } else {
+        res = addRole(name, color, desc);
+      }
+
+      if (res.success) {
+        showToast(key ? 'Role updated successfully!' : 'Role created successfully!', 'success');
+        closeRoleModal();
+        renderSettingsRolesTable();
+        // Refresh users list so role updates propagate
+        if (window.refreshUsersView) refreshUsersView();
+      } else {
+        showToast(res.error || 'Failed to save role.', 'error');
+      }
+    });
+  }
+
+  // Edit / Delete role action handlers (delegated)
+  const rolesTbody = document.getElementById('roles-tbody');
+  if (rolesTbody) {
+    rolesTbody.addEventListener('click', e => {
+      const editBtn = e.target.closest('.btn-edit-role');
+      const deleteBtn = e.target.closest('.btn-delete-role');
+      
+      if (editBtn) {
+        const key = editBtn.dataset.key;
+        const roles = loadRoles();
+        const role = roles.find(r => r.key === key);
+        if (!role) return;
+
+        document.getElementById('role-modal-title').textContent = '✏ Edit Role';
+        document.getElementById('rm-key').value = role.key;
+        document.getElementById('rm-name').value = role.name;
+        // Disable renaming for default roles
+        document.getElementById('rm-name').disabled = !!role.isDefault;
+        document.getElementById('rm-color').value = role.color;
+        document.getElementById('rm-desc').value = role.desc || '';
+        document.getElementById('role-modal-overlay').classList.add('open');
+      }
+      
+      if (deleteBtn) {
+        const key = deleteBtn.dataset.key;
+        if (confirm(`Are you sure you want to delete the custom role "${key}"?`)) {
+          const res = deleteRole(key);
+          if (res.success) {
+            showToast('Role deleted successfully!', 'success');
+            renderSettingsRolesTable();
+            if (window.refreshUsersView) refreshUsersView();
+          } else {
+            showToast(res.error || 'Failed to delete role.', 'error');
+          }
+        }
+      }
+    });
+  }
 }
+
+function renderSettingsRolesTable() {
+  const tbody = document.getElementById('roles-tbody');
+  if (!tbody) return;
+  const roles = loadRoles();
+  tbody.innerHTML = '';
+  
+  roles.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--border)';
+    
+    // color badge styling
+    let badgeStyle = '';
+    if (r.color === 'red') badgeStyle = 'background:var(--red-glow);color:var(--accent-red);';
+    else if (r.color === 'blue') badgeStyle = 'background:var(--blue-glow);color:var(--accent-blue);';
+    else if (r.color === 'green') badgeStyle = 'background:var(--green-glow);color:var(--accent-green);';
+    else if (r.color === 'orange') badgeStyle = 'background:var(--orange-glow);color:var(--accent-orange);';
+    else if (r.color === 'purple') badgeStyle = 'background:var(--purple-glow);color:var(--accent-purple);';
+    else badgeStyle = 'background:var(--bg-elevated);color:var(--text-secondary);';
+    
+    const colorBadge = `<span class="role-pill" style="${badgeStyle}">${r.color.charAt(0).toUpperCase() + r.color.slice(1)}</span>`;
+    
+    tr.innerHTML = `
+      <td style="padding:10px 12px; font-weight:600; color:var(--text-primary)">${r.name}</td>
+      <td style="padding:10px 12px; font-family:monospace; color:var(--text-secondary)">${r.key}</td>
+      <td style="padding:10px 12px;">${colorBadge}</td>
+      <td style="padding:10px 12px; color:var(--text-secondary); max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.desc || '—'}</td>
+      <td style="padding:10px 12px; text-align:right;">
+        <button class="btn btn-ghost btn-sm btn-edit-role" data-key="${r.key}" style="padding:4px 8px; font-size:0.8rem; margin-right:4px;">✏ Edit</button>
+        <button class="btn btn-ghost btn-sm btn-delete-role" data-key="${r.key}" style="padding:4px 8px; font-size:0.8rem; color:var(--accent-red);" ${r.isDefault ? 'disabled title="System role cannot be deleted"' : ''}>🗑 Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+window.renderSettingsRolesTable = renderSettingsRolesTable;
