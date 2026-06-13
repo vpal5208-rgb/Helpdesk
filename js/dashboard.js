@@ -587,6 +587,12 @@ function initDashboardInteractivity() {
   const totalCard = document.getElementById('kpi-total')?.closest('.kpi-card');
   if (totalCard) totalCard.onclick = () => filterTicketsAndNavigate('all');
 
+  const agentsCard = document.getElementById('kpi-agents')?.closest('.kpi-card');
+  if (agentsCard) agentsCard.onclick = () => navigateTo('agents');
+
+  const avgCard = document.getElementById('kpi-avg')?.closest('.kpi-card');
+  if (avgCard) avgCard.onclick = () => navigateTo('reports');
+
   // Set up listeners for canvases
   const canvases = ['chart-volume', 'chart-priority', 'chart-category', 'chart-monthly', 'chart-resolution', 'chart-agent-perf'];
   
