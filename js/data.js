@@ -368,6 +368,35 @@ function triggerEmailNotification(triggerType, ticket) {
   }
 }
 
+function triggerPasswordResetEmail(user, password) {
+  try {
+    const cfg = JSON.parse(localStorage.getItem('hd_email_config_v1')) || {
+      fromName: 'HelpDesk Pro',
+      fromAddr: 'noreply@company.com',
+      signature: '-- \nHelpDesk Pro | IT Support\nsupport@company.com | +1 (800) 555-0199'
+    };
+
+    const recipient = user.email || `${user.fname.toLowerCase()}.${user.lname.toLowerCase()}@company.com`;
+    const name = user.fname + ' ' + user.lname;
+
+    displayMockEmailToast({
+      to: recipient,
+      from: `${cfg.fromName} <${cfg.fromAddr}>`,
+      subject: '🔑 Password Reset Notice — HelpDesk Pro',
+      header: 'Your Password Has Been Reset',
+      body: `Hello ${user.fname},\n\nYour password has been reset by the administrator.\n\nYour new temporary password is: **${password}**\n\nPlease use this to log in to the portal.`,
+      cta: 'Go to Portal',
+      ticketId: 'SEC-PWD',
+      ticketSubject: 'Password Reset Notification',
+      priority: 'High',
+      status: 'Closed',
+      signature: cfg.signature
+    });
+  } catch(e) {
+    console.error("Error sending password reset email:", e);
+  }
+}
+
 function displayMockEmailToast(mail) {
   const containerId = 'mock-email-toasts-container';
   let container = document.getElementById(containerId);

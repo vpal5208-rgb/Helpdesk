@@ -196,26 +196,115 @@ function editUser(id) {
   document.getElementById('user-modal-overlay').classList.add('open');
 }
 
-function resetPassword(ids) {
-  const results = ids.map(id => {
-    const u = allUsersData.find(x=>x.id===id);
-    if (!u) return null;
-    const pass = 'Tmp@' + Math.random().toString(36).slice(-5).toUpperCase() + Math.floor(Math.random()*99);
-    return { name:userFullName(u), email:u.email, pass };
-  }).filter(Boolean);
+let resetUserIds = [];
 
-  document.getElementById('reset-results-list').innerHTML = results.map(r=>`
-    <div class="reset-result-item">
-      <div class="reset-result-user">
-        <div class="reset-result-name">${r.name}</div>
-        <div class="reset-result-email">${r.email}</div>
-      </div>
-      <span class="reset-temp-pass" title="Click to copy" onclick="copyPass(this,'${r.pass}')">${r.pass}</span>
-      <span class="reset-copied" id="copied-${r.email.replace('@','_').replace('.','_')}" style="display:none">Copied!</span>
-    </div>`).join('');
+function resetPassword(ids) {
+  console.log("resetPassword called with ids:", ids, "allUsersData count:", allUsersData.length);
+  resetUserIds = ids;
+  const users = resetUserIds.map(id => allUsersData.find(x => x.id === id)).filter(Boolean);
+  console.log("resetPassword matched users:", users.length);
+  if (users.length === 0) return;
+
+  // Set the affected users list text
+  const namesEl = document.getElementById('reset-users-names');
+  if (namesEl) {
+    namesEl.innerHTML = users.map(u => `${userFullName(u)} (${u.email})`).join('<br/>');
+  }
+
+  // Clear input
+  const inputEl = document.getElementById('reset-password-input');
+  if (inputEl) inputEl.value = '';
+
+  // Show form view, hide results view
+  const formView = document.getElementById('reset-form-view');
+  if (formView) formView.style.display = 'block';
+  const resultsView = document.getElementById('reset-results-view');
+  if (resultsView) resultsView.style.display = 'none';
+
+  // Toggle footer buttons
+  const cancelBtn = document.getElementById('reset-modal-cancel');
+  const submitBtn = document.getElementById('reset-modal-submit');
+  const okBtn = document.getElementById('reset-modal-ok');
+  if (cancelBtn) cancelBtn.style.display = 'inline-block';
+  if (submitBtn) submitBtn.style.display = 'inline-block';
+  if (okBtn) okBtn.style.display = 'none';
+
+  // Open overlay
   document.getElementById('reset-modal-overlay').classList.add('open');
-  showToast(`Password reset link sent to ${results.length} user(s).`, 'success');
 }
+
+window.generateRandomResetPassword = function() {
+  const pass = 'Tmp@' + Math.random().toString(36).slice(-5).toUpperCase() + Math.floor(Math.random() * 99);
+  const inputEl = document.getElementById('reset-password-input');
+  if (inputEl) inputEl.value = pass;
+};
+
+window.saveResetPassword = function() {
+  const inputEl = document.getElementById('reset-password-input');
+  if (!inputEl) return;
+  const password = inputEl.value.trim();
+  if (!password) {
+    showToast('Please type a password or click Auto-Generate.', 'error');
+    return;
+  }
+
+  if (password.length < 6) {
+    showToast('Password must be at least 6 characters.', 'error');
+    return;
+  }
+
+  const sendEmail = document.getElementById('reset-send-email')?.checked;
+  const results = [];
+
+  resetUserIds.forEach(id => {
+    const u = allUsersData.find(x => x.id === id);
+    if (u) {
+      u.password = password;
+      results.push({ name: userFullName(u), email: u.email, pass: password, emailSent: sendEmail });
+      
+      // Add in-app notification
+      addNotification(`Password reset for ${userFullName(u)} (${u.email})`);
+      
+      // Trigger mock email if checked
+      if (sendEmail) {
+        triggerPasswordResetEmail(u, password);
+      }
+    }
+  });
+
+  saveUsers(allUsersData);
+
+  // Render results view
+  const resultsList = document.getElementById('reset-results-list');
+  if (resultsList) {
+    resultsList.innerHTML = results.map(r => `
+      <div class="reset-result-item" style="margin-bottom:8px">
+        <div class="reset-result-user">
+          <div class="reset-result-name">${r.name}</div>
+          <div class="reset-result-email">${r.email} &nbsp;·&nbsp; <span style="color:${r.emailSent ? '#3fb950' : '#8b949e'}">${r.emailSent ? '📧 Notification Sent' : '📧 Notification Disabled'}</span></div>
+        </div>
+        <span class="reset-temp-pass" title="Click to copy" onclick="copyPass(this,'${r.pass}')">${r.pass}</span>
+        <span class="reset-copied" id="copied-${r.email.replace('@','_').replace('.','_')}" style="display:none">Copied!</span>
+      </div>`).join('');
+  }
+
+  // Switch views
+  const formView = document.getElementById('reset-form-view');
+  if (formView) formView.style.display = 'none';
+  const resultsView = document.getElementById('reset-results-view');
+  if (resultsView) resultsView.style.display = 'block';
+
+  // Toggle footer buttons
+  const cancelBtn = document.getElementById('reset-modal-cancel');
+  const submitBtn = document.getElementById('reset-modal-submit');
+  const okBtn = document.getElementById('reset-modal-ok');
+  if (cancelBtn) cancelBtn.style.display = 'none';
+  if (submitBtn) submitBtn.style.display = 'none';
+  if (okBtn) okBtn.style.display = 'inline-block';
+
+  showToast(`Successfully reset password for ${results.length} user(s).`, 'success');
+  refreshUsersView();
+};
 
 window.copyPass = function(el, pass) {
   navigator.clipboard.writeText(pass).then(() => {
@@ -386,9 +475,9 @@ function initUsersView() {
     if(e.target.classList.contains('user-check')) syncBulkBtn();
   });
 
-  // Table row actions (event delegation)
   document.getElementById('users-tbody').addEventListener('click', e => {
     const btn = e.target.closest('[data-action]');
+    console.log("users-tbody click target:", btn ? btn.outerHTML : "no data-action match");
     if (!btn) return;
     const { action, uid } = btn.dataset;
     if (action==='edit')     editUser(uid);
@@ -475,5 +564,8 @@ function initUsersView() {
   // Password reset modal close
   document.getElementById('reset-modal-close').addEventListener('click', ()=>document.getElementById('reset-modal-overlay').classList.remove('open'));
   document.getElementById('reset-modal-ok').addEventListener('click',    ()=>document.getElementById('reset-modal-overlay').classList.remove('open'));
+  document.getElementById('reset-modal-cancel').addEventListener('click',()=>document.getElementById('reset-modal-overlay').classList.remove('open'));
+  document.getElementById('reset-modal-submit').addEventListener('click', saveResetPassword);
+  document.getElementById('reset-btn-generate').addEventListener('click', generateRandomResetPassword);
   document.getElementById('reset-modal-overlay').addEventListener('click', e=>{if(e.target===e.currentTarget) e.currentTarget.classList.remove('open');});
 }
