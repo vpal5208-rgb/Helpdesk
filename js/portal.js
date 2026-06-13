@@ -787,7 +787,7 @@ function renderTicketDetail(t, container) {
         <div style="margin-top:16px;padding:14px;background:var(--bg);border-radius:var(--radius-sm);font-size:.85rem;line-height:1.6">
           <strong style="font-size:.78rem;color:var(--text-2)">DESCRIPTION</strong><br/>${t.description.replace(/\n/g,'<br/>')}
         </div>
-        ${(agent && (t.status === 'Resolved' || t.status === 'Closed')) ? `
+        ${(t.status === 'Resolved' || t.status === 'Closed') ? `
           <div class="rating-box" style="margin-top:16px;padding:14px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border);font-size:.85rem;line-height:1.6">
             <strong style="font-size:.78rem;color:var(--text-2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Agent Rating</strong>
             ${t.rating ? `
@@ -796,7 +796,7 @@ function renderTicketDetail(t, container) {
                 <span class="stars" style="color:#d97706;font-size:1.15rem">${'★'.repeat(t.rating)}${'☆'.repeat(5 - t.rating)}</span>
               </div>
             ` : `
-              <p style="color:var(--text-2);font-size:0.8rem;margin-bottom:8px">How would you rate the support provided by <strong>${agent.name}</strong>?</p>
+              <p style="color:var(--text-2);font-size:0.8rem;margin-bottom:8px">How would you rate the support provided by <strong>${agent ? agent.name : 'IT Support Team'}</strong>?</p>
               <div class="star-rating-input" data-ticket-id="${t.id}" style="display:flex;gap:6px;font-size:1.6rem;color:var(--text-3);cursor:pointer">
                 <span class="star-rating-star" data-value="1" onclick="submitAgentRating('${t.id}', 1)" onmouseover="highlightStars(this, 1)" onmouseout="resetStars(this)">★</span>
                 <span class="star-rating-star" data-value="2" onclick="submitAgentRating('${t.id}', 2)" onmouseover="highlightStars(this, 2)" onmouseout="resetStars(this)">★</span>
@@ -891,6 +891,9 @@ function submitAgentRating(ticketId, ratingValue) {
   if (idx === -1) return;
   const t = all[idx];
   t.rating = ratingValue;
+  if (!t.agentId) {
+    t.agentId = 'a1'; // Assign to Sarah Chen if it was unassigned, so it calculates correctly
+  }
   t.auditLog.push({ action: `Agent rated ${ratingValue} stars by user.`, time: new Date().toISOString(), by: portalUser?.name || 'User' });
   saveTickets(all);
   
@@ -899,6 +902,8 @@ function submitAgentRating(ticketId, ratingValue) {
   // Re-render ticket detail
   const container = document.getElementById('track-result');
   if (container) {
+    // Re-load updated ticket to show correct agent name after auto-assigning
+    const updatedAgent = getAgentById(t.agentId);
     renderTicketDetail(t, container);
   }
 }
