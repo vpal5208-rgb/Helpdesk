@@ -6,7 +6,7 @@ const DEFAULT_ROLES = [
   { key: 'end-user', name: 'End User', color: 'gray', desc: 'Standard portal user, can view and create their own tickets.', isDefault: true, permissions: [] },
   { key: 'power-user', name: 'Power User', color: 'gray', desc: 'Advanced portal user with elevated access within their department.', isDefault: true, permissions: ['dashboard'] },
   { key: 'agent', name: 'IT Agent', color: 'blue', desc: 'IT support agent, can be assigned tickets, update status, and chat with users.', isDefault: true, permissions: ['dashboard', 'tickets', 'live-chats'] },
-  { key: 'manager', name: 'IT Manager', color: 'purple', desc: 'IT team manager, can assign tickets, manage settings, and view reports.', isDefault: true, permissions: ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail'] },
+  { key: 'manager', name: 'IT Manager', color: 'purple', desc: 'IT team manager, can assign tickets, manage settings, and view reports.', isDefault: true, permissions: ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings'] },
   { key: 'admin', name: 'Administrator', color: 'red', desc: 'Full system administrator access, including role management and advanced settings.', isDefault: true, permissions: ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings'] }
 ];
 
@@ -122,9 +122,19 @@ function getCurrentUserRole() {
   try {
     const sess = JSON.parse(s);
     const role = sess.role;
-    if (role === 'IT Manager') return 'manager';
-    if (role === 'IT Agent') return 'agent';
-    return role; // e.g. 'admin', 'auditor'
+    if (!role) return 'end-user';
+    
+    const lowRole = role.toLowerCase();
+    if (lowRole === 'administrator' || lowRole === 'admin') return 'admin';
+    if (lowRole === 'it manager' || lowRole === 'manager') return 'manager';
+    if (lowRole === 'it agent' || lowRole === 'agent') return 'agent';
+    
+    // Check if there is a custom role in localStorage that matches name or key case-insensitively
+    const roles = typeof loadRoles === 'function' ? loadRoles() : [];
+    const matched = roles.find(r => r.key.toLowerCase() === lowRole || r.name.toLowerCase() === lowRole);
+    if (matched) return matched.key;
+
+    return lowRole;
   } catch (e) {
     return 'end-user';
   }
@@ -134,6 +144,25 @@ function applyRolePermissions() {
   const roles = loadRoles();
   const userRole = getCurrentUserRole();
   const roleObj = roles.find(r => r.key === userRole) || { permissions: [] };
+
+  // Sync sidebar user card display with session details
+  const LS_ADMIN_AUTH = 'hd_admin_auth_v1';
+  const s = sessionStorage.getItem(LS_ADMIN_AUTH) || localStorage.getItem(LS_ADMIN_AUTH);
+  if (s) {
+    try {
+      const sess = JSON.parse(s);
+      const nameEl = document.querySelector('.user-name');
+      const roleEl = document.querySelector('.user-role');
+      const avatarEl = document.querySelector('.user-avatar');
+      if (nameEl && sess.name) nameEl.textContent = sess.name;
+      
+      const displayRole = roleObj.name || sess.role;
+      if (roleEl && displayRole) roleEl.textContent = displayRole;
+      if (avatarEl && sess.name) avatarEl.textContent = sess.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    } catch (e) {
+      console.error('Failed to parse admin session for sidebar sync', e);
+    }
+  }
 
   const allViews = ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings'];
 

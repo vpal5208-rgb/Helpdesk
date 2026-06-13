@@ -61,9 +61,9 @@ function navigateTo(view) {
   // Check permission
   const roles = typeof loadRoles === 'function' ? loadRoles() : [];
   const userRole = typeof getCurrentUserRole === 'function' ? getCurrentUserRole() : 'end-user';
-  const roleObj = roles.find(r => r.key === userRole);
+  const roleObj = roles.find(r => r.key === userRole) || { permissions: [] };
   
-  if (roleObj && roleObj.permissions && !roleObj.permissions.includes(view)) {
+  if (roleObj.permissions && !roleObj.permissions.includes(view)) {
     if (typeof showToast === 'function') {
       showToast(`Access Denied: Your role does not have permission to view the ${view} tab.`, 'error');
     }
