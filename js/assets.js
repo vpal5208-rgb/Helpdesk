@@ -269,6 +269,19 @@ function renderAdminAssets() {
   });
 }
 
+function populateAssigneeDropdown() {
+  const select = document.getElementById('assetm-assignee');
+  if (!select) return;
+
+  select.innerHTML = '<option value="">Unassigned / Available</option>';
+  const users = typeof loadUsers === 'function' ? loadUsers() : [];
+  users.forEach(u => {
+    const fullName = `${u.fname} ${u.lname || ''}`.trim();
+    const val = `${fullName}|${u.email}`;
+    select.innerHTML += `<option value="${val}">${fullName} (${u.email})</option>`;
+  });
+}
+
 function openAssetModal(id = '') {
   const overlay = document.getElementById('asset-modal-overlay');
   const titleEl = document.getElementById('asset-modal-title');
@@ -282,6 +295,9 @@ function openAssetModal(id = '') {
   const assigneeInput = document.getElementById('assetm-assignee');
 
   if (!overlay) return;
+
+  // Dynamically populate assignee choices from users database
+  populateAssigneeDropdown();
 
   if (id) {
     // Edit mode
@@ -576,6 +592,7 @@ window.deleteAssetRecord = deleteAssetRecord;
 window.renderPortalAssets = renderPortalAssets;
 window.updatePortalDeviceSelect = updatePortalDeviceSelect;
 window.reportAssetIssue = reportAssetIssue;
+window.populateAssigneeDropdown = populateAssigneeDropdown;
 
 // Load event binder
 if (document.readyState === 'loading') {

@@ -609,3 +609,5 @@ function populateRoleDropdown() {
   select.innerHTML = roles.map(r => `<option value="${r.key}">${r.name}</option>`).join('');
 }
 window.populateRoleDropdown = populateRoleDropdown;
+window.loadUsers = loadUsers;
+window.saveUsers = saveUsers;
