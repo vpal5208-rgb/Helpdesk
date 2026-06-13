@@ -149,6 +149,7 @@ body {
 }
 .user-name { font-weight: 600; font-size: 0.85rem; }
 .user-role { color: var(--text-secondary); font-size: 0.75rem; }
+.btn-logout:hover { color: var(--accent-red) !important; }
 
 /* ====== MAIN CONTENT ====== */
 .main-content {

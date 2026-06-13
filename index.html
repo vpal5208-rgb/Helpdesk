@@ -10,7 +10,7 @@
 <meta name="description" content="Professional IT Helpdesk management system with interactive dashboard, ticket tracking, and agent management."/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="css/main.css?v=3"/>
+<link rel="stylesheet" href="css/main.css?v=4"/>
 <link rel="stylesheet" href="css/components.css?v=3"/>
 <link rel="stylesheet" href="css/dashboard.css?v=3"/>
 <link rel="stylesheet" href="css/email.css?v=3"/>
@@ -230,9 +230,12 @@ function adminLogout() {
     <button class="nav-item" data-view="settings"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></button>
   </nav>
   <div class="sidebar-footer">
-    <div class="user-card">
-      <div class="user-avatar">AD</div>
-      <div class="user-info"><div class="user-name">Admin User</div><div class="user-role">IT Manager</div></div>
+    <div class="user-card" style="justify-content: space-between; width: 100%;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div class="user-avatar">AD</div>
+        <div class="user-info"><div class="user-name">Admin User</div><div class="user-role">IT Manager</div></div>
+      </div>
+      <button onclick="adminLogout()" class="btn-logout" title="Sign Out" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.1rem; padding: 4px; margin-left: auto; display: flex; align-items: center; justify-content: center; transition: color var(--transition);">🚪</button>
     </div>
   </div>
 </aside>

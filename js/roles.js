@@ -16,12 +16,22 @@ function loadRoles() {
     if (data) {
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Migration: ensure every role has a permissions array
+        // Migration: ensure every role has correct system permissions
         let migrated = false;
         const list = parsed.map(r => {
           if (!r.permissions) {
             const defMatch = DEFAULT_ROLES.find(x => x.key === r.key);
             r.permissions = defMatch ? [...defMatch.permissions] : ['dashboard'];
+            migrated = true;
+          }
+          // Ensure default manager role has settings permission
+          if (r.key === 'manager' && !r.permissions.includes('settings')) {
+            r.permissions.push('settings');
+            migrated = true;
+          }
+          // Ensure default admin role has settings permission
+          if (r.key === 'admin' && !r.permissions.includes('settings')) {
+            r.permissions.push('settings');
             migrated = true;
           }
           return r;
