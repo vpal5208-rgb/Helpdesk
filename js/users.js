@@ -233,13 +233,14 @@ function resetPassword(ids) {
   document.getElementById('reset-modal-overlay').classList.add('open');
 }
 
-window.generateRandomResetPassword = function() {
+function generateRandomResetPassword() {
   const pass = 'Tmp@' + Math.random().toString(36).slice(-5).toUpperCase() + Math.floor(Math.random() * 99);
   const inputEl = document.getElementById('reset-password-input');
   if (inputEl) inputEl.value = pass;
-};
+}
+window.generateRandomResetPassword = generateRandomResetPassword;
 
-window.saveResetPassword = function() {
+function saveResetPassword() {
   const inputEl = document.getElementById('reset-password-input');
   if (!inputEl) return;
   const password = inputEl.value.trim();
@@ -304,7 +305,8 @@ window.saveResetPassword = function() {
 
   showToast(`Successfully reset password for ${results.length} user(s).`, 'success');
   refreshUsersView();
-};
+}
+window.saveResetPassword = saveResetPassword;
 
 window.copyPass = function(el, pass) {
   navigator.clipboard.writeText(pass).then(() => {
