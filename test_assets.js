@@ -141,23 +141,23 @@ const server = app.listen(3000, async () => {
             hasError = true;
         }
 
-        // Edit AST-0025 (iPad Pro) and check out to Emily Davis
+        // Check out AST-0025 (iPad Pro) to Emily Davis using the new dedicated Check Out modal
         console.log('Checking out iPad Pro (AST-0025) to Emily Davis...');
         await page.evaluate(() => {
             // Find row for AST-0025
             const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
             const ipadRow = rows.find(r => r.innerText.includes('AST-0025'));
             if (ipadRow) {
-                const editBtn = ipadRow.querySelector('button[title="Edit / Assign"]');
-                if (editBtn) editBtn.click();
+                const checkoutBtn = ipadRow.querySelector('button[title="Check Out Asset"]');
+                if (checkoutBtn) checkoutBtn.click();
             }
         });
         await delay(1000);
 
-        // Fill modal and checkout
+        // Fill checkout modal and submit
         await page.evaluate(() => {
-            document.getElementById('assetm-assignee').value = 'Emily Davis|e.davis@company.com';
-            document.getElementById('asset-modal-save').click();
+            document.getElementById('checkout-assignee').value = 'Emily Davis|e.davis@company.com';
+            document.getElementById('checkout-modal-submit').click();
         });
         await delay(1000);
 

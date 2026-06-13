@@ -132,6 +132,17 @@ function initAssets() {
 
     if (btnSave) btnSave.addEventListener('click', saveAssetFromModal);
 
+    // Checkout Modal Events
+    const btnCheckoutCancel = document.getElementById('checkout-modal-cancel');
+    const btnCheckoutClose = document.getElementById('checkout-modal-close');
+    const btnCheckoutSubmit = document.getElementById('checkout-modal-submit');
+
+    [btnCheckoutCancel, btnCheckoutClose].forEach(btn => {
+      if (btn) btn.addEventListener('click', closeCheckoutModal);
+    });
+
+    if (btnCheckoutSubmit) btnCheckoutSubmit.addEventListener('click', saveCheckout);
+
     // Search and filters
     ['asset-search', 'asset-filter-category', 'asset-filter-status'].forEach(id => {
       const el = document.getElementById(id);
@@ -261,7 +272,13 @@ function renderAdminAssets() {
         ${asset.assignedTo ? `👤 ${asset.assignedTo}` : '<span style="color:var(--text-secondary)">Unassigned</span>'}
       </td>
       <td style="padding: 12px; text-align: right; white-space: nowrap;">
-        <button class="btn btn-ghost btn-sm" onclick="openAssetModal('${asset.id}')" title="Edit / Assign" style="margin-right:4px;">✏️</button>
+        ${asset.status === 'Deployed' 
+          ? `<button class="btn btn-ghost btn-sm" onclick="checkInAsset('${asset.id}')" title="Check In Asset" style="margin-right:8px; font-size:0.75rem; color:#58a6ff; font-weight:600; border:1px solid rgba(88,166,255,0.15); padding:2px 6px;">↩️ Check In</button>`
+          : asset.status === 'Ready to Deploy'
+            ? `<button class="btn btn-ghost btn-sm" onclick="openCheckoutModal('${asset.id}')" title="Check Out Asset" style="margin-right:8px; font-size:0.75rem; color:#3fb950; font-weight:600; border:1px solid rgba(63,185,80,0.15); padding:2px 6px;">📤 Check Out</button>`
+            : ''
+        }
+        <button class="btn btn-ghost btn-sm" onclick="openAssetModal('${asset.id}')" title="Edit Asset" style="margin-right:4px;">✏️</button>
         <button class="btn btn-ghost btn-sm" onclick="deleteAssetRecord('${asset.id}')" title="Delete" style="color:var(--btn-danger-bg)">🗑️</button>
       </td>
     `;
@@ -446,6 +463,113 @@ function deleteAssetRecord(id) {
   }
 }
 
+function checkInAsset(id) {
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const asset = assets.find(a => a.id === id);
+  if (!asset) return;
+
+  if (!confirm(`Are you sure you want to check in asset "${asset.id}" (${asset.name})? This will return it to inventory.`)) return;
+
+  const oldAssignee = asset.assignedTo || 'Unknown';
+  asset.status = 'Ready to Deploy';
+  asset.assignedTo = '';
+  asset.assignedEmail = '';
+
+  if (typeof saveAssets === 'function') saveAssets(assets);
+  renderAdminAssets();
+
+  if (typeof showToast === 'function') {
+    showToast(`Asset "${id}" checked in successfully!`, 'success');
+  }
+
+  if (typeof addAuditLog === 'function') {
+    addAuditLog(`↩️ Checked in asset ${id} (previously assigned to ${oldAssignee}).`, 'System', 'System');
+  }
+}
+
+function openCheckoutModal(id) {
+  const overlay = document.getElementById('checkout-modal-overlay');
+  const tagEl = document.getElementById('checkout-info-tag');
+  const nameEl = document.getElementById('checkout-info-name');
+  const modelEl = document.getElementById('checkout-info-model');
+  const idInput = document.getElementById('checkout-asset-id');
+  const assigneeSelect = document.getElementById('checkout-assignee');
+  const dateInput = document.getElementById('checkout-date');
+
+  if (!overlay) return;
+
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const asset = assets.find(a => a.id === id);
+  if (!asset) return;
+
+  idInput.value = asset.id;
+  tagEl.textContent = asset.id;
+  nameEl.textContent = asset.name;
+  modelEl.textContent = asset.model || '-';
+
+  // Populate dynamic assignee options
+  if (assigneeSelect) {
+    assigneeSelect.innerHTML = '<option value="">-- Select Assignee --</option>';
+    const users = typeof loadUsers === 'function' ? loadUsers() : [];
+    users.forEach(u => {
+      const fullName = `${u.fname} ${u.lname || ''}`.trim();
+      assigneeSelect.innerHTML += `<option value="${fullName}|${u.email}">${fullName} (${u.email})</option>`;
+    });
+  }
+
+  // Set default date to today
+  if (dateInput) {
+    dateInput.value = new Date().toISOString().split('T')[0];
+  }
+
+  overlay.style.display = 'flex';
+}
+
+function closeCheckoutModal() {
+  const overlay = document.getElementById('checkout-modal-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function saveCheckout() {
+  const id = document.getElementById('checkout-asset-id').value;
+  const assigneeVal = document.getElementById('checkout-assignee').value;
+  const checkoutDate = document.getElementById('checkout-date').value;
+
+  if (!assigneeVal) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Please select an Assignee User.', 'error');
+    }
+    return;
+  }
+
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const asset = assets.find(a => a.id === id);
+  if (!asset) return;
+
+  const parts = assigneeVal.split('|');
+  const assignedTo = parts[0];
+  const assignedEmail = parts[1];
+
+  asset.status = 'Deployed';
+  asset.assignedTo = assignedTo;
+  asset.assignedEmail = assignedEmail;
+  if (checkoutDate) {
+    asset.purchaseDate = checkoutDate;
+  }
+
+  if (typeof saveAssets === 'function') saveAssets(assets);
+  closeCheckoutModal();
+  renderAdminAssets();
+
+  if (typeof showToast === 'function') {
+    showToast(`Asset "${id}" checked out to ${assignedTo} successfully!`, 'success');
+  }
+
+  if (typeof addAuditLog === 'function') {
+    addAuditLog(`📤 Checked out asset ${id} to ${assignedTo} (${assignedEmail}).`, 'System', 'System');
+  }
+}
+
 // =============================================
 // User Portal Asset Functions
 // =============================================
@@ -593,6 +717,10 @@ window.renderPortalAssets = renderPortalAssets;
 window.updatePortalDeviceSelect = updatePortalDeviceSelect;
 window.reportAssetIssue = reportAssetIssue;
 window.populateAssigneeDropdown = populateAssigneeDropdown;
+window.checkInAsset = checkInAsset;
+window.openCheckoutModal = openCheckoutModal;
+window.closeCheckoutModal = closeCheckoutModal;
+window.saveCheckout = saveCheckout;
 
 // Load event binder
 if (document.readyState === 'loading') {
