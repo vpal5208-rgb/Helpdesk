@@ -251,6 +251,7 @@ function adminLogout() {
     <button class="nav-item" data-view="users"><span class="nav-icon">🧑‍💼</span><span class="nav-label">Users</span><span class="nav-badge" id="users-count">0</span></button>
     <button class="nav-item" data-view="reports"><span class="nav-icon">📈</span><span class="nav-label">Reports</span></button>
     <button class="nav-item" data-view="live-chats"><span class="nav-icon">💬</span><span class="nav-label">Live Support</span><span class="nav-badge" id="chat-count" style="display:none">0</span></button>
+    <button class="nav-item" data-view="kb"><span class="nav-icon">📚</span><span class="nav-label">Knowledge Base</span></button>
     <button class="nav-item" data-view="audit-trail"><span class="nav-icon">📋</span><span class="nav-label">Audit Trail</span></button>
     <button class="nav-item" data-view="settings"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></button>
   </nav>
@@ -1045,6 +1046,55 @@ support@company.com | +1 (800) 555-0199</textarea>
 
     </section>
 
+    <!-- KNOWLEDGE BASE VIEW -->
+    <section class="view" id="view-kb">
+      <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+        <div>
+          <h1>Knowledge Base Management</h1>
+          <p class="view-sub">Create, edit, and publish troubleshooting guides for users.</p>
+        </div>
+        <div>
+          <button class="btn btn-primary" id="btn-add-kb">+ Add KB Article</button>
+        </div>
+      </div>
+
+      <div class="toolbar" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div class="toolbar-left" style="display:flex; gap:10px; flex: 1;">
+          <input type="text" id="kb-search" class="form-input" style="max-width: 300px;" placeholder="Search articles..."/>
+          <select id="kb-filter-category" class="form-input" style="max-width: 180px;">
+            <option value="">All Categories</option>
+            <option>Network</option>
+            <option>Hardware</option>
+            <option>Software</option>
+            <option>Account</option>
+            <option>Security</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card" style="max-width: 100%; padding: 0; overflow: hidden;">
+        <div class="table-responsive">
+          <table class="data-table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 1.5px solid var(--border); text-align: left; background: var(--bg-elevated);">
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary)">ID</th>
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary)">Title</th>
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary)">Category</th>
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary)">Steps</th>
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary)">Author</th>
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary)">Created</th>
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary); text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="kb-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- AUDIT TRAIL VIEW -->
     <section class="view" id="view-audit-trail">
       <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
@@ -1354,12 +1404,50 @@ support@company.com | +1 (800) 555-0199</textarea>
           <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="live-chats" style="width:auto;margin:0"/> 💬 Live Support</label>
           <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="audit-trail" style="width:auto;margin:0"/> 📋 Audit Trail</label>
           <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="settings" style="width:auto;margin:0"/> ⚙️ Settings</label>
+          <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="kb" style="width:auto;margin:0"/> 📚 Knowledge Base</label>
         </div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" id="role-modal-cancel">Cancel</button>
       <button class="btn btn-primary" id="role-modal-save">Save Role</button>
+    </div>
+  </div>
+</div>
+
+<!-- KNOWLEDGE BASE ARTICLE EDIT/CREATE MODAL -->
+<div class="modal-overlay" id="kb-modal-overlay">
+  <div class="modal" id="kb-modal" style="max-width: 600px;">
+    <div class="modal-header"><h2 id="kb-modal-title">📚 Add KB Article</h2><button class="modal-close" id="kb-modal-close">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="kbm-id" value=""/>
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Article Title *</label>
+        <input type="text" id="kbm-title" class="form-input" style="width:100%" placeholder="e.g. How to troubleshoot secondary monitor issues"/>
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Category *</label>
+        <select id="kbm-category" class="form-input" style="width:100%">
+          <option>Network</option>
+          <option selected>Hardware</option>
+          <option>Software</option>
+          <option>Account</option>
+          <option>Security</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Brief Description *</label>
+        <input type="text" id="kbm-desc" class="form-input" style="width:100%" placeholder="e.g. Quick overview of screen flickering and cable connection troubleshooting steps."/>
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Troubleshooting Steps (One step per line) *</label>
+        <textarea id="kbm-steps" class="form-input" style="width:100%;height:150px;resize:vertical;font-family:inherit;margin-bottom:0;" placeholder="Step 1: Check if the monitor power indicator is on.&#10;Step 2: Re-seat both ends of the HDMI/DP video cable.&#10;Step 3: Try holding monitor power button for 10 seconds."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="kb-modal-cancel">Cancel</button>
+      <button class="btn btn-primary" id="kb-modal-save">Save Article</button>
     </div>
   </div>
 </div>
@@ -1375,17 +1463,17 @@ support@company.com | +1 (800) 555-0199</textarea>
 <!-- Toast container -->
 <div class="toast-container" id="toast-container"></div>
 
-
-<script src="js/data.js?v=20"></script>
-<script src="js/tickets.js?v=20"></script>
-<script src="js/dashboard.js?v=20"></script>
-<script src="js/ui.js?v=20"></script>
-<script src="js/email.js?v=20"></script>
-<script src="js/roles.js?v=20"></script>
-<script src="js/users.js?v=20"></script>
-<script src="js/audit.js?v=20"></script>
-<script src="js/chat.js?v=20"></script>
-<script src="js/sso.js?v=20"></script>
-<script src="js/app.js?v=20"></script>
+<script src="js/data.js?v=21"></script>
+<script src="js/tickets.js?v=21"></script>
+<script src="js/dashboard.js?v=21"></script>
+<script src="js/ui.js?v=21"></script>
+<script src="js/email.js?v=21"></script>
+<script src="js/roles.js?v=21"></script>
+<script src="js/users.js?v=21"></script>
+<script src="js/audit.js?v=21"></script>
+<script src="js/chat.js?v=21"></script>
+<script src="js/sso.js?v=21"></script>
+<script src="js/kb.js?v=21"></script>
+<script src="js/app.js?v=21"></script>
 </body>
 </html>

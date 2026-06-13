@@ -88,6 +88,7 @@ function navigateTo(view) {
     if (view === 'users') refreshUsersView();
     if (view === 'live-chats') { initAdminChatConsole(); }
     if (view === 'audit-trail') renderAuditTrail();
+    if (view === 'kb') { if (typeof renderAdminKB === 'function') renderAdminKB(); }
     if (view === 'reports') {
       setTimeout(() => {
         try {

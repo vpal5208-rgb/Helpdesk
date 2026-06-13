@@ -515,3 +515,97 @@ function displayMockEmailToast(mail) {
     }
   }, 10000);
 }
+
+const LS_KB = 'hd_kb_articles_v1';
+
+const DEFAULT_KB_ARTICLES = [
+  {
+    id: 'KB-0001',
+    title: 'Monitor Not Turning On or Flickering',
+    category: 'Hardware',
+    desc: 'Follow this step-by-step guide to diagnose monitor power, cabling, and display setting issues.',
+    steps: [
+      'Check if the monitor power LED is lit. If not, verify the power cable is firmly connected to the monitor and the outlet.',
+      'Verify that the video cable (HDMI, DisplayPort, or USB-C) is tightly connected to both the monitor and the laptop dock or computer.',
+      'Press the input source button on the monitor to cycle through HDMI/DP inputs and verify it is set to the active input port.',
+      'Try power-cycling the monitor: unplug the power cord from the monitor, wait 10 seconds, and plug it back in.',
+      'Test with a different device or cable if available to determine if the monitor or cable is faulty.'
+    ],
+    author: 'Lisa Okonkwo',
+    created: '2026-06-13T12:00:00Z'
+  },
+  {
+    id: 'KB-0002',
+    title: 'Laptop Not Charging or Powering On',
+    category: 'Hardware',
+    desc: 'Steps to resolve battery charging issues, dock connectivity problems, and laptop power-up failures.',
+    steps: [
+      'Ensure the charger plug is firmly plugged into the laptop\'s USB-C/power port and the wall outlet is working.',
+      'Unplug the laptop from the docking station and connect the charger directly to the laptop\'s secondary USB-C port.',
+      'Perform a hard reset: disconnect all peripherals, unplug charger, hold the power button for 15 seconds, then plug back in and turn on.',
+      'Check if the charger brick is unusually hot or if the cable shows visible damage or fraying.'
+    ],
+    author: 'Sarah Chen',
+    created: '2026-06-13T12:15:00Z'
+  },
+  {
+    id: 'KB-0003',
+    title: 'Network Printer Showing Offline',
+    category: 'Hardware',
+    desc: 'Guides for diagnosing offline status and print job queues for local and network printers.',
+    steps: [
+      'Verify the printer screen is on and shows no error messages (paper jam, out of toner).',
+      'Check the printer connection: if Wi-Fi, verify wireless indicator is green; if ethernet, check connection lights at the back.',
+      'Open Windows Settings > Devices > Printers, select the printer, and ensure \'Use Printer Offline\' is unchecked.',
+      'Restart the Print Spooler: press Win+R, type \'services.msc\', scroll to \'Print Spooler\', right-click and click \'Restart\'.'
+    ],
+    author: 'Alex Dubois',
+    created: '2026-06-13T12:30:00Z'
+  },
+  {
+    id: 'KB-0004',
+    title: 'Wireless Keyboard/Mouse Unresponsive',
+    category: 'Hardware',
+    desc: 'Troubleshoot bluetooth connection, USB receiver, and battery power for keyboards and mice.',
+    steps: [
+      'Turn the keyboard/mouse off and back on using the power switch on the bottom.',
+      'Replace the AA/AAA batteries or plug in the charging cable for 10 minutes to verify charge.',
+      'If using a USB dongle, unplug it and plug it into a different USB port directly on the computer, avoiding hubs.',
+      'Open Bluetooth settings on your PC and check if the device is listed as Connected. If not, press the sync button to re-pair.'
+    ],
+    author: 'Marcus Rivera',
+    created: '2026-06-13T12:45:00Z'
+  }
+];
+
+function loadKBArticles() {
+  try {
+    const raw = localStorage.getItem(LS_KB);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error('Failed to load KB articles', e);
+  }
+  
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocal) {
+    saveKBArticles(DEFAULT_KB_ARTICLES);
+    return [...DEFAULT_KB_ARTICLES];
+  }
+  saveKBArticles([]);
+  return [];
+}
+
+function saveKBArticles(articles) {
+  try {
+    localStorage.setItem(LS_KB, JSON.stringify(articles));
+  } catch (e) {
+    console.error('Failed to save KB articles', e);
+  }
+}
+
+window.loadKBArticles = loadKBArticles;
+window.saveKBArticles = saveKBArticles;
+

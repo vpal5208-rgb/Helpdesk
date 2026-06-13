@@ -167,6 +167,7 @@
       <button class="pnav-btn" data-tab="new-ticket">➕ New Ticket</button>
       <button class="pnav-btn" data-tab="my-tickets">🎫 My Tickets</button>
       <button class="pnav-btn" data-tab="track">🔍 Track</button>
+      <button class="pnav-btn" data-tab="kb">📚 Troubleshooting</button>
     </div>
     <div class="portal-nav-right">
       <div class="portal-user-badge" id="portal-user-badge"></div>
@@ -409,6 +410,40 @@
       <div id="track-result" class="track-result"></div>
     </div>
 
+    <!-- ===== KNOWLEDGE BASE TAB ===== -->
+    <div class="ptab" id="ptab-kb">
+      <div class="portal-page-header">
+        <h1>Troubleshooting & Knowledge Base</h1>
+        <p>Follow our self-service guides to troubleshoot common hardware and software failures before submitting a ticket.</p>
+      </div>
+      <div class="kb-layout">
+        <!-- Categories/Articles Sidebar -->
+        <div class="kb-sidebar-card" style="background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow);">
+          <div style="font-weight:700; font-size:.8rem; margin-bottom:12px; text-transform:uppercase; color:var(--text-2); letter-spacing:.5px;">Categories</div>
+          <div class="kb-cat-list" id="kb-cat-list" style="display:flex; flex-direction:column; gap:4px;">
+            <!-- Categories populated dynamically -->
+          </div>
+          <hr style="margin:16px 0; border:none; border-top:1px solid var(--border);"/>
+          <div style="font-weight:700; font-size:.8rem; margin-bottom:12px; text-transform:uppercase; color:var(--text-2); letter-spacing:.5px;">Articles</div>
+          <div class="kb-article-list" id="kb-article-list" style="display:flex; flex-direction:column; gap:8px;">
+            <!-- Articles populated dynamically -->
+          </div>
+        </div>
+        
+        <!-- Article View / Troubleshooting Wizard -->
+        <div class="kb-content-card" style="background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius); padding:24px; min-height:400px; box-shadow:var(--shadow);">
+          <div id="kb-content-default" style="text-align:center; padding:60px 20px; color:var(--text-3)">
+            <div style="font-size:3rem; margin-bottom:12px">📚</div>
+            <h3 style="color:var(--text-2); font-weight:700; margin-bottom:6px">Select a Troubleshooting Guide</h3>
+            <p style="font-size:.85rem; margin-top:6px; max-width:400px; margin-left:auto; margin-right:auto">Choose a category and select an article from the left sidebar to start diagnosing your issue.</p>
+          </div>
+          <div id="kb-article-view" style="display:none;">
+            <!-- Rendered article content and interactive wizard -->
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /portal-body -->
 </div>
 
@@ -505,8 +540,9 @@ $ </div>
 <!-- Toast -->
 <div id="portal-toasts" class="portal-toasts"></div>
 
-<script src="js/data.js?v=20"></script>
-<script src="js/sso.js?v=20"></script>
-<script src="js/portal.js?v=20"></script>
+<script src="js/data.js?v=21"></script>
+<script src="js/sso.js?v=21"></script>
+<script src="js/portal.js?v=21"></script>
+<script src="js/kb.js?v=21"></script>
 </body>
 </html>

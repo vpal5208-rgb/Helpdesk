@@ -252,11 +252,99 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   color: #d97706 !important;
 }
 
+/* KB LAYOUT */
+.kb-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.kb-cat-btn {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: 0.15s;
+}
+.kb-cat-btn:hover, .kb-cat-btn.active {
+  background: var(--blue-light);
+  color: var(--blue);
+  font-weight: 600;
+}
+.kb-art-btn {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 0.85rem;
+  color: var(--text);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+.kb-art-btn:hover, .kb-art-btn.active {
+  border-color: var(--blue);
+  background: rgba(37,99,235,0.02);
+}
+.kb-art-title {
+  font-weight: 600;
+  font-size: 0.83rem;
+  text-align: left;
+}
+.kb-art-meta {
+  font-size: 0.72rem;
+  color: var(--text-2);
+  text-align: left;
+}
+
+/* Wizard */
+.kb-wizard {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+  margin-top: 16px;
+}
+.wizard-progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 0.75rem;
+  color: var(--text-2);
+  font-weight: 600;
+}
+.wizard-step-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+.wizard-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 @media(max-width:768px){
   .new-ticket-layout{grid-template-columns:1fr}
   .portal-nav-center{display:none}
   .hero-stats{display:none}
   .pform-row{grid-template-columns:1fr}
   .detail-card-body{grid-template-columns:1fr}
+  .kb-layout{grid-template-columns:1fr}
 }
 
