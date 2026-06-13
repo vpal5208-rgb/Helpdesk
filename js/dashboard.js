@@ -4,6 +4,9 @@
 
 let activityFeed = [];
 
+// Global metadata for chart elements to enable interactivity
+const chartMetadata = {};
+
 function updateDashboard() {
   updateKPIs();
   renderVolumeChart();
@@ -14,6 +17,9 @@ function updateDashboard() {
   renderMonthlyChart();
   renderResolutionChart();
   renderAgentPerfChart();
+  
+  // Initialize interactivity event listeners once
+  initDashboardInteractivity();
 }
 
 // ====== KPIs ======
@@ -116,6 +122,10 @@ function drawLineChart(ctx, canvas, labels, datasets) {
 
   ctx.clearRect(0, 0, w, h);
 
+  // Initialize/clear metadata for interactivity
+  const chartId = canvas.id;
+  chartMetadata[chartId] = { points: [] };
+
   // Grid lines
   const isDark = document.documentElement.dataset.theme !== 'light';
   const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
@@ -135,11 +145,22 @@ function drawLineChart(ctx, canvas, labels, datasets) {
     ctx.fillText(lbl, x, h - 8);
   });
 
-  datasets.forEach(ds => {
+  datasets.forEach((ds, dsIndex) => {
     const pts = ds.data.map((v, i) => ({
       x: pad.left + (i / (ds.data.length - 1)) * cw,
       y: pad.top + ch - (v / maxVal) * ch,
     }));
+
+    // Store point coordinates for interactivity
+    pts.forEach((p, i) => {
+      chartMetadata[chartId].points.push({
+        x: p.x,
+        y: p.y,
+        value: ds.data[i],
+        date: labels[i],
+        type: dsIndex === 0 ? 'Created' : 'Resolved'
+      });
+    });
 
     if (ds.fill) {
       ctx.beginPath();
@@ -147,7 +168,6 @@ function drawLineChart(ctx, canvas, labels, datasets) {
       pts.forEach(p => ctx.lineTo(p.x, p.y));
       ctx.lineTo(pts[pts.length - 1].x, pad.top + ch);
       ctx.closePath();
-      ctx.fillStyle = ds.color.replace('#', 'rgba(') + ',0.12)'; // rough alpha
       ctx.fillStyle = hexToRgba(ds.color, 0.12);
       ctx.fill();
     }
@@ -198,8 +218,24 @@ function drawDonutChart(ctx, canvas, labels, data, colors) {
   let angle = -Math.PI/2;
   ctx.clearRect(0,0,size,size);
 
+  const chartId = canvas.id;
+  chartMetadata[chartId] = {
+    cx, cy, r, inner,
+    slices: []
+  };
+
   data.forEach((val,i) => {
     const sweep = (val/total) * Math.PI * 2;
+    
+    // Store slice details for interactivity
+    chartMetadata[chartId].slices.push({
+      startAngle: angle,
+      endAngle: angle + sweep,
+      value: val,
+      label: labels[i],
+      color: colors[i]
+    });
+
     ctx.beginPath();
     ctx.moveTo(cx,cy);
     ctx.arc(cx,cy,r,angle,angle+sweep);
@@ -223,16 +259,9 @@ function drawDonutChart(ctx, canvas, labels, data, colors) {
   ctx.fillStyle = isDark ? '#8b949e' : '#636c76';
   ctx.fillText('tickets', cx, cy+12);
 
-  // Legend below
-  const legendY = size - 2;
-  const lw = size / labels.length;
-  labels.forEach((lbl,i) => {
-    const x = i * lw + lw/2;
-    ctx.beginPath(); ctx.arc(x-20,legendY-4,5,0,Math.PI*2); ctx.fillStyle=colors[i]; ctx.fill();
-    ctx.fillStyle = isDark ? '#8b949e' : '#636c76';
-    ctx.font = `${size*0.07}px Inter,sans-serif`; ctx.textAlign='left';
-    ctx.fillText(lbl, x-12, legendY);
-  });
+  // Render a responsive HTML legend at the bottom of the card container
+  const filterType = chartId === 'chart-priority' ? 'priority' : 'status';
+  createHtmlLegend(canvas, labels, data, colors, filterType);
 }
 
 // ====== CATEGORY BAR ======
@@ -261,12 +290,26 @@ function drawBarChart(ctx, canvas, labels, data, colors, horizontal=false) {
   const textColor = isDark ? '#8b949e':'#636c76';
   ctx.clearRect(0,0,w,h);
 
+  const chartId = canvas.id;
+  chartMetadata[chartId] = { bars: [] };
+
   const barH = ch / labels.length * 0.6;
   const gap = ch / labels.length;
 
   labels.forEach((lbl,i)=>{
     const y = pad.top + i*gap + gap/2 - barH/2;
     const bw = (data[i]/maxVal)*cw;
+
+    // Store bar coordinates for interactivity
+    chartMetadata[chartId].bars.push({
+      yStart: y,
+      yEnd: y + barH,
+      xStart: pad.left,
+      xEnd: pad.left + bw,
+      value: data[i],
+      label: lbl
+    });
+
     ctx.fillStyle = hexToRgba(colors[i%colors.length],0.15);
     ctx.fillRect(pad.left, y, cw, barH);
     ctx.fillStyle = colors[i%colors.length];
@@ -277,6 +320,7 @@ function drawBarChart(ctx, canvas, labels, data, colors, horizontal=false) {
     ctx.fillText(data[i], pad.left+bw+6, y+barH/2+4);
   });
 }
+
 
 // ====== LEADERBOARD ======
 function renderLeaderboard() {
@@ -477,3 +521,270 @@ function exportReportsToCSV() {
     showToast("Reports CSV downloaded!", "success");
   }
 }
+
+/* ====== DASHBOARD INTERACTIVITY ====== */
+function filterTicketsAndNavigate(filterType, filterValue) {
+  // Clear other filters first
+  document.getElementById('filter-status').value = '';
+  document.getElementById('filter-priority').value = '';
+  document.getElementById('filter-category').value = '';
+  document.getElementById('filter-agent').value = '';
+  document.getElementById('ticket-search').value = '';
+
+  if (filterType === 'status') {
+    document.getElementById('filter-status').value = filterValue;
+  } else if (filterType === 'priority') {
+    document.getElementById('filter-priority').value = filterValue;
+  } else if (filterType === 'category') {
+    document.getElementById('filter-category').value = filterValue;
+  } else if (filterType === 'agent') {
+    document.getElementById('filter-agent').value = filterValue;
+  } else if (filterType === 'sla') {
+    document.getElementById('ticket-search').value = 'breach';
+  }
+
+  applyFilters();
+  navigateTo('tickets');
+}
+
+function createHtmlLegend(canvas, labels, values, colors, filterType) {
+  let legend = canvas.parentElement.querySelector('.custom-html-legend');
+  if (!legend) {
+    legend = document.createElement('div');
+    legend.className = 'custom-html-legend';
+    legend.style.display = 'flex';
+    legend.style.justifyContent = 'center';
+    legend.style.flexWrap = 'wrap';
+    legend.style.gap = '12px';
+    legend.style.marginTop = '12px';
+    canvas.parentElement.appendChild(legend);
+  }
+
+  legend.innerHTML = labels.map((lbl, i) => {
+    return `<div class="legend-item" style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:var(--text-secondary,#8b949e);cursor:pointer;" onclick="filterTicketsAndNavigate('${filterType}', '${lbl}')">
+      <span style="width:8px;height:8px;border-radius:50%;background:${colors[i]};display:inline-block"></span>
+      <span class="legend-label" style="font-weight:600">${lbl}</span>
+      <span class="legend-value" style="color:var(--text-muted,#6b7280)">(${values[i]})</span>
+    </div>`;
+  }).join('');
+}
+
+let dashboardInteractivityInitialized = false;
+
+function initDashboardInteractivity() {
+  if (dashboardInteractivityInitialized) return;
+  
+  // Bind KPI cards click listeners
+  const openCard = document.getElementById('kpi-open')?.closest('.kpi-card');
+  if (openCard) openCard.onclick = () => filterTicketsAndNavigate('status', 'Open');
+
+  const resolvedCard = document.getElementById('kpi-resolved')?.closest('.kpi-card');
+  if (resolvedCard) resolvedCard.onclick = () => filterTicketsAndNavigate('status', 'Resolved');
+
+  const breachCard = document.getElementById('kpi-breach')?.closest('.kpi-card');
+  if (breachCard) breachCard.onclick = () => filterTicketsAndNavigate('sla');
+
+  const totalCard = document.getElementById('kpi-total')?.closest('.kpi-card');
+  if (totalCard) totalCard.onclick = () => filterTicketsAndNavigate('all');
+
+  // Set up listeners for canvases
+  const canvases = ['chart-volume', 'chart-priority', 'chart-category', 'chart-monthly', 'chart-resolution', 'chart-agent-perf'];
+  
+  canvases.forEach(id => {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    
+    canvas.addEventListener('mousemove', e => handleChartMouseMove(e, canvas));
+    canvas.addEventListener('mouseleave', () => hideChartTooltip(canvas));
+    canvas.addEventListener('click', e => handleChartClick(e, canvas));
+  });
+
+  dashboardInteractivityInitialized = true;
+}
+
+function handleChartMouseMove(e, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+  
+  const tooltip = document.getElementById('chart-tooltip');
+  if (!tooltip) return;
+  
+  let hoveredElement = null;
+  let tooltipHtml = '';
+  
+  const id = canvas.id;
+  const meta = chartMetadata[id];
+  
+  if (id === 'chart-volume' || id === 'chart-monthly') {
+    if (meta && meta.points) {
+      let closestDist = Infinity;
+      let closestPt = null;
+      meta.points.forEach(pt => {
+        const dx = mouseX - pt.x;
+        const dy = mouseY - pt.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closestPt = pt;
+        }
+      });
+      if (closestPt && closestDist <= 15) {
+        hoveredElement = closestPt;
+        tooltipHtml = `<strong>${closestPt.type || 'Volume'}</strong>Date: ${closestPt.date}<br>Tickets: ${closestPt.value}`;
+      }
+    }
+  } else if (id === 'chart-priority' || id === 'chart-resolution') {
+    if (meta && meta.slices) {
+      const dx = mouseX - meta.cx;
+      const dy = mouseY - meta.cy;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      
+      if (dist >= meta.inner && dist <= meta.r) {
+        let mouseAngle = Math.atan2(dy, dx);
+        if (mouseAngle < -Math.PI / 2) {
+          mouseAngle += 2 * Math.PI;
+        }
+        
+        meta.slices.forEach(slice => {
+          let start = slice.startAngle;
+          let end = slice.endAngle;
+          
+          let normMouse = mouseAngle - (-Math.PI/2);
+          if (normMouse < 0) normMouse += 2 * Math.PI;
+          if (normMouse >= 2 * Math.PI) normMouse -= 2 * Math.PI;
+          
+          let normStart = start - (-Math.PI/2);
+          if (normStart < 0) normStart += 2 * Math.PI;
+          
+          let normEnd = end - (-Math.PI/2);
+          if (normEnd < 0) normEnd += 2 * Math.PI;
+          if (normEnd === 0) normEnd = 2 * Math.PI;
+          
+          let match = false;
+          if (normStart <= normEnd) {
+            match = normMouse >= normStart && normMouse <= normEnd;
+          } else {
+            match = normMouse >= normStart || normMouse <= normEnd;
+          }
+          
+          if (match) {
+            hoveredElement = slice;
+            tooltipHtml = `<strong>${slice.label}</strong>Tickets: ${slice.value}`;
+          }
+        });
+      }
+    }
+  } else if (id === 'chart-category' || id === 'chart-agent-perf') {
+    if (meta && meta.bars) {
+      meta.bars.forEach(bar => {
+        if (mouseY >= bar.yStart && mouseY <= bar.yEnd && mouseX >= bar.xStart && mouseX <= bar.xEnd) {
+          hoveredElement = bar;
+          tooltipHtml = `<strong>${bar.label}</strong>Tickets: ${bar.value}`;
+        }
+      });
+    }
+  }
+  
+  if (hoveredElement) {
+    canvas.classList.add('clickable');
+    tooltip.innerHTML = tooltipHtml;
+    tooltip.style.display = 'block';
+    tooltip.style.left = (e.clientX + 12) + 'px';
+    tooltip.style.top = (e.clientY + 12) + 'px';
+  } else {
+    canvas.classList.remove('clickable');
+    tooltip.style.display = 'none';
+  }
+}
+
+function hideChartTooltip(canvas) {
+  canvas.classList.remove('clickable');
+  const tooltip = document.getElementById('chart-tooltip');
+  if (tooltip) tooltip.style.display = 'none';
+}
+
+function handleChartClick(e, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+  
+  const id = canvas.id;
+  const meta = chartMetadata[id];
+  
+  if (id === 'chart-volume' || id === 'chart-monthly') {
+    if (meta && meta.points) {
+      let closestDist = Infinity;
+      let closestPt = null;
+      meta.points.forEach(pt => {
+        const dx = mouseX - pt.x;
+        const dy = mouseY - pt.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closestPt = pt;
+        }
+      });
+      if (closestPt && closestDist <= 15) {
+        const statusVal = closestPt.type === 'Resolved' ? 'Resolved' : 'Open';
+        filterTicketsAndNavigate('status', statusVal);
+      }
+    }
+  } else if (id === 'chart-priority' || id === 'chart-resolution') {
+    if (meta && meta.slices) {
+      const dx = mouseX - meta.cx;
+      const dy = mouseY - meta.cy;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      
+      if (dist >= meta.inner && dist <= meta.r) {
+        let mouseAngle = Math.atan2(dy, dx);
+        if (mouseAngle < -Math.PI / 2) {
+          mouseAngle += 2 * Math.PI;
+        }
+        
+        meta.slices.forEach(slice => {
+          let start = slice.startAngle;
+          let end = slice.endAngle;
+          
+          let normMouse = mouseAngle - (-Math.PI/2);
+          if (normMouse < 0) normMouse += 2 * Math.PI;
+          if (normMouse >= 2 * Math.PI) normMouse -= 2 * Math.PI;
+          
+          let normStart = start - (-Math.PI/2);
+          if (normStart < 0) normStart += 2 * Math.PI;
+          
+          let normEnd = end - (-Math.PI/2);
+          if (normEnd < 0) normEnd += 2 * Math.PI;
+          
+          let match = false;
+          if (normStart <= normEnd) {
+            match = normMouse >= normStart && normMouse <= normEnd;
+          } else {
+            match = normMouse >= normStart || normMouse <= normEnd;
+          }
+          
+          if (match) {
+            const filterType = id === 'chart-priority' ? 'priority' : 'status';
+            filterTicketsAndNavigate(filterType, slice.label);
+          }
+        });
+      }
+    }
+  } else if (id === 'chart-category' || id === 'chart-agent-perf') {
+    if (meta && meta.bars) {
+      meta.bars.forEach(bar => {
+        if (mouseY >= bar.yStart && mouseY <= bar.yEnd && mouseX >= bar.xStart && mouseX <= bar.xEnd) {
+          if (id === 'chart-category') {
+            filterTicketsAndNavigate('category', bar.label);
+          } else {
+            const ag = AGENTS.find(a => a.name.startsWith(bar.label));
+            if (ag) {
+              filterTicketsAndNavigate('agent', ag.id);
+            }
+          }
+        }
+      });
+    }
+  }
+}
+

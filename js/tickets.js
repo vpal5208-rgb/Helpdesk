@@ -36,6 +36,7 @@ function applyFilters() {
   const category = document.getElementById('filter-category').value;
   const agentId = document.getElementById('filter-agent').value;
   const search = (document.getElementById('ticket-search').value || document.getElementById('global-search').value || '').toLowerCase();
+  const sla = loadSLA();
 
   filteredTickets = allTickets.filter(t => {
     if (!t) return false;
@@ -47,12 +48,19 @@ function applyFilters() {
     const tId = t.id || '';
     const tRequester = t.requester || '';
 
+    const slaRem = calcSLARemaining(t, sla);
+    const isBreached = slaRem !== null && slaRem < 0;
+
     if (status && tStatus !== status) return false;
     if (priority && tPriority !== priority) return false;
     if (category && tCategory !== category) return false;
     if (agentId && tAgentId !== agentId) return false;
     if (search) {
-      if (!tSubject.toLowerCase().includes(search) && !tId.toLowerCase().includes(search) && !tRequester.toLowerCase().includes(search)) return false;
+      if (search === 'breach' || search === 'sla-breach' || search === 'breached') {
+        if (!isBreached) return false;
+      } else {
+        if (!tSubject.toLowerCase().includes(search) && !tId.toLowerCase().includes(search) && !tRequester.toLowerCase().includes(search)) return false;
+      }
     }
     return true;
   });
