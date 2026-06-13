@@ -355,54 +355,6 @@ function initSettings() {
       showToast('Authentication settings saved successfully!', 'success');
     });
   }
-
-  // ── System Maintenance Reset Handlers ──
-  const clearTicketsBtn = document.getElementById('btn-clear-tickets');
-  if (clearTicketsBtn) {
-    clearTicketsBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to delete all tickets? This will wipe your ticket database.')) {
-        localStorage.setItem('hd_tickets_v1', JSON.stringify([]));
-        showToast('All tickets deleted successfully!', 'success');
-        if (typeof applyFilters === 'function') {
-          try { applyFilters(); } catch(e) {}
-        }
-        if (typeof updateDashboard === 'function') {
-          try { updateDashboard(); } catch(e) {}
-        }
-      }
-    });
-  }
-
-  const clearUsersBtn = document.getElementById('btn-clear-users');
-  if (clearUsersBtn) {
-    clearUsersBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to delete all user profiles? This will clear all database users.')) {
-        localStorage.setItem('hd_users_v1', JSON.stringify([]));
-        showToast('All user profiles deleted successfully!', 'success');
-        if (window.refreshUsersView) {
-          try { refreshUsersView(); } catch(e) {}
-        }
-      }
-    });
-  }
-
-  const clearAllBtn = document.getElementById('btn-clear-all');
-  if (clearAllBtn) {
-    clearAllBtn.addEventListener('click', () => {
-      if (confirm('🚨 DANGER: Are you absolutely sure you want to wipe all data? This will clear all tickets, users, settings, and sessions and reload the application.')) {
-        localStorage.setItem('hd_tickets_v1', JSON.stringify([]));
-        localStorage.setItem('hd_users_v1', JSON.stringify([]));
-        sessionStorage.clear();
-        localStorage.removeItem('hd_admin_auth_v1');
-        localStorage.removeItem('hd_portal_user');
-        localStorage.removeItem('hd_chat_session');
-        showToast('All data wiped! Reloading...', 'warning');
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
-      }
-    });
-  }
 }
 
 function renderSettingsRolesTable() {
