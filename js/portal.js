@@ -177,14 +177,16 @@ function initPortal() {
 
 function getPortalUsers() {
   let list = [];
+  let explicitlyEmpty = false;
   try {
     const raw = localStorage.getItem('hd_users_v1');
     if (raw) {
+      if (raw === '[]') explicitlyEmpty = true;
       list = JSON.parse(raw).filter(Boolean);
     }
   } catch(e) {}
   
-  if (!list || !list.length) {
+  if (!explicitlyEmpty && (!list || !list.length)) {
     list = [
       { fname:'James', lname:'Wilson', email:'j.wilson@company.com', dept:'Marketing', role:'end-user', status:'active' },
       { fname:'Emily', lname:'Davis', email:'e.davis@company.com', dept:'Engineering', role:'power-user', status:'active' },
