@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="css/email.css?v=3"/>
 <link rel="stylesheet" href="css/users.css?v=3"/>
 <link rel="stylesheet" href="css/portal.css?v=3"/>
+<link rel="stylesheet" href="css/chat.css?v=4"/>
 </head>
 <body>
 
@@ -179,6 +180,7 @@ function adminLogout() {
     <button class="nav-item" data-view="agents"><span class="nav-icon">👥</span><span class="nav-label">Agents</span></button>
     <button class="nav-item" data-view="users"><span class="nav-icon">🧑‍💼</span><span class="nav-label">Users</span><span class="nav-badge" id="users-count">0</span></button>
     <button class="nav-item" data-view="reports"><span class="nav-icon">📈</span><span class="nav-label">Reports</span></button>
+    <button class="nav-item" data-view="live-chats"><span class="nav-icon">💬</span><span class="nav-label">Live Support</span><span class="nav-badge" id="chat-count" style="display:none">0</span></button>
     <button class="nav-item" data-view="audit-trail"><span class="nav-icon">📋</span><span class="nav-label">Audit Trail</span></button>
     <button class="nav-item" data-view="settings"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></button>
   </nav>
@@ -299,6 +301,80 @@ function adminLogout() {
         <div class="chart-card wide"><div class="chart-header"><h3>Monthly Ticket Trend</h3></div><canvas id="chart-monthly" height="220"></canvas></div>
         <div class="chart-card"><div class="chart-header"><h3>Resolution Rate</h3></div><canvas id="chart-resolution" height="220"></canvas></div>
         <div class="chart-card wide"><div class="chart-header"><h3>Agent Performance</h3></div><canvas id="chart-agent-perf" height="220"></canvas></div>
+      </div>
+    </section>
+
+    <!-- LIVE SUPPORT VIEW -->
+    <section class="view" id="view-live-chats">
+      <div class="view-header">
+        <h1>Live Support Chats</h1>
+        <p class="view-sub">Chat with online portal users and request remote access to troubleshoot issues in real-time.</p>
+      </div>
+
+      <div class="chat-split-container">
+        <!-- Sidebar: Active sessions -->
+        <div class="chat-sidebar">
+          <div class="chat-sidebar-header">Active Support Chats</div>
+          <div class="chat-sessions-list" id="chat-sessions-list">
+            <div class="chat-empty-panel" style="height:100%">
+              <span>💬</span>
+              <span>No active chats</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main chat console -->
+        <div class="admin-chat-main" id="admin-chat-main">
+          <div class="chat-empty-panel" style="flex:1" id="chat-empty-panel">
+            <span style="font-size:3rem">💬</span>
+            <h3 style="margin:8px 0 4px">No Chat Selected</h3>
+            <p style="color:var(--text-secondary);max-width:280px;text-align:center">Select an active chat session from the list to start responding.</p>
+          </div>
+          
+          <div class="admin-chat-console" id="admin-chat-console" style="display:none;flex:1;flex-direction:column">
+            <!-- Header -->
+            <div class="admin-chat-header">
+              <div class="admin-chat-userinfo">
+                <h4 id="admin-chat-username">User Name</h4>
+                <span id="admin-chat-userdept">Department</span>
+              </div>
+              <div class="admin-chat-actions">
+                <div class="admin-remote-indicator-tag" id="admin-remote-indicator-tag" style="display:none">
+                  <span>🟢</span> <span>Remote Control Active</span>
+                </div>
+                <button class="btn btn-ghost btn-sm" id="admin-remote-btn" style="border:1.5px solid var(--border)">🖥️ Request Remote Control</button>
+                <button class="btn btn-ghost btn-sm btn-danger" id="admin-end-chat-btn" style="border:1.5px solid #f53f3f;color:#f53f3f">❌ End Chat</button>
+              </div>
+            </div>
+
+            <!-- Simulated Remote Control Terminal Screen (displays on Admin Side) -->
+            <div class="admin-remote-view-panel" id="admin-remote-view-panel">
+              <div class="remote-view-header">
+                <span>🖥️ REMOTE TERMINAL VIEW</span>
+                <span id="remote-view-status" style="color:#39ff14">CONNECTED</span>
+              </div>
+              <div class="remote-view-console" id="remote-view-console" style="display:flex;flex-direction:column;height:120px;justify-content:flex-end">
+                <div id="remote-terminal-logs" style="flex:1;overflow-y:auto;white-space:pre-wrap">Connecting to Remote Support Server...
+Established encrypted channel.
+Agent has assumed terminal control.
+Type 'help' for commands.</div>
+                <div style="display:flex;align-items:center;gap:6px;border-top:1px solid rgba(255,255,255,0.05);padding-top:4px;margin-top:4px">
+                  <span style="color:#39ff14">$</span>
+                  <input type="text" id="remote-terminal-input" style="background:none;border:none;color:#39ff14;outline:none;font-family:monospace;font-size:0.75rem;flex:1" placeholder="Type command here..." autocomplete="off"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chat Stream -->
+            <div class="chat-messages" id="admin-chat-messages" style="flex:1"></div>
+
+            <!-- Text Input Area -->
+            <div class="chat-input-area">
+              <input type="text" class="chat-input" id="admin-chat-input" placeholder="Type your reply here..." autocomplete="off"/>
+              <button class="chat-send-btn" id="admin-chat-send-btn">Send Reply</button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1083,6 +1159,7 @@ support@company.com | +1 (800) 555-0199</textarea>
 <script src="js/email.js?v=3"></script>
 <script src="js/users.js?v=3"></script>
 <script src="js/audit.js?v=3"></script>
+<script src="js/chat.js?v=4"></script>
 <script src="js/app.js?v=3"></script>
 </body>
 </html>

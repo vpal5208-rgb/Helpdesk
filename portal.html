@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="css/portal.css?v=4"/>
+<link rel="stylesheet" href="css/chat.css?v=4"/>
 </head>
 <body>
 
@@ -396,6 +397,64 @@
       <button class="portal-btn portal-btn-ghost" id="escalate-cancel-btn">Cancel</button>
       <button class="portal-btn portal-btn-danger" id="escalate-submit-btn">🚨 Escalate Now</button>
     </div>
+  </div>
+</div>
+
+<!-- Floating Chat Widget -->
+<button class="chat-widget-btn" id="chat-widget-btn" title="Live Support Chat">💬</button>
+
+<!-- Chat Widget Container -->
+<div class="chat-widget-container" id="chat-widget-container">
+  <div class="chat-header">
+    <div class="chat-agent-info">
+      <div class="chat-agent-avatar" id="chat-agent-avatar">IT</div>
+      <div class="chat-agent-meta">
+        <div class="chat-agent-name" id="chat-agent-name">IT Support Bot</div>
+        <div class="chat-agent-status">
+          <span class="status-pulse-dot"></span>
+          <span id="chat-agent-status-text">Online</span>
+        </div>
+      </div>
+    </div>
+    <button class="chat-close-btn" id="chat-close-btn">✕</button>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="msg-bubble agent">
+      Hello! I'm your IT support assistant. How can I help you today?
+      <div class="msg-time">Just now</div>
+    </div>
+  </div>
+  <div class="chat-input-area">
+    <input type="text" class="chat-input" id="chat-input" placeholder="Type a message..." autocomplete="off"/>
+    <button class="chat-send-btn" id="chat-send-btn">Send</button>
+  </div>
+</div>
+
+<!-- Remote Control Full-Screen Overlay -->
+<div class="remote-session-overlay" id="remote-session-overlay">
+  <div class="remote-header">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:1.2rem">🖥️</span>
+      <div style="text-align:left">
+        <div style="font-size:0.95rem;font-weight:700;color:#fff">REMOTE SUPPORT SESSION ACTIVE</div>
+        <div style="font-size:0.75rem;color:#888;margin-top:2px">Your screen is being shared with IT Support</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px">
+      <div class="remote-indicator">
+        <span class="red-dot-live"></span>
+        <span>LIVE CONNECTION</span>
+      </div>
+      <button class="remote-disconnect-btn" id="remote-disconnect-btn">Disconnect Session</button>
+    </div>
+  </div>
+  <div class="remote-screen-body">
+    <div class="remote-terminal-log" id="remote-terminal-log">Connecting to Remote Support Server...
+Established encrypted channel.
+Agent has assumed terminal control.
+Type 'help' for commands.
+
+$ </div>
   </div>
 </div>
 

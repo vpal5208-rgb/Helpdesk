@@ -68,6 +68,7 @@ function navigateTo(view) {
     if (view === 'tickets') { applyFilters(); }
     if (view === 'agents') renderAgentsView();
     if (view === 'users') refreshUsersView();
+    if (view === 'live-chats') { initAdminChatConsole(); }
     if (view === 'audit-trail') renderAuditTrail();
     if (view === 'reports') {
       setTimeout(() => {

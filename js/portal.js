@@ -145,7 +145,8 @@ function initPortal() {
   setupListener('escalate-cancel-btn', 'click', () => closeModal('escalate-overlay'));
   setupListener('escalate-submit-btn', 'click', doEscalate);
 
-
+  // Init Chat Widget
+  try { initPortalChat(); } catch(e) { console.error("initPortalChat error:", e); }
 }
 
 function getPortalUsers() {
@@ -776,6 +777,296 @@ function pToast(msg,type='info') {
   t.innerHTML=`<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
   c.appendChild(t);
   setTimeout(()=>{ t.style.animation='slideInRight .3s ease reverse'; setTimeout(()=>t.remove(),300); },3500);
+}
+
+/* ===== PORTAL LIVE CHAT & REMOTE SUPPORT ===== */
+let chatbotTimer = null;
+
+function initPortalChat() {
+  const btn = document.getElementById('chat-widget-btn');
+  const container = document.getElementById('chat-widget-container');
+  const closeBtn = document.getElementById('chat-close-btn');
+  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send-btn');
+  const disconnectBtn = document.getElementById('remote-disconnect-btn');
+
+  if (!btn || !container) return;
+
+  btn.addEventListener('click', () => {
+    container.classList.toggle('open');
+    if (container.classList.contains('open')) {
+      input.focus();
+      const messagesDiv = document.getElementById('chat-messages');
+      if (messagesDiv) messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+  });
+
+  closeBtn.addEventListener('click', () => {
+    container.classList.remove('open');
+  });
+
+  sendBtn.addEventListener('click', handleUserSend);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleUserSend();
+  });
+
+  if (disconnectBtn) {
+    disconnectBtn.addEventListener('click', () => {
+      disconnectRemoteSession();
+    });
+  }
+
+  // Listen to storage events to keep in sync
+  window.addEventListener('storage', e => {
+    if (e.key === 'hd_chat_session') {
+      syncPortalChatState();
+    }
+  });
+
+  // Initial sync
+  syncPortalChatState();
+}
+
+function getChatSession() {
+  try {
+    const raw = localStorage.getItem('hd_chat_session');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return null;
+}
+
+function saveChatSession(session) {
+  try {
+    localStorage.setItem('hd_chat_session', JSON.stringify(session));
+  } catch(e) {
+    console.warn("localStorage saveChatSession failed:", e);
+  }
+}
+
+function syncPortalChatState() {
+  const session = getChatSession();
+  const overlay = document.getElementById('remote-session-overlay');
+  
+  if (!session) return;
+
+  if (session.status === 'ended') {
+    if (overlay) overlay.classList.remove('active');
+    const input = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('chat-send-btn');
+    if (input) { input.disabled = true; input.placeholder = "Chat has ended."; }
+    if (sendBtn) sendBtn.disabled = true;
+    renderPortalChatMessages();
+    return;
+  }
+
+  // Handle active inputs
+  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send-btn');
+  if (input) { input.disabled = false; input.placeholder = "Type a message..."; }
+  if (sendBtn) sendBtn.disabled = false;
+
+  // Handle Agent Metadata
+  const agentNameEl = document.getElementById('chat-agent-name');
+  const agentAvatarEl = document.getElementById('chat-agent-avatar');
+  const statusTextEl = document.getElementById('chat-agent-status-text');
+
+  if (session.agentJoined && session.agentName) {
+    if (agentNameEl) agentNameEl.textContent = session.agentName;
+    if (agentAvatarEl) agentAvatarEl.textContent = session.agentName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    if (statusTextEl) statusTextEl.textContent = "Support Specialist";
+  }
+
+  // Handle remote session overlay
+  if (session.remoteControlState === 'active') {
+    if (overlay && !overlay.classList.contains('active')) {
+      overlay.classList.add('active');
+      
+      const logEl = document.getElementById('remote-terminal-log');
+      if (logEl) {
+        logEl.textContent = `Connecting to Remote Support Server...\nEstablished encrypted channel.\nAgent (${session.agentName}) has assumed control.\n\n$ `;
+      }
+    }
+    
+    const logEl = document.getElementById('remote-terminal-log');
+    if (logEl && session.terminalLog && logEl.textContent !== session.terminalLog) {
+      logEl.textContent = session.terminalLog;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+  } else {
+    if (overlay) overlay.classList.remove('active');
+  }
+
+  renderPortalChatMessages();
+}
+
+function handleUserSend() {
+  const input = document.getElementById('chat-input');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  let session = getChatSession();
+  const now = new Date().toISOString();
+
+  if (!session || session.status === 'ended') {
+    const uName = portalUser ? portalUser.name : 'Guest User';
+    const uEmail = portalUser ? portalUser.email : 'guest@company.com';
+    const uDept = portalUser ? portalUser.dept : 'Visitor';
+    
+    const onlineAgents = AGENTS.filter(a => a.status !== 'offline');
+    const assignedAgent = onlineAgents.length > 0 ? onlineAgents[Math.floor(Math.random() * onlineAgents.length)] : { name: 'Sarah Chen' };
+
+    session = {
+      id: 'chat_' + Date.now(),
+      userName: uName,
+      userEmail: uEmail,
+      userDept: uDept,
+      agentId: assignedAgent.id || 'a1',
+      agentName: assignedAgent.name || 'Sarah Chen',
+      agentJoined: false,
+      status: 'active',
+      remoteControlState: 'none',
+      messages: [],
+      terminalLog: ''
+    };
+  }
+
+  session.messages.push({
+    sender: 'user',
+    text: text,
+    time: now
+  });
+
+  saveChatSession(session);
+  renderPortalChatMessages();
+
+  // Smart Chatbot Trigger
+  if (!session.agentJoined) {
+    if (chatbotTimer) clearTimeout(chatbotTimer);
+    chatbotTimer = setTimeout(() => {
+      chatbotAutoReply(text);
+    }, 2000);
+  }
+}
+
+function renderPortalChatMessages() {
+  const messagesDiv = document.getElementById('chat-messages');
+  if (!messagesDiv) return;
+
+  const session = getChatSession();
+  if (!session) return;
+
+  messagesDiv.innerHTML = '';
+  
+  session.messages.forEach(msg => {
+    const timeStr = new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    if (msg.type === 'remote_request') {
+      const bubble = document.createElement('div');
+      bubble.className = 'msg-bubble agent';
+      bubble.innerHTML = `
+        <div class="remote-request-box">
+          <div class="remote-request-title">🖥️ Remote Connection Requested</div>
+          <div style="font-size:0.75rem;margin-bottom:6px">The agent is requesting remote control access to your computer to resolve this issue.</div>
+          ${session.remoteControlState === 'requested' ? `
+            <div class="remote-btn-group">
+              <button class="remote-btn confirm" onclick="grantRemoteAccess()">Grant Access</button>
+              <button class="remote-btn deny" onclick="denyRemoteAccess()">Deny</button>
+            </div>
+          ` : `
+            <div style="font-style:italic;font-size:0.75rem;color:var(--text-secondary)">
+              ${session.remoteControlState === 'active' ? 'Connection established.' : 'Request rejected.'}
+            </div>
+          `}
+        </div>
+        <div class="msg-time">${timeStr}</div>
+      `;
+      messagesDiv.appendChild(bubble);
+    } else {
+      const bubble = document.createElement('div');
+      bubble.className = 'msg-bubble ' + msg.sender;
+      bubble.innerHTML = `
+        <div>${msg.text}</div>
+        <div class="msg-time">${timeStr}</div>
+      `;
+      messagesDiv.appendChild(bubble);
+    }
+  });
+
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+window.grantRemoteAccess = function() {
+  const session = getChatSession();
+  if (!session) return;
+  
+  session.remoteControlState = 'active';
+  session.messages.push({
+    sender: 'agent',
+    text: 'Remote control session started.',
+    time: new Date().toISOString()
+  });
+  
+  saveChatSession(session);
+  syncPortalChatState();
+};
+
+window.denyRemoteAccess = function() {
+  const session = getChatSession();
+  if (!session) return;
+  
+  session.remoteControlState = 'rejected';
+  session.messages.push({
+    sender: 'user',
+    text: 'Remote access request declined.',
+    time: new Date().toISOString()
+  });
+  
+  saveChatSession(session);
+  syncPortalChatState();
+};
+
+function disconnectRemoteSession() {
+  const session = getChatSession();
+  if (!session) return;
+  
+  session.remoteControlState = 'none';
+  session.messages.push({
+    sender: 'user',
+    text: 'Remote session disconnected by user.',
+    time: new Date().toISOString()
+  });
+  
+  saveChatSession(session);
+  syncPortalChatState();
+}
+
+function chatbotAutoReply(userText) {
+  const session = getChatSession();
+  if (!session || session.status !== 'active' || session.agentJoined) return;
+
+  const lowText = userText.toLowerCase();
+  let reply = "Thanks for reporting. Let me look into that for you. Can you describe what troubleshooting steps you have already tried?";
+
+  if (lowText.includes('vpn')) {
+    reply = `I can help with VPN drops. Could you try checking if you are on corporate Wi-Fi or home network? Try disconnecting, restarting your network device, and reconnecting. Let me know if that works.`;
+  } else if (lowText.includes('password') || lowText.includes('reset') || lowText.includes('login')) {
+    reply = `To reset your credentials, please go to the Accounts tab or write down your work email. Alternatively, I can request remote access to help you trigger the password reset flow.`;
+  } else if (lowText.includes('slow') || lowText.includes('internet') || lowText.includes('lag')) {
+    reply = `Let's run a quick diagnosis. Try closing background browser tabs and check your network adapter connection. If the issue remains, I can take remote control to analyze the system processes.`;
+  } else if (lowText.includes('printer')) {
+    reply = `For printer connection issues, make sure you are on the company VPN or network and verify if the printer shows 'Offline'. I can check the driver status for you.`;
+  }
+
+  session.messages.push({
+    sender: 'agent',
+    text: reply,
+    time: new Date().toISOString()
+  });
+
+  saveChatSession(session);
+  renderPortalChatMessages();
 }
 
 /* ===== INIT ===== */
