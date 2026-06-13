@@ -167,7 +167,7 @@ function initPortal() {
 
   // ── Office 365 Authentication ──
   try {
-    const authSettings = JSON.parse(localStorage.getItem('hd_auth_settings_v1') || '{"msO365Enabled":false}');
+    const authSettings = JSON.parse(localStorage.getItem('hd_auth_settings_v1') || '{"msO365Enabled":true}');
     const msContainer = document.getElementById('portal-ms-sso-container');
     if (msContainer) {
       msContainer.style.display = authSettings.msO365Enabled ? 'flex' : 'none';

@@ -317,7 +317,7 @@ function initSettings() {
   }
 
   // Load saved settings
-  const authSettings = typeof loadAuthSettings === 'function' ? loadAuthSettings() : { msO365Enabled: false, clientId: '', tenantId: 'common' };
+  const authSettings = typeof loadAuthSettings === 'function' ? loadAuthSettings() : { msO365Enabled: true, clientId: '', tenantId: 'common' };
   if (msEnabledCb) msEnabledCb.checked = authSettings.msO365Enabled;
   if (msClientIdInp) msClientIdInp.value = authSettings.clientId || '';
   if (msTenantIdInp) msTenantIdInp.value = authSettings.tenantId || 'common';

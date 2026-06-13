@@ -4,10 +4,27 @@
 
 const LS_AUTH_SETTINGS = 'hd_auth_settings_v1';
 const DEFAULT_AUTH_SETTINGS = {
-  msO365Enabled: false,
+  msO365Enabled: true,
   clientId: '',
   tenantId: 'common'
 };
+
+// Migration: Force enable Microsoft SSO on first load of this update
+try {
+  if (!localStorage.getItem('hd_auth_migrated_v3')) {
+    const s = localStorage.getItem(LS_AUTH_SETTINGS);
+    let settings = { ...DEFAULT_AUTH_SETTINGS };
+    if (s) {
+      try {
+        const parsed = JSON.parse(s);
+        settings = { ...settings, ...parsed };
+      } catch (e) {}
+    }
+    settings.msO365Enabled = true;
+    localStorage.setItem(LS_AUTH_SETTINGS, JSON.stringify(settings));
+    localStorage.setItem('hd_auth_migrated_v3', 'true');
+  }
+} catch (e) {}
 
 // Helper: load external script dynamically
 function loadScript(url) {
