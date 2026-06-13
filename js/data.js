@@ -606,6 +606,42 @@ function saveKBArticles(articles) {
   }
 }
 
+const DEFAULT_VENDORS = [
+  { name: 'Dell Direct', details: 'Enterprise hardware vendor. Support: dell-enterprise@company.com' },
+  { name: 'Apple Business', details: 'Apple device deployment. Contact: apple-business@company.com' },
+  { name: 'CDW', details: 'IT infrastructure and volume licensing. Support: sales@cdw.com' },
+  { name: 'Softchoice', details: 'Software licensing & SaaS provider. Contact: support@softchoice.com' },
+  { name: 'Amazon Business', details: 'General peripherals & electronics. Contact: business@amazon.com' }
+];
+
+function loadVendors() {
+  try {
+    const raw = localStorage.getItem('hd_vendors_v1');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error('Failed to load vendors', e);
+  }
+  
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocal) {
+    saveVendors(DEFAULT_VENDORS);
+    return [...DEFAULT_VENDORS];
+  }
+  saveVendors([]);
+  return [];
+}
+
+function saveVendors(vendors) {
+  try {
+    localStorage.setItem('hd_vendors_v1', JSON.stringify(vendors));
+  } catch (e) {
+    console.error('Failed to save vendors', e);
+  }
+}
+
 const DEFAULT_ASSETS = [
   {
     id: 'AST-0021',
@@ -614,9 +650,15 @@ const DEFAULT_ASSETS = [
     status: 'Deployed',
     serial: 'S/N 49F201',
     model: 'Dell Latitude 5520',
+    modelNumber: 'LAT-5520-X',
+    make: 'Dell',
+    vendor: 'Dell Direct',
+    vendorDetails: 'Enterprise hardware vendor. Support: dell-enterprise@company.com',
+    warrantyMonths: 36,
+    purchaseDate: '2024-03-12',
+    checkoutDate: '2025-03-12',
     assignedTo: 'James Wilson',
-    assignedEmail: 'j.wilson@company.com',
-    purchaseDate: '2025-03-12'
+    assignedEmail: 'j.wilson@company.com'
   },
   {
     id: 'AST-0022',
@@ -625,9 +667,15 @@ const DEFAULT_ASSETS = [
     status: 'Deployed',
     serial: 'S/N 8G92X0',
     model: 'Apple MacBook Pro 16" M3',
+    modelNumber: 'MBP16-M3-02',
+    make: 'Apple',
+    vendor: 'Apple Business',
+    vendorDetails: 'Apple device deployment. Contact: apple-business@company.com',
+    warrantyMonths: 12,
+    purchaseDate: '2025-11-05',
+    checkoutDate: '2025-11-10',
     assignedTo: 'Emily Davis',
-    assignedEmail: 'e.davis@company.com',
-    purchaseDate: '2025-11-05'
+    assignedEmail: 'e.davis@company.com'
   },
   {
     id: 'AST-0023',
@@ -636,9 +684,15 @@ const DEFAULT_ASSETS = [
     status: 'Deployed',
     serial: 'S/N 3M28P0',
     model: 'Dell UltraSharp 27" U2723QE',
+    modelNumber: 'U2723QE-A',
+    make: 'Dell',
+    vendor: 'Dell Direct',
+    vendorDetails: 'Enterprise hardware vendor. Support: dell-enterprise@company.com',
+    warrantyMonths: 36,
+    purchaseDate: '2024-04-18',
+    checkoutDate: '2025-04-18',
     assignedTo: 'James Wilson',
-    assignedEmail: 'j.wilson@company.com',
-    purchaseDate: '2025-04-18'
+    assignedEmail: 'j.wilson@company.com'
   },
   {
     id: 'AST-0024',
@@ -647,9 +701,15 @@ const DEFAULT_ASSETS = [
     status: 'Deployed',
     serial: 'S/N ZP029X',
     model: 'Apple iPhone 13 Pro',
+    modelNumber: 'A2638',
+    make: 'Apple',
+    vendor: 'Apple Business',
+    vendorDetails: 'Apple device deployment. Contact: apple-business@company.com',
+    warrantyMonths: 24,
+    purchaseDate: '2023-09-20',
+    checkoutDate: '2024-09-20',
     assignedTo: 'Robert Martinez',
-    assignedEmail: 'r.martinez@company.com',
-    purchaseDate: '2024-09-20'
+    assignedEmail: 'r.martinez@company.com'
   },
   {
     id: 'AST-0025',
@@ -658,9 +718,15 @@ const DEFAULT_ASSETS = [
     status: 'Ready to Deploy',
     serial: 'S/N IP092K',
     model: 'Apple iPad Pro 12.9"',
+    modelNumber: 'A2437',
+    make: 'Apple',
+    vendor: 'Apple Business',
+    vendorDetails: 'Apple device deployment. Contact: apple-business@company.com',
+    warrantyMonths: 12,
+    purchaseDate: '2025-06-14',
+    checkoutDate: '',
     assignedTo: '',
-    assignedEmail: '',
-    purchaseDate: '2025-06-14'
+    assignedEmail: ''
   },
   {
     id: 'AST-0026',
@@ -669,9 +735,15 @@ const DEFAULT_ASSETS = [
     status: 'Deployed',
     serial: 'S/N ACC-882',
     model: 'Adobe CC All Apps Suite',
+    modelNumber: 'ADOBE-CC-LIC',
+    make: 'Adobe',
+    vendor: 'Softchoice',
+    vendorDetails: 'Software licensing & SaaS provider. Contact: support@softchoice.com',
+    warrantyMonths: 12,
+    purchaseDate: '2026-01-01',
+    checkoutDate: '2026-01-01',
     assignedTo: 'Emily Davis',
-    assignedEmail: 'e.davis@company.com',
-    purchaseDate: '2026-01-01'
+    assignedEmail: 'e.davis@company.com'
   },
   {
     id: 'AST-0027',
@@ -680,9 +752,15 @@ const DEFAULT_ASSETS = [
     status: 'Deployed',
     serial: 'S/N M365-992',
     model: 'Microsoft 365 E5 License',
+    modelNumber: 'MS-365-E5',
+    make: 'Microsoft',
+    vendor: 'Softchoice',
+    vendorDetails: 'Software licensing & SaaS provider. Contact: support@softchoice.com',
+    warrantyMonths: 12,
+    purchaseDate: '2025-01-01',
+    checkoutDate: '2025-01-01',
     assignedTo: 'James Wilson',
-    assignedEmail: 'j.wilson@company.com',
-    purchaseDate: '2025-01-01'
+    assignedEmail: 'j.wilson@company.com'
   },
   {
     id: 'AST-0028',
@@ -691,9 +769,15 @@ const DEFAULT_ASSETS = [
     status: 'Deployed',
     serial: 'S/N L3099F',
     model: 'Lenovo ThinkPad X1 Carbon Gen 11',
+    modelNumber: 'X1-GEN11-01',
+    make: 'Lenovo',
+    vendor: 'CDW',
+    vendorDetails: 'IT infrastructure and volume licensing. Support: sales@cdw.com',
+    warrantyMonths: 36,
+    purchaseDate: '2024-08-15',
+    checkoutDate: '2025-08-15',
     assignedTo: 'Jennifer Thompson',
-    assignedEmail: 'j.thompson@company.com',
-    purchaseDate: '2025-08-15'
+    assignedEmail: 'j.thompson@company.com'
   },
   {
     id: 'AST-0029',
@@ -702,9 +786,15 @@ const DEFAULT_ASSETS = [
     status: 'Ready to Deploy',
     serial: 'S/N DL5420-1',
     model: 'Dell Latitude 5420',
+    modelNumber: 'LAT-5420-Y',
+    make: 'Dell',
+    vendor: 'Dell Direct',
+    vendorDetails: 'Enterprise hardware vendor. Support: dell-enterprise@company.com',
+    warrantyMonths: 36,
+    purchaseDate: '2023-12-10',
+    checkoutDate: '',
     assignedTo: '',
-    assignedEmail: '',
-    purchaseDate: '2024-12-10'
+    assignedEmail: ''
   }
 ];
 
@@ -765,4 +855,7 @@ window.saveAssets = saveAssets;
 window.loadSnipeSettings = loadSnipeSettings;
 window.saveSnipeSettings = saveSnipeSettings;
 window.DEFAULT_ASSETS = DEFAULT_ASSETS;
+window.loadVendors = loadVendors;
+window.saveVendors = saveVendors;
+window.DEFAULT_VENDORS = DEFAULT_VENDORS;
 

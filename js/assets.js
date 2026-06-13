@@ -143,6 +143,54 @@ function initAssets() {
 
     if (btnCheckoutSubmit) btnCheckoutSubmit.addEventListener('click', saveCheckout);
 
+    // Manage Vendors Button click
+    const btnManageVendors = document.getElementById('btn-manage-vendors');
+    if (btnManageVendors) {
+      btnManageVendors.addEventListener('click', () => {
+        openVendorsModal();
+      });
+    }
+
+    // Vendors Modal Events
+    const btnVendorsCancel = document.getElementById('vendors-modal-cancel');
+    const btnVendorsClose = document.getElementById('vendors-modal-close');
+    const btnSaveVendor = document.getElementById('btn-save-vendor');
+
+    [btnVendorsCancel, btnVendorsClose].forEach(btn => {
+      if (btn) btn.addEventListener('click', closeVendorsModal);
+    });
+
+    if (btnSaveVendor) {
+      btnSaveVendor.addEventListener('click', saveVendor);
+    }
+
+    // Vendor select changed (shows custom name field conditionally)
+    const selectVendor = document.getElementById('assetm-vendor');
+    if (selectVendor) {
+      selectVendor.addEventListener('change', () => {
+        const customGroup = document.getElementById('assetm-vendor-custom-group');
+        const detailsField = document.getElementById('assetm-vendor-details');
+        
+        if (selectVendor.value === '__custom__') {
+          if (customGroup) customGroup.style.display = 'block';
+          if (detailsField) {
+            detailsField.value = '';
+            detailsField.focus();
+          }
+        } else {
+          if (customGroup) customGroup.style.display = 'none';
+          // Auto-fill details for predefined vendor
+          if (selectVendor.value) {
+            const vendors = typeof loadVendors === 'function' ? loadVendors() : [];
+            const v = vendors.find(x => x.name === selectVendor.value);
+            if (detailsField) detailsField.value = v ? v.details || '' : '';
+          } else {
+            if (detailsField) detailsField.value = '';
+          }
+        }
+      });
+    }
+
     // Search and filters
     ['asset-search', 'asset-filter-category', 'asset-filter-status'].forEach(id => {
       const el = document.getElementById(id);
@@ -213,6 +261,9 @@ function renderAdminAssets() {
       asset.id.toLowerCase().includes(searchQuery) ||
       asset.name.toLowerCase().includes(searchQuery) ||
       (asset.model || '').toLowerCase().includes(searchQuery) ||
+      (asset.make || '').toLowerCase().includes(searchQuery) ||
+      (asset.modelNumber || '').toLowerCase().includes(searchQuery) ||
+      (asset.vendor || '').toLowerCase().includes(searchQuery) ||
       (asset.serial || '').toLowerCase().includes(searchQuery) ||
       (asset.assignedTo || '').toLowerCase().includes(searchQuery);
 
@@ -259,8 +310,15 @@ function renderAdminAssets() {
 
     tr.innerHTML = `
       <td style="padding: 12px; font-family: monospace; font-weight: 600; color: var(--text-primary);">${asset.id}</td>
-      <td style="padding: 12px; font-weight: 600; color: var(--text-primary);">${asset.name}</td>
-      <td style="padding: 12px; color: var(--text-secondary);">${asset.model || '-'}</td>
+      <td style="padding: 12px;">
+        <div style="font-weight: 600; color: var(--text-primary);">${asset.name}</div>
+        ${asset.purchaseDate ? `<div style="font-size:0.72rem; color:var(--text-secondary); margin-top:2px;">Purchased: ${asset.purchaseDate}${asset.warrantyMonths ? ` (${asset.warrantyMonths} mo. warranty)` : ''}</div>` : ''}
+      </td>
+      <td style="padding: 12px; color: var(--text-secondary);">
+        <div style="font-weight:600; color:var(--text-primary);">${asset.make ? `${asset.make} ` : ''}${asset.model || '-'}</div>
+        ${asset.modelNumber ? `<div style="font-size:0.75rem; font-family:monospace; margin-top:2px;">Model #: ${asset.modelNumber}</div>` : ''}
+        ${asset.vendor ? `<div style="font-size:0.75rem; color:#d29922; margin-top:2px; display:inline-flex; align-items:center; gap:3px;">🏢 ${asset.vendor}</div>` : ''}
+      </td>
       <td style="padding: 12px; color: var(--text-secondary);">${asset.category}</td>
       <td style="padding: 12px;">
         <span class="status-badge" style="background: ${badgeBg}; color: ${badgeColor}; padding: 3px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
@@ -270,6 +328,7 @@ function renderAdminAssets() {
       <td style="padding: 12px; font-family: monospace; color: var(--text-secondary);">${asset.serial || '-'}</td>
       <td style="padding: 12px; color: var(--text-primary); font-weight: 500;">
         ${asset.assignedTo ? `👤 ${asset.assignedTo}` : '<span style="color:var(--text-secondary)">Unassigned</span>'}
+        ${asset.checkoutDate && asset.status === 'Deployed' ? `<div style="font-size:0.72rem; color:var(--text-secondary); margin-top:2px;">Checked Out: ${asset.checkoutDate}</div>` : ''}
       </td>
       <td style="padding: 12px; text-align: right; white-space: nowrap;">
         ${asset.status === 'Deployed' 
@@ -299,6 +358,18 @@ function populateAssigneeDropdown() {
   });
 }
 
+function populateVendorDropdown() {
+  const select = document.getElementById('assetm-vendor');
+  if (!select) return;
+
+  select.innerHTML = '<option value="">No Vendor</option>';
+  const vendors = typeof loadVendors === 'function' ? loadVendors() : [];
+  vendors.forEach(v => {
+    select.innerHTML += `<option value="${v.name}">${v.name}</option>`;
+  });
+  select.innerHTML += '<option value="__custom__">+ Add Custom Vendor...</option>';
+}
+
 function openAssetModal(id = '') {
   const overlay = document.getElementById('asset-modal-overlay');
   const titleEl = document.getElementById('asset-modal-title');
@@ -306,15 +377,29 @@ function openAssetModal(id = '') {
   const tagInput = document.getElementById('assetm-tag');
   const nameInput = document.getElementById('assetm-name');
   const modelInput = document.getElementById('assetm-model');
+  const modelNumberInput = document.getElementById('assetm-model-number');
   const catInput = document.getElementById('assetm-category');
+  const makeInput = document.getElementById('assetm-make');
   const serialInput = document.getElementById('assetm-serial');
   const statusInput = document.getElementById('assetm-status');
   const assigneeInput = document.getElementById('assetm-assignee');
+  const vendorInput = document.getElementById('assetm-vendor');
+  const vendorCustomGroup = document.getElementById('assetm-vendor-custom-group');
+  const vendorCustomInput = document.getElementById('assetm-vendor-custom');
+  const vendorDetailsInput = document.getElementById('assetm-vendor-details');
+  const purchaseDateInput = document.getElementById('assetm-purchase-date');
+  const warrantyInput = document.getElementById('assetm-warranty');
 
   if (!overlay) return;
 
   // Dynamically populate assignee choices from users database
   populateAssigneeDropdown();
+  // Dynamically populate vendors list
+  populateVendorDropdown();
+
+  // Reset custom vendor field
+  if (vendorCustomGroup) vendorCustomGroup.style.display = 'none';
+  if (vendorCustomInput) vendorCustomInput.value = '';
 
   if (id) {
     // Edit mode
@@ -327,7 +412,9 @@ function openAssetModal(id = '') {
     tagInput.value = asset.id;
     nameInput.value = asset.name;
     modelInput.value = asset.model || '';
+    modelNumberInput.value = asset.modelNumber || '';
     catInput.value = asset.category;
+    makeInput.value = asset.make || '';
     serialInput.value = asset.serial || '';
     statusInput.value = asset.status;
     
@@ -335,6 +422,32 @@ function openAssetModal(id = '') {
       assigneeInput.value = `${asset.assignedTo}|${asset.assignedEmail}`;
     } else {
       assigneeInput.value = '';
+    }
+
+    if (vendorInput) {
+      const exists = Array.from(vendorInput.options).some(opt => opt.value === asset.vendor);
+      if (asset.vendor && exists) {
+        vendorInput.value = asset.vendor;
+      } else if (asset.vendor) {
+        // Vendor exists but not in default list (custom vendor)
+        vendorInput.value = '__custom__';
+        if (vendorCustomGroup) vendorCustomGroup.style.display = 'block';
+        if (vendorCustomInput) vendorCustomInput.value = asset.vendor;
+      } else {
+        vendorInput.value = '';
+      }
+    }
+    
+    if (vendorDetailsInput) {
+      vendorDetailsInput.value = asset.vendorDetails || '';
+    }
+
+    if (purchaseDateInput) {
+      purchaseDateInput.value = asset.purchaseDate || '';
+    }
+
+    if (warrantyInput) {
+      warrantyInput.value = asset.warrantyMonths !== undefined ? asset.warrantyMonths : '';
     }
   } else {
     // Add mode
@@ -356,10 +469,18 @@ function openAssetModal(id = '') {
     tagInput.value = nextTag;
     nameInput.value = '';
     modelInput.value = '';
+    modelNumberInput.value = '';
     catInput.value = 'Hardware';
+    makeInput.value = '';
     serialInput.value = '';
     statusInput.value = 'Ready to Deploy';
     assigneeInput.value = '';
+    if (vendorInput) vendorInput.value = '';
+    if (vendorDetailsInput) vendorDetailsInput.value = '';
+    if (purchaseDateInput) {
+      purchaseDateInput.value = new Date().toISOString().split('T')[0];
+    }
+    if (warrantyInput) warrantyInput.value = '36'; // Default to 36 months
   }
 
   overlay.style.display = 'flex';
@@ -375,16 +496,43 @@ function saveAssetFromModal() {
   const tag = document.getElementById('assetm-tag').value;
   const name = document.getElementById('assetm-name').value.trim();
   const model = document.getElementById('assetm-model').value.trim();
+  const modelNumber = document.getElementById('assetm-model-number').value.trim();
   const category = document.getElementById('assetm-category').value;
+  const make = document.getElementById('assetm-make').value.trim();
   const serial = document.getElementById('assetm-serial').value.trim();
   let status = document.getElementById('assetm-status').value;
   const assigneeVal = document.getElementById('assetm-assignee').value;
+
+  let vendor = document.getElementById('assetm-vendor').value;
+  const customVendorName = document.getElementById('assetm-vendor-custom').value.trim();
+  const vendorDetails = document.getElementById('assetm-vendor-details').value.trim();
+  const purchaseDate = document.getElementById('assetm-purchase-date').value;
+  const warrantyVal = document.getElementById('assetm-warranty').value;
+  const warrantyMonths = warrantyVal ? parseInt(warrantyVal, 10) : '';
 
   if (!name || !model) {
     if (typeof showToast === 'function') {
       showToast('❌ Please fill in the Asset Name and Model fields.', 'error');
     }
     return;
+  }
+
+  if (vendor === '__custom__') {
+    if (!customVendorName) {
+      if (typeof showToast === 'function') {
+        showToast('❌ Please enter the custom vendor name.', 'error');
+      }
+      return;
+    }
+    vendor = customVendorName;
+    
+    // Save new custom vendor to registry if it doesn't exist yet
+    const vendors = typeof loadVendors === 'function' ? loadVendors() : [];
+    const exists = vendors.some(v => v.name.toLowerCase() === customVendorName.toLowerCase());
+    if (!exists) {
+      vendors.push({ name: customVendorName, details: vendorDetails });
+      if (typeof saveVendors === 'function') saveVendors(vendors);
+    }
   }
 
   const assets = typeof loadAssets === 'function' ? loadAssets() : [];
@@ -402,33 +550,44 @@ function saveAssetFromModal() {
     }
   }
 
+  const assetPayload = {
+    name,
+    model,
+    modelNumber,
+    category,
+    make,
+    serial,
+    status,
+    assignedTo,
+    assignedEmail,
+    vendor,
+    vendorDetails,
+    warrantyMonths,
+    purchaseDate
+  };
+
   if (id) {
     // Update existing
     const idx = assets.findIndex(a => a.id === id);
     if (idx !== -1) {
       assets[idx] = {
         ...assets[idx],
-        name,
-        model,
-        category,
-        serial,
-        status,
-        assignedTo,
-        assignedEmail
+        ...assetPayload
       };
+      
+      // Maintain checkoutDate correctly
+      if (status === 'Deployed' && !assets[idx].checkoutDate) {
+        assets[idx].checkoutDate = new Date().toISOString().split('T')[0];
+      } else if (status !== 'Deployed') {
+        assets[idx].checkoutDate = '';
+      }
     }
   } else {
     // Insert new
     assets.push({
       id: tag,
-      name,
-      model,
-      category,
-      serial,
-      status,
-      assignedTo,
-      assignedEmail,
-      purchaseDate: new Date().toISOString().split('T')[0]
+      ...assetPayload,
+      checkoutDate: status === 'Deployed' ? new Date().toISOString().split('T')[0] : ''
     });
   }
 
@@ -474,6 +633,7 @@ function checkInAsset(id) {
   asset.status = 'Ready to Deploy';
   asset.assignedTo = '';
   asset.assignedEmail = '';
+  asset.checkoutDate = '';
 
   if (typeof saveAssets === 'function') saveAssets(assets);
   renderAdminAssets();
@@ -554,7 +714,9 @@ function saveCheckout() {
   asset.assignedTo = assignedTo;
   asset.assignedEmail = assignedEmail;
   if (checkoutDate) {
-    asset.purchaseDate = checkoutDate;
+    asset.checkoutDate = checkoutDate;
+  } else {
+    asset.checkoutDate = new Date().toISOString().split('T')[0];
   }
 
   if (typeof saveAssets === 'function') saveAssets(assets);
@@ -567,6 +729,153 @@ function saveCheckout() {
 
   if (typeof addAuditLog === 'function') {
     addAuditLog(`📤 Checked out asset ${id} to ${assignedTo} (${assignedEmail}).`, 'System', 'System');
+  }
+}
+
+// =============================================
+// Vendors Registry Management Controllers
+// =============================================
+function openVendorsModal() {
+  const overlay = document.getElementById('vendors-modal-overlay');
+  if (!overlay) return;
+
+  // Reset form
+  document.getElementById('vendorm-id').value = '';
+  document.getElementById('vendorm-name').value = '';
+  document.getElementById('vendorm-details').value = '';
+  document.getElementById('vendor-form-title').textContent = '➕ Add New Vendor';
+  const saveBtn = document.getElementById('btn-save-vendor');
+  if (saveBtn) saveBtn.textContent = 'Add Vendor';
+
+  renderVendorsList();
+  overlay.style.display = 'flex';
+}
+
+function closeVendorsModal() {
+  const overlay = document.getElementById('vendors-modal-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function renderVendorsList() {
+  const tbody = document.getElementById('vendors-list-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+  const vendors = typeof loadVendors === 'function' ? loadVendors() : [];
+
+  if (vendors.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="3" style="padding: 12px; text-align: center; color: var(--text-secondary);">
+          No vendors configured.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  vendors.forEach((v, index) => {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--border)';
+    tr.innerHTML = `
+      <td style="padding: 8px 12px; font-weight: 600; color: var(--text-primary);">${v.name}</td>
+      <td style="padding: 8px 12px; color: var(--text-secondary); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${v.details || '-'}</td>
+      <td style="padding: 8px 12px; text-align: right; white-space: nowrap;">
+        <button class="btn btn-ghost btn-sm" onclick="editVendorRecord(${index})" title="Edit" style="padding: 2px 6px; margin-right: 4px;">✏️</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteVendorRecord(${index})" title="Delete" style="padding: 2px 6px; color: var(--btn-danger-bg);">🗑️</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function saveVendor() {
+  const indexStr = document.getElementById('vendorm-id').value;
+  const name = document.getElementById('vendorm-name').value.trim();
+  const details = document.getElementById('vendorm-details').value.trim();
+
+  if (!name) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Vendor Name is required.', 'error');
+    }
+    return;
+  }
+
+  const vendors = typeof loadVendors === 'function' ? loadVendors() : [];
+
+  if (indexStr !== '') {
+    // Edit vendor
+    const idx = parseInt(indexStr, 10);
+    if (vendors[idx]) {
+      const oldName = vendors[idx].name;
+      vendors[idx] = { name, details };
+      
+      // Cascading update to assets that use this vendor
+      const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+      let updatedAssets = false;
+      assets.forEach(asset => {
+        if (asset.vendor === oldName) {
+          asset.vendor = name;
+          asset.vendorDetails = details;
+          updatedAssets = true;
+        }
+      });
+      if (updatedAssets && typeof saveAssets === 'function') {
+        saveAssets(assets);
+      }
+    }
+  } else {
+    // Add vendor
+    const exists = vendors.some(v => v.name.toLowerCase() === name.toLowerCase());
+    if (exists) {
+      if (typeof showToast === 'function') {
+        showToast('❌ A vendor with this name already exists.', 'error');
+      }
+      return;
+    }
+    vendors.push({ name, details });
+  }
+
+  if (typeof saveVendors === 'function') saveVendors(vendors);
+
+  // Clear form
+  document.getElementById('vendorm-id').value = '';
+  document.getElementById('vendorm-name').value = '';
+  document.getElementById('vendorm-details').value = '';
+  document.getElementById('vendor-form-title').textContent = '➕ Add New Vendor';
+  const saveBtn = document.getElementById('btn-save-vendor');
+  if (saveBtn) saveBtn.textContent = 'Add Vendor';
+
+  renderVendorsList();
+  if (typeof showToast === 'function') {
+    showToast('Vendor saved successfully!', 'success');
+  }
+}
+
+function editVendorRecord(index) {
+  const vendors = typeof loadVendors === 'function' ? loadVendors() : [];
+  const v = vendors[index];
+  if (!v) return;
+
+  document.getElementById('vendorm-id').value = index;
+  document.getElementById('vendorm-name').value = v.name;
+  document.getElementById('vendorm-details').value = v.details || '';
+  document.getElementById('vendor-form-title').textContent = '✏️ Edit Vendor';
+  
+  const saveBtn = document.getElementById('btn-save-vendor');
+  if (saveBtn) saveBtn.textContent = 'Update Vendor';
+}
+
+function deleteVendorRecord(index) {
+  if (!confirm('Are you sure you want to delete this vendor? Assets using this vendor will keep their vendor name but will no longer point to the registry.')) return;
+
+  const vendors = typeof loadVendors === 'function' ? loadVendors() : [];
+  vendors.splice(index, 1);
+  if (typeof saveVendors === 'function') saveVendors(vendors);
+  
+  renderVendorsList();
+  if (typeof showToast === 'function') {
+    showToast('Vendor deleted.', 'success');
   }
 }
 
@@ -622,12 +931,16 @@ function renderPortalAssets() {
           <span style="font-size:0.68rem; font-weight:700; background:rgba(88, 166, 255, 0.15); color:#58a6ff; padding:2px 8px; border-radius:12px;">${asset.category}</span>
         </div>
         <h3 style="font-size:1.1rem; font-weight:700; color:#fff; margin-bottom:4px; margin-top:10px;">${asset.name}</h3>
-        <p style="font-size:0.85rem; color:var(--text-3); font-weight:600; margin-bottom:12px;">${asset.model || '-'}</p>
+        <p style="font-size:0.85rem; color:var(--text-3); font-weight:600; margin-bottom:12px;">${asset.make ? `${asset.make} ` : ''}${asset.model || '-'}</p>
         
         <div style="font-size:0.8rem; display:flex; flex-direction:column; gap:4px; margin-bottom:20px; border-top:1px solid var(--border); padding-top:12px;">
           <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-3)">Asset Tag:</span><span style="color:#fff; font-family:monospace; font-weight:600;">${asset.id}</span></div>
+          ${asset.modelNumber ? `<div style="display:flex; justify-content:space-between;"><span style="color:var(--text-3)">Model No:</span><span style="color:#fff; font-family:monospace;">${asset.modelNumber}</span></div>` : ''}
           <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-3)">Serial No:</span><span style="color:#fff; font-family:monospace; font-weight:600;">${asset.serial || '-'}</span></div>
-          <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-3)">Checked Out:</span><span style="color:#fff;">${asset.purchaseDate || '-'}</span></div>
+          ${asset.vendor ? `<div style="display:flex; justify-content:space-between;"><span style="color:var(--text-3)">Vendor:</span><span style="color:#d29922; font-weight:600;">🏢 ${asset.vendor}</span></div>` : ''}
+          ${asset.purchaseDate ? `<div style="display:flex; justify-content:space-between;"><span style="color:var(--text-3)">Purchase Date:</span><span style="color:#fff;">${asset.purchaseDate}</span></div>` : ''}
+          ${asset.warrantyMonths ? `<div style="display:flex; justify-content:space-between;"><span style="color:var(--text-3)">Warranty:</span><span style="color:#fff;">${asset.warrantyMonths} Months</span></div>` : ''}
+          <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-3)">Checked Out:</span><span style="color:#fff;">${asset.checkoutDate || asset.purchaseDate || '-'}</span></div>
         </div>
       </div>
       <button class="portal-btn portal-btn-primary" onclick="reportAssetIssue('${asset.id}')" style="width:100%; font-size:0.8rem; padding:8px;">🎫 Report Issue</button>

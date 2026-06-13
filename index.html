@@ -1145,6 +1145,7 @@ support@company.com | +1 (800) 555-0199</textarea>
         </div>
         <div style="display:flex; gap:10px;">
           <button class="btn btn-ghost" id="btn-sync-assets-top">🔄 Sync Assets</button>
+          <button class="btn btn-ghost" id="btn-manage-vendors">🏢 Manage Vendors</button>
           <button class="btn btn-primary" id="btn-add-asset">+ Add Asset</button>
         </div>
       </div>
@@ -1565,9 +1566,15 @@ support@company.com | +1 (800) 555-0199</textarea>
         <input type="text" id="assetm-name" class="form-input" style="width:100%" placeholder="e.g. Latitude 5520 Laptop"/>
       </div>
 
-      <div class="form-group" style="margin-bottom:16px">
-        <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Model Name *</label>
-        <input type="text" id="assetm-model" class="form-input" style="width:100%" placeholder="e.g. Dell Latitude 5520"/>
+      <div class="form-row" style="display:flex; gap:16px; margin-bottom:16px;">
+        <div class="form-group" style="flex:1;">
+          <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Model Name *</label>
+          <input type="text" id="assetm-model" class="form-input" style="width:100%" placeholder="e.g. Dell Latitude 5520"/>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Model Number</label>
+          <input type="text" id="assetm-model-number" class="form-input" style="width:100%" placeholder="e.g. LATI-5520-01"/>
+        </div>
       </div>
 
       <div class="form-row" style="display:flex; gap:16px; margin-bottom:16px;">
@@ -1579,12 +1586,16 @@ support@company.com | +1 (800) 555-0199</textarea>
           </select>
         </div>
         <div class="form-group" style="flex:1;">
-          <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Serial Number</label>
-          <input type="text" id="assetm-serial" class="form-input" style="width:100%" placeholder="e.g. S/N 49F201"/>
+          <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Make / Manufacturer</label>
+          <input type="text" id="assetm-make" class="form-input" style="width:100%" placeholder="e.g. Dell, Apple, Lenovo"/>
         </div>
       </div>
 
       <div class="form-row" style="display:flex; gap:16px; margin-bottom:16px;">
+        <div class="form-group" style="flex:1;">
+          <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Serial Number</label>
+          <input type="text" id="assetm-serial" class="form-input" style="width:100%" placeholder="e.g. S/N 49F201"/>
+        </div>
         <div class="form-group" style="flex:1;">
           <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Status *</label>
           <select id="assetm-status" class="form-input" style="width:100%">
@@ -1593,6 +1604,9 @@ support@company.com | +1 (800) 555-0199</textarea>
             <option value="Archived">Archived</option>
           </select>
         </div>
+      </div>
+
+      <div class="form-row" style="display:flex; gap:16px; margin-bottom:16px;">
         <div class="form-group" style="flex:1;">
           <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Assignee (Optional)</label>
           <select id="assetm-assignee" class="form-input" style="width:100%">
@@ -1609,7 +1623,37 @@ support@company.com | +1 (800) 555-0199</textarea>
             <option value="Stephanie Harris|s.harris@company.com">Stephanie Harris (s.harris@company.com)</option>
           </select>
         </div>
+        <div class="form-group" style="flex:1;">
+          <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Vendor</label>
+          <select id="assetm-vendor" class="form-input" style="width:100%">
+            <option value="">No Vendor</option>
+            <!-- Populated dynamically -->
+          </select>
+        </div>
       </div>
+
+      <!-- Custom Vendor Form Group -->
+      <div class="form-group" id="assetm-vendor-custom-group" style="margin-bottom:16px; display:none;">
+        <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Custom Vendor Name *</label>
+        <input type="text" id="assetm-vendor-custom" class="form-input" style="width:100%" placeholder="e.g. CDW Inc."/>
+      </div>
+
+      <div class="form-group" style="margin-bottom:16px;">
+        <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Vendor Details</label>
+        <textarea id="assetm-vendor-details" class="form-input" style="width:100%; height:50px; resize:vertical; margin-bottom:0;" placeholder="e.g. contact email, phone, support page"></textarea>
+      </div>
+
+      <div class="form-row" style="display:flex; gap:16px; margin-bottom:16px;">
+        <div class="form-group" style="flex:1;">
+          <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Purchase Date</label>
+          <input type="date" id="assetm-purchase-date" class="form-input" style="width:100%"/>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Warranty (Months)</label>
+          <input type="number" id="assetm-warranty" class="form-input" style="width:100%" min="0" placeholder="e.g. 36"/>
+        </div>
+      </div>
+
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" id="asset-modal-cancel">Cancel</button>
@@ -1646,6 +1690,54 @@ support@company.com | +1 (800) 555-0199</textarea>
     <div class="modal-footer">
       <button class="btn btn-ghost" id="checkout-modal-cancel">Cancel</button>
       <button class="btn btn-primary" id="checkout-modal-submit">Check Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- VENDORS MANAGEMENT MODAL -->
+<div class="modal-overlay" id="vendors-modal-overlay">
+  <div class="modal" id="vendors-modal" style="max-width: 600px;">
+    <div class="modal-header">
+      <h2>🏢 Manage Vendors</h2>
+      <button class="modal-close" id="vendors-modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Add Vendor Inline Form -->
+      <div style="background:var(--bg-elevated); padding:16px; border-radius:var(--radius); border:1px solid var(--border); margin-bottom:20px;">
+        <h4 id="vendor-form-title" style="margin-top:0; margin-bottom:12px; color:var(--text-primary);">➕ Add New Vendor</h4>
+        <input type="hidden" id="vendorm-id" value=""/>
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Vendor Name *</label>
+          <input type="text" id="vendorm-name" class="form-input" style="width:100%" placeholder="e.g. CDW, Dell Direct"/>
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Vendor Details</label>
+          <textarea id="vendorm-details" class="form-input" style="width:100%; height:50px; resize:vertical; margin-bottom:0;" placeholder="e.g. contact email, phone, support page"></textarea>
+        </div>
+        <div style="text-align:right;">
+          <button class="btn btn-primary btn-sm" id="btn-save-vendor">Add Vendor</button>
+        </div>
+      </div>
+
+      <!-- Vendor List Table -->
+      <h4 style="margin-top:0; margin-bottom:12px; color:var(--text-primary);">Current Vendors</h4>
+      <div style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius);">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border); background: var(--bg-elevated); text-align: left;">
+              <th style="padding: 8px 12px; color: var(--text-secondary); font-weight: 600;">Vendor Name</th>
+              <th style="padding: 8px 12px; color: var(--text-secondary); font-weight: 600;">Details</th>
+              <th style="padding: 8px 12px; color: var(--text-secondary); font-weight: 600; text-align: right; width: 80px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="vendors-list-tbody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="vendors-modal-cancel">Close</button>
     </div>
   </div>
 </div>

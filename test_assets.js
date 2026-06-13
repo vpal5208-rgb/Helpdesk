@@ -175,6 +175,51 @@ const server = app.listen(3000, async () => {
             console.log('SUCCESS: Admin Asset Assignment checkout passed!');
         }
 
+        // Test Adding a new Asset with new fields
+        console.log('Adding a new asset with model number, make, vendor, warranty, and purchase date...');
+        await page.click('#btn-add-asset');
+        await delay(1000);
+
+        await page.evaluate(() => {
+            document.getElementById('assetm-name').value = 'Test E2E Laptop';
+            document.getElementById('assetm-model').value = 'ThinkPad T14';
+            document.getElementById('assetm-model-number').value = 'TP-T14-GEN4';
+            document.getElementById('assetm-category').value = 'Hardware';
+            document.getElementById('assetm-make').value = 'Lenovo';
+            document.getElementById('assetm-serial').value = 'S/N T14-TEST-99';
+            document.getElementById('assetm-status').value = 'Ready to Deploy';
+            
+            const vendorSelect = document.getElementById('assetm-vendor');
+            vendorSelect.value = '__custom__';
+            vendorSelect.dispatchEvent(new Event('change'));
+            
+            document.getElementById('assetm-vendor-custom').value = 'CDW Govt';
+            document.getElementById('assetm-vendor-details').value = 'govt-sales@cdw.com';
+            document.getElementById('assetm-purchase-date').value = '2026-05-01';
+            document.getElementById('assetm-warranty').value = '24';
+            
+            document.getElementById('asset-modal-save').click();
+        });
+        await delay(1500);
+
+        // Verify the new row is rendered and contains all the details
+        const newAssetRowText = await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+            const testRow = rows.find(r => r.innerText.includes('Test E2E Laptop'));
+            return testRow ? testRow.innerText : '';
+        });
+        console.log('New Asset Row Text:', newAssetRowText);
+        if (!newAssetRowText.includes('Lenovo ThinkPad T14') ||
+            !newAssetRowText.includes('Model #: TP-T14-GEN4') ||
+            !newAssetRowText.includes('CDW Govt') ||
+            !newAssetRowText.includes('Purchased: 2026-05-01') ||
+            !newAssetRowText.includes('24 mo. warranty')) {
+            console.error('FAIL: Adding asset with detailed make, model number, vendor, warranty, and purchase date failed.');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Add Asset E2E with detailed properties passed!');
+        }
+
         // Navigate to Settings
         console.log('Navigating to Settings > Snipe-IT Integration tab...');
         await page.click('button[data-view="settings"]');
