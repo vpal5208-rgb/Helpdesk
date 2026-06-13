@@ -484,6 +484,8 @@ function switchTab(tab) {
     document.querySelectorAll('.ptab').forEach(p => p.classList.toggle('active', p.id === 'ptab-' + tab));
     if (tab === 'my-tickets') renderMyTickets();
     if (tab === 'dashboard') { renderHeroStats(); renderRecentTickets(); }
+    if (tab === 'assets') { if (typeof renderPortalAssets === 'function') renderPortalAssets(); }
+    if (tab === 'new-ticket') { if (typeof updatePortalDeviceSelect === 'function') updatePortalDeviceSelect(); }
   } catch(e) {
     console.error("Error switching tabs:", e);
   }

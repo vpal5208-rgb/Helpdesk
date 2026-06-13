@@ -606,6 +606,163 @@ function saveKBArticles(articles) {
   }
 }
 
+const DEFAULT_ASSETS = [
+  {
+    id: 'AST-0021',
+    name: 'Latitude 5520 Laptop',
+    category: 'Hardware',
+    status: 'Deployed',
+    serial: 'S/N 49F201',
+    model: 'Dell Latitude 5520',
+    assignedTo: 'James Wilson',
+    assignedEmail: 'j.wilson@company.com',
+    purchaseDate: '2025-03-12'
+  },
+  {
+    id: 'AST-0022',
+    name: 'MacBook Pro 16"',
+    category: 'Hardware',
+    status: 'Deployed',
+    serial: 'S/N 8G92X0',
+    model: 'Apple MacBook Pro 16" M3',
+    assignedTo: 'Emily Davis',
+    assignedEmail: 'e.davis@company.com',
+    purchaseDate: '2025-11-05'
+  },
+  {
+    id: 'AST-0023',
+    name: 'UltraSharp 27 Monitor',
+    category: 'Hardware',
+    status: 'Deployed',
+    serial: 'S/N 3M28P0',
+    model: 'Dell UltraSharp 27" U2723QE',
+    assignedTo: 'James Wilson',
+    assignedEmail: 'j.wilson@company.com',
+    purchaseDate: '2025-04-18'
+  },
+  {
+    id: 'AST-0024',
+    name: 'iPhone 13 Pro',
+    category: 'Hardware',
+    status: 'Deployed',
+    serial: 'S/N ZP029X',
+    model: 'Apple iPhone 13 Pro',
+    assignedTo: 'Robert Martinez',
+    assignedEmail: 'r.martinez@company.com',
+    purchaseDate: '2024-09-20'
+  },
+  {
+    id: 'AST-0025',
+    name: 'iPad Pro 12.9"',
+    category: 'Hardware',
+    status: 'Ready to Deploy',
+    serial: 'S/N IP092K',
+    model: 'Apple iPad Pro 12.9"',
+    assignedTo: '',
+    assignedEmail: '',
+    purchaseDate: '2025-06-14'
+  },
+  {
+    id: 'AST-0026',
+    name: 'Adobe Creative Cloud',
+    category: 'Software',
+    status: 'Deployed',
+    serial: 'S/N ACC-882',
+    model: 'Adobe CC All Apps Suite',
+    assignedTo: 'Emily Davis',
+    assignedEmail: 'e.davis@company.com',
+    purchaseDate: '2026-01-01'
+  },
+  {
+    id: 'AST-0027',
+    name: 'Microsoft 365 Enterprise',
+    category: 'Software',
+    status: 'Deployed',
+    serial: 'S/N M365-992',
+    model: 'Microsoft 365 E5 License',
+    assignedTo: 'James Wilson',
+    assignedEmail: 'j.wilson@company.com',
+    purchaseDate: '2025-01-01'
+  },
+  {
+    id: 'AST-0028',
+    name: 'ThinkPad X1 Carbon',
+    category: 'Hardware',
+    status: 'Deployed',
+    serial: 'S/N L3099F',
+    model: 'Lenovo ThinkPad X1 Carbon Gen 11',
+    assignedTo: 'Jennifer Thompson',
+    assignedEmail: 'j.thompson@company.com',
+    purchaseDate: '2025-08-15'
+  },
+  {
+    id: 'AST-0029',
+    name: 'Latitude 5420 Laptop',
+    category: 'Hardware',
+    status: 'Ready to Deploy',
+    serial: 'S/N DL5420-1',
+    model: 'Dell Latitude 5420',
+    assignedTo: '',
+    assignedEmail: '',
+    purchaseDate: '2024-12-10'
+  }
+];
+
+function loadAssets() {
+  try {
+    const raw = localStorage.getItem('hd_assets_v1');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error('Failed to load assets', e);
+  }
+
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocal) {
+    saveAssets(DEFAULT_ASSETS);
+    return [...DEFAULT_ASSETS];
+  }
+  saveAssets([]);
+  return [];
+}
+
+function saveAssets(assets) {
+  try {
+    localStorage.setItem('hd_assets_v1', JSON.stringify(assets));
+  } catch (e) {
+    console.error('Failed to save assets', e);
+  }
+}
+
+function loadSnipeSettings() {
+  try {
+    const raw = localStorage.getItem('hd_snipe_it_settings_v1');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Failed to load Snipe-IT settings', e);
+  }
+  return {
+    enabled: true,
+    url: 'https://demo.snipeitapp.com/api/v1',
+    token: 'mock_snipe_it_token_v8.6.1_helpdesk'
+  };
+}
+
+function saveSnipeSettings(settings) {
+  try {
+    localStorage.setItem('hd_snipe_it_settings_v1', JSON.stringify(settings));
+  } catch (e) {
+    console.error('Failed to save Snipe-IT settings', e);
+  }
+}
+
 window.loadKBArticles = loadKBArticles;
 window.saveKBArticles = saveKBArticles;
+window.loadAssets = loadAssets;
+window.saveAssets = saveAssets;
+window.loadSnipeSettings = loadSnipeSettings;
+window.saveSnipeSettings = saveSnipeSettings;
+window.DEFAULT_ASSETS = DEFAULT_ASSETS;
 

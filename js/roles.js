@@ -5,9 +5,9 @@ const LS_ROLES = 'hd_roles_v1';
 const DEFAULT_ROLES = [
   { key: 'end-user', name: 'End User', color: 'gray', desc: 'Standard portal user, can view and create their own tickets.', isDefault: true, permissions: [] },
   { key: 'power-user', name: 'Power User', color: 'gray', desc: 'Advanced portal user with elevated access within their department.', isDefault: true, permissions: ['dashboard'] },
-  { key: 'agent', name: 'IT Agent', color: 'blue', desc: 'IT support agent, can be assigned tickets, update status, and chat with users.', isDefault: true, permissions: ['dashboard', 'tickets', 'live-chats', 'kb'] },
-  { key: 'manager', name: 'IT Manager', color: 'purple', desc: 'IT team manager, can assign tickets, manage settings, and view reports.', isDefault: true, permissions: ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings', 'kb'] },
-  { key: 'admin', name: 'Administrator', color: 'red', desc: 'Full system administrator access, including role management and advanced settings.', isDefault: true, permissions: ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings', 'kb'] }
+  { key: 'agent', name: 'IT Agent', color: 'blue', desc: 'IT support agent, can be assigned tickets, update status, and chat with users.', isDefault: true, permissions: ['dashboard', 'tickets', 'live-chats', 'kb', 'assets'] },
+  { key: 'manager', name: 'IT Manager', color: 'purple', desc: 'IT team manager, can assign tickets, manage settings, and view reports.', isDefault: true, permissions: ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings', 'kb', 'assets'] },
+  { key: 'admin', name: 'Administrator', color: 'red', desc: 'Full system administrator access, including role management and advanced settings.', isDefault: true, permissions: ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings', 'kb', 'assets'] }
 ];
 
 function loadRoles() {
@@ -24,20 +24,22 @@ function loadRoles() {
             r.permissions = defMatch ? [...defMatch.permissions] : ['dashboard'];
             migrated = true;
           }
-          // Ensure default manager role has settings and kb permission
+          // Ensure default manager role has settings, kb and assets permission
           if (r.key === 'manager') {
             if (!r.permissions.includes('settings')) { r.permissions.push('settings'); migrated = true; }
             if (!r.permissions.includes('kb')) { r.permissions.push('kb'); migrated = true; }
+            if (!r.permissions.includes('assets')) { r.permissions.push('assets'); migrated = true; }
           }
-          // Ensure default admin role has settings and kb permission
+          // Ensure default admin role has settings, kb and assets permission
           if (r.key === 'admin') {
             if (!r.permissions.includes('settings')) { r.permissions.push('settings'); migrated = true; }
             if (!r.permissions.includes('kb')) { r.permissions.push('kb'); migrated = true; }
+            if (!r.permissions.includes('assets')) { r.permissions.push('assets'); migrated = true; }
           }
-          // Ensure default agent role has kb permission
-          if (r.key === 'agent' && !r.permissions.includes('kb')) {
-            r.permissions.push('kb');
-            migrated = true;
+          // Ensure default agent role has kb and assets permission
+          if (r.key === 'agent') {
+            if (!r.permissions.includes('kb')) { r.permissions.push('kb'); migrated = true; }
+            if (!r.permissions.includes('assets')) { r.permissions.push('assets'); migrated = true; }
           }
           return r;
         });
@@ -179,7 +181,7 @@ function applyRolePermissions() {
     }
   }
 
-  const allViews = ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings', 'kb'];
+  const allViews = ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings', 'kb', 'assets'];
 
   allViews.forEach(view => {
     const navBtn = document.querySelector(`.sidebar-nav .nav-item[data-view="${view}"]`);
