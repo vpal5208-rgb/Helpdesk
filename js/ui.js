@@ -293,6 +293,68 @@ function initSettings() {
       }
     });
   }
+
+  // ── Office 365 Authentication Settings ──
+  const msEnabledCb = document.getElementById('auth-ms-enabled');
+  const msClientIdInp = document.getElementById('auth-ms-client-id');
+  const msTenantIdInp = document.getElementById('auth-ms-tenant-id');
+  const msRedirectInp = document.getElementById('auth-ms-redirect-uri');
+  const msConfigFields = document.getElementById('auth-ms-config-fields');
+  const saveAuthSettingsBtn = document.getElementById('save-auth-settings');
+
+  if (msRedirectInp) {
+    msRedirectInp.value = window.location.origin + window.location.pathname;
+  }
+
+  const toggleMsConfigFields = () => {
+    if (msConfigFields && msEnabledCb) {
+      msConfigFields.style.display = msEnabledCb.checked ? 'flex' : 'none';
+    }
+  };
+
+  if (msEnabledCb) {
+    msEnabledCb.addEventListener('change', toggleMsConfigFields);
+  }
+
+  // Load saved settings
+  const authSettings = typeof loadAuthSettings === 'function' ? loadAuthSettings() : { msO365Enabled: false, clientId: '', tenantId: 'common' };
+  if (msEnabledCb) msEnabledCb.checked = authSettings.msO365Enabled;
+  if (msClientIdInp) msClientIdInp.value = authSettings.clientId || '';
+  if (msTenantIdInp) msTenantIdInp.value = authSettings.tenantId || 'common';
+  toggleMsConfigFields();
+
+  if (saveAuthSettingsBtn) {
+    saveAuthSettingsBtn.addEventListener('click', () => {
+      const enabled = msEnabledCb ? msEnabledCb.checked : false;
+      const clientId = msClientIdInp ? msClientIdInp.value.trim() : '';
+      const tenantId = msTenantIdInp ? msTenantIdInp.value.trim() : 'common';
+
+      if (enabled && !clientId) {
+        showToast('Application (client) ID is required when Microsoft SSO is enabled.', 'error');
+        return;
+      }
+
+      const newSettings = {
+        msO365Enabled: enabled,
+        clientId: clientId,
+        tenantId: tenantId || 'common'
+      };
+
+      if (typeof saveAuthSettings === 'function') {
+        saveAuthSettings(newSettings);
+      } else {
+        localStorage.setItem('hd_auth_settings_v1', JSON.stringify(newSettings));
+      }
+
+      // Update visibility of the SSO sign-in container on the admin login screen
+      const alMsContainer = document.getElementById('al-ms-sso-container');
+      if (alMsContainer) {
+        alMsContainer.style.display = enabled ? 'flex' : 'none';
+      }
+
+      showToast('Authentication settings saved successfully!', 'success');
+    });
+  }
 }
 
 function renderSettingsRolesTable() {

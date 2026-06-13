@@ -82,6 +82,23 @@
     <button id="al-submit" onclick="doAdminLogin()">Sign In →</button>
     <div id="al-error"></div>
 
+    <div id="al-ms-sso-container" style="display:none; flex-direction:column; gap:10px; margin-top:15px;">
+      <div style="display:flex; align-items:center; text-align:center; color:rgba(255,255,255,0.25); font-size:0.8rem; margin: 10px 0;">
+        <span style="flex:1; border-bottom:1px solid rgba(255,255,255,0.1); margin-right:10px;"></span>
+        <span>or</span>
+        <span style="flex:1; border-bottom:1px solid rgba(255,255,255,0.1); margin-left:10px;"></span>
+      </div>
+      <button id="al-ms-sso-btn" onclick="initSSOLogin('admin')" style="background:#2f2f2f; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:var(--radius-sm); padding:10px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; transition:background 0.2s;">
+        <svg class="ms-logo" viewBox="0 0 23 23" style="width:18px;height:18px;flex-shrink:0;">
+          <rect x="0" y="0" width="11" height="11" fill="#f25022" />
+          <rect x="12" y="0" width="11" height="11" fill="#7fba00" />
+          <rect x="0" y="12" width="11" height="11" fill="#00a4ef" />
+          <rect x="12" y="12" width="11" height="11" fill="#ffb900" />
+        </svg>
+        Sign in with Microsoft
+      </button>
+    </div>
+
     <hr class="al-divider"/>
 
     <div class="al-demo-hint">
@@ -196,6 +213,14 @@ function doAdminLogin() {
   // allow Enter key
   document.getElementById('al-password').addEventListener('keydown', e => { if(e.key==='Enter') doAdminLogin(); });
   document.getElementById('al-email').addEventListener('keydown',    e => { if(e.key==='Enter') document.getElementById('al-password').focus(); });
+  // Show/hide Microsoft SSO button on load
+  try {
+    const authSettings = JSON.parse(localStorage.getItem('hd_auth_settings_v1') || '{"msO365Enabled":false}');
+    const msContainer = document.getElementById('al-ms-sso-container');
+    if (msContainer) {
+      msContainer.style.display = authSettings.msO365Enabled ? 'flex' : 'none';
+    }
+  } catch(e){}
 })();
 
 // Expose logout for nav
@@ -511,6 +536,7 @@ Type 'help' for commands.</div>
         <button class="settings-tab" data-stab="notif">🔔 Notifications</button>
         <button class="settings-tab" data-stab="ticket-id">🎫 Ticket ID</button>
         <button class="settings-tab" data-stab="roles">👥 User Roles</button>
+        <button class="settings-tab" data-stab="auth">🔐 Authentication</button>
       </div>
 
       <!-- ── EMAIL CONFIGURATION TAB ── -->
@@ -975,6 +1001,48 @@ support@company.com | +1 (800) 555-0199</textarea>
         </div>
       </div>
 
+      <!-- ── AUTHENTICATION CONFIGURATION TAB ── -->
+      <div class="stab-panel" id="stab-auth">
+        <div class="settings-grid">
+          <div class="settings-card" style="max-width: 600px;">
+            <h3>Office 365 Single Sign-On (SSO)</h3>
+            <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:2px;margin-bottom:20px;">
+              Configure Azure AD / Microsoft Entra ID to allow users to sign in directly using their O365 corporate accounts.
+            </p>
+            
+            <div class="form-group" style="margin-bottom:20px;">
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;">
+                <input type="checkbox" id="auth-ms-enabled" style="width:auto;margin:0;"/> Enable Microsoft O365 SSO Login
+              </label>
+            </div>
+            
+            <div id="auth-ms-config-fields" style="display:none; flex-direction:column; gap:16px;">
+              <div class="form-group">
+                <label for="auth-ms-client-id" style="display:block;margin-bottom:6px;font-weight:600;">Application (client) ID</label>
+                <input type="text" id="auth-ms-client-id" class="form-input" style="width:100%" placeholder="e.g. 00000000-0000-0000-0000-000000000000" autocomplete="off"/>
+                <span style="font-size:0.75rem;color:var(--text-secondary)">Found in Azure portal > App registrations > Overview.</span>
+              </div>
+              
+              <div class="form-group">
+                <label for="auth-ms-tenant-id" style="display:block;margin-bottom:6px;font-weight:600;">Directory (tenant) ID</label>
+                <input type="text" id="auth-ms-tenant-id" class="form-input" style="width:100%" placeholder="e.g. common, organizations, or 00000000-0000-0000-0000-000000000000" autocomplete="off"/>
+                <span style="font-size:0.75rem;color:var(--text-secondary)">Use 'common' for multi-tenant apps, or your specific Tenant ID.</span>
+              </div>
+              
+              <div class="form-group">
+                <label style="display:block;margin-bottom:6px;font-weight:600;">Redirect URI</label>
+                <input type="text" id="auth-ms-redirect-uri" class="form-input" style="width:100%;background:var(--bg-elevated);color:var(--text-secondary)" readonly/>
+                <span style="font-size:0.75rem;color:var(--text-secondary)">You MUST add this exact Redirect URI in your Azure AD App Registration.</span>
+              </div>
+            </div>
+            
+            <div style="margin-top:24px;">
+              <button class="btn btn-primary" id="save-auth-settings">Save Authentication Settings</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </section>
 
     <!-- AUDIT TRAIL VIEW -->
@@ -1308,15 +1376,16 @@ support@company.com | +1 (800) 555-0199</textarea>
 <div class="toast-container" id="toast-container"></div>
 
 
-<script src="js/data.js?v=13"></script>
-<script src="js/tickets.js?v=13"></script>
-<script src="js/dashboard.js?v=13"></script>
-<script src="js/ui.js?v=13"></script>
-<script src="js/email.js?v=13"></script>
-<script src="js/roles.js?v=13"></script>
-<script src="js/users.js?v=13"></script>
-<script src="js/audit.js?v=13"></script>
-<script src="js/chat.js?v=13"></script>
-<script src="js/app.js?v=13"></script>
+<script src="js/data.js?v=14"></script>
+<script src="js/tickets.js?v=14"></script>
+<script src="js/dashboard.js?v=14"></script>
+<script src="js/ui.js?v=14"></script>
+<script src="js/email.js?v=14"></script>
+<script src="js/roles.js?v=14"></script>
+<script src="js/users.js?v=14"></script>
+<script src="js/audit.js?v=14"></script>
+<script src="js/chat.js?v=14"></script>
+<script src="js/sso.js?v=14"></script>
+<script src="js/app.js?v=14"></script>
 </body>
 </html>
