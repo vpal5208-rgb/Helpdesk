@@ -46,7 +46,7 @@ function initAssets() {
       }
     });
 
-    // Test Snipe-IT Connection
+    // Test Asset Management Connection
     const btnTest = document.getElementById('btn-test-snipe');
     if (btnTest) {
       btnTest.addEventListener('click', () => {
@@ -55,7 +55,7 @@ function initAssets() {
         const statusEl = document.getElementById('snipe-connection-status');
 
         if (!urlVal) {
-          showSnipeStatus('❌ Connection failed: Snipe-IT API Endpoint URL is required.', 'error');
+          showSnipeStatus('❌ Connection failed: API Endpoint URL is required.', 'error');
           return;
         }
 
@@ -74,9 +74,9 @@ function initAssets() {
           }
           if (typeof saveSnipeSettings === 'function') saveSnipeSettings(settings);
           
-          showSnipeStatus('✅ Connected successfully to Snipe-IT v8.6.1 (API v1). Status: 200 OK. Latency: 84ms.', 'success');
+          showSnipeStatus('✅ Connected successfully to Asset Management System v8.6.1 (API v1). Status: 200 OK. Latency: 84ms.', 'success');
           if (typeof showToast === 'function') {
-            showToast('Snipe-IT connection verified successfully!', 'success');
+            showToast('Asset Management connection verified successfully!', 'success');
           }
         }, 1000);
       });
@@ -101,12 +101,12 @@ function initAssets() {
             const assets = typeof loadAssets === 'function' ? loadAssets() : [];
             // Track in audit trail
             if (typeof addAuditLog === 'function') {
-              addAuditLog('🔄 Synced asset registry with Snipe-IT endpoint.', 'System', 'System');
+              addAuditLog('🔄 Synced asset registry with endpoint.', 'System', 'System');
             }
             
             renderAdminAssets();
             if (typeof showToast === 'function') {
-              showToast(`Synced ${assets.length} assets from Snipe-IT successfully!`, 'success');
+              showToast(`Synced ${assets.length} assets successfully!`, 'success');
             }
           }, 1200);
         });
