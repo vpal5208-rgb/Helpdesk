@@ -109,6 +109,23 @@ function initPortal() {
   setupListener('register-btn', 'click', doRegister);
   setupListener('reg-confirm-password', 'keydown', e => e.key==='Enter' && doRegister());
 
+  // Forgot password listeners
+  setupListener('forgot-password-link', 'click', () => {
+    document.getElementById('login-form-container').style.display = 'none';
+    document.getElementById('forgot-password-container').style.display = 'block';
+    document.getElementById('login-error').textContent = '';
+    document.getElementById('forgot-error').textContent = '';
+  });
+  setupListener('go-to-login-from-forgot', 'click', () => {
+    document.getElementById('forgot-password-container').style.display = 'none';
+    document.getElementById('login-form-container').style.display = 'block';
+    document.getElementById('login-error').textContent = '';
+    document.getElementById('forgot-error').textContent = '';
+  });
+  setupListener('forgot-btn-generate', 'click', generatePortalResetPassword);
+  setupListener('forgot-submit-btn', 'click', doPortalResetPassword);
+  setupListener('forgot-password-input', 'keydown', e => e.key==='Enter' && doPortalResetPassword());
+
   // Nav tabs
   try {
     document.querySelectorAll('.pnav-btn[data-tab]').forEach(btn => {
@@ -301,6 +318,75 @@ function doRegister() {
   } catch(e) {
     console.error("Error during registration execution:", e);
   }
+}
+
+function doPortalResetPassword() {
+  try {
+    const emailEl = document.getElementById('forgot-email');
+    const passEl = document.getElementById('forgot-password-input');
+    const errEl = document.getElementById('forgot-error');
+    if (!emailEl || !passEl || !errEl) return;
+
+    const email = emailEl.value.trim().toLowerCase();
+    const pass = passEl.value.trim();
+
+    if (!email || !email.includes('@')) {
+      errEl.textContent = 'Please enter a valid email address.';
+      return;
+    }
+    if (!pass) {
+      errEl.textContent = 'Please enter or generate a new password.';
+      return;
+    }
+    if (pass.length < 6) {
+      errEl.textContent = 'Password must be at least 6 characters.';
+      return;
+    }
+    errEl.textContent = '';
+
+    const users = getPortalUsers();
+    const u = users.find(x => x.email && x.email.toLowerCase() === email);
+    if (!u) {
+      errEl.textContent = 'No account found with this email.';
+      return;
+    }
+    if (u.status === 'suspended') {
+      errEl.textContent = 'Your account has been suspended. Please contact support.';
+      return;
+    }
+
+    u.password = pass;
+    localStorage.setItem('hd_users_v1', JSON.stringify(users));
+
+    // Show mock email notification toast
+    if (typeof triggerPasswordResetEmail === 'function') {
+      triggerPasswordResetEmail(u, pass);
+    }
+
+    pToast('Password reset successfully! Please sign in.', 'success');
+
+    // Pre-fill login credentials
+    const loginEmail = document.getElementById('login-email');
+    const loginPass = document.getElementById('login-password');
+    if (loginEmail) loginEmail.value = u.email;
+    if (loginPass) loginPass.value = pass;
+
+    // Switch back to login view
+    document.getElementById('forgot-password-container').style.display = 'none';
+    document.getElementById('login-form-container').style.display = 'block';
+
+    // Clear forgot password inputs
+    emailEl.value = '';
+    passEl.value = '';
+  } catch(e) {
+    console.error("Error resetting portal user password:", e);
+  }
+}
+
+function generatePortalResetPassword() {
+  const pass = 'Tmp@' + Math.random().toString(36).slice(-5).toUpperCase() + Math.floor(Math.random() * 99);
+  const passEl = document.getElementById('forgot-password-input');
+  if (passEl) passEl.value = pass;
 }
 
 function showLogin() {

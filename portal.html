@@ -40,7 +40,10 @@
           <input type="email" id="login-email" class="portal-input" placeholder="you@company.com" autocomplete="email"/>
         </div>
         <div class="login-field">
-          <label>Password</label>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <label>Password</label>
+            <a href="javascript:void(0)" id="forgot-password-link" style="font-size:0.78rem;color:#3b82f6;text-decoration:none">Forgot Password?</a>
+          </div>
           <input type="password" id="login-password" class="portal-input" placeholder="••••••••" autocomplete="current-password"/>
         </div>
 
@@ -98,6 +101,30 @@
       </div>
       <div class="login-footer" style="margin-top: 20px;">
         Already have an account? <a href="javascript:void(0)" id="go-to-login-link">Log In →</a>
+      </div>
+    </div>
+
+    <!-- FORGOT PASSWORD CONTAINER (Hidden by default) -->
+    <div id="forgot-password-container" style="display: none;">
+      <h1 class="login-title">Reset Password</h1>
+      <p class="login-desc">Enter your email and set a new password</p>
+      <div class="login-form">
+        <div class="login-field">
+          <label>Work Email *</label>
+          <input type="email" id="forgot-email" class="portal-input" placeholder="you@company.com"/>
+        </div>
+        <div class="login-field">
+          <label>New Password *</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="forgot-password-input" class="portal-input" style="flex:1;margin-bottom:0" placeholder="Type new password or click Auto"/>
+            <button class="portal-btn portal-btn-ghost" id="forgot-btn-generate" type="button" style="white-space:nowrap;padding:9px 12px;font-size:0.8rem;border:1px solid rgba(255,255,255,0.15)">⚡ Auto</button>
+          </div>
+        </div>
+        <button class="portal-btn portal-btn-primary" id="forgot-submit-btn" style="width:100%;margin-top:8px">Reset Password</button>
+        <div class="login-error" id="forgot-error" style="color:#f85149;font-size:0.82rem;margin-top:8px;text-align:center"></div>
+      </div>
+      <div class="login-footer" style="margin-top: 20px;">
+        Remember your password? <a href="javascript:void(0)" id="go-to-login-from-forgot">Log In →</a>
       </div>
     </div>
 
@@ -461,7 +488,7 @@ $ </div>
 <!-- Toast -->
 <div id="portal-toasts" class="portal-toasts"></div>
 
-<script src="js/data.js?v=4"></script>
-<script src="js/portal.js?v=4"></script>
+<script src="js/data.js?v=5"></script>
+<script src="js/portal.js?v=5"></script>
 </body>
 </html>
