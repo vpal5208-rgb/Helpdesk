@@ -6,7 +6,21 @@ let portalUser = null;
 function initPortal() {
   try {
     const saved = localStorage.getItem(LS_USER);
-    if (saved) { portalUser = JSON.parse(saved); showPortal(); }
+    if (saved) { 
+      const parsed = JSON.parse(saved);
+      const users = getPortalUsers();
+      const u = users.find(x => x.email && x.email.toLowerCase() === parsed.email.toLowerCase());
+      if (u && u.status === 'suspended') {
+        localStorage.removeItem(LS_USER);
+        portalUser = null;
+        showLogin();
+        const errEl = document.getElementById('login-error');
+        if (errEl) errEl.textContent = 'Your account has been suspended.';
+      } else {
+        portalUser = parsed;
+        showPortal();
+      }
+    }
     else showLogin();
   } catch (e) {
     console.error("Error loading portal user session:", e);
@@ -144,26 +158,20 @@ function getPortalUsers() {
   } catch(e) {}
   
   if (!list || !list.length) {
-    const deptMap = {
-      'James Wilson': 'Marketing',
-      'Emily Davis': 'Engineering',
-      'Robert Martinez': 'Finance',
-      'Jennifer Thompson': 'HR',
-      'Daniel Garcia': 'Sales',
-      'Ashley Johnson': 'Operations',
-      'Christopher Lee': 'Engineering',
-      'Amanda White': 'Design',
-      'Kevin Brown': 'Legal',
-      'Stephanie Harris': 'Marketing'
-    };
-    list = (typeof REQUESTERS !== 'undefined' ? REQUESTERS : []).map(r => ({
-      fname: r.name.split(' ')[0],
-      lname: r.name.split(' ').slice(1).join(' '),
-      email: r.email,
-      dept: deptMap[r.name] || 'Engineering',
-      status: 'active',
-      role: 'end-user'
-    }));
+    list = [
+      { fname:'James', lname:'Wilson', email:'j.wilson@company.com', dept:'Marketing', role:'end-user', status:'active' },
+      { fname:'Emily', lname:'Davis', email:'e.davis@company.com', dept:'Engineering', role:'power-user', status:'active' },
+      { fname:'Robert', lname:'Martinez', email:'r.martinez@company.com', dept:'Finance', role:'end-user', status:'active' },
+      { fname:'Jennifer', lname:'Thompson', email:'j.thompson@company.com', dept:'HR', role:'manager', status:'active' },
+      { fname:'Daniel', lname:'Garcia', email:'d.garcia@company.com', dept:'Sales', role:'end-user', status:'suspended' },
+      { fname:'Ashley', lname:'Johnson', email:'a.johnson@company.com', dept:'Operations', role:'end-user', status:'active' },
+      { fname:'Christopher', lname:'Lee', email:'c.lee@company.com', dept:'Engineering', role:'agent', status:'active' },
+      { fname:'Amanda', lname:'White', email:'a.white@company.com', dept:'Design', role:'end-user', status:'pending' },
+      { fname:'Kevin', lname:'Brown', email:'k.brown@company.com', dept:'Legal', role:'end-user', status:'active' },
+      { fname:'Stephanie', lname:'Harris', email:'s.harris@company.com', dept:'Marketing', role:'power-user', status:'active' },
+      { fname:'Michael', lname:'Chang', email:'m.chang@company.com', dept:'Engineering', role:'end-user', status:'active' },
+      { fname:'Laura', lname:'Patel', email:'l.patel@company.com', dept:'Finance', role:'end-user', status:'suspended' }
+    ];
   }
   
   let modified = false;
@@ -315,23 +323,55 @@ function showPortal() {
     if (loginScr) loginScr.classList.remove('active');
     if (portalScr) portalScr.classList.add('active');
 
+    const navCenter = document.querySelector('.portal-nav-center');
+    const userBadge = document.getElementById('portal-user-badge');
+    const logoutBtn = document.getElementById('portal-logout');
+
     if (portalUser) {
+      // Logged in mode
       const initials = portalUser.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-      const badge = document.getElementById('portal-user-badge');
-      if (badge) badge.textContent = initials + ' ' + portalUser.name.split(' ')[0];
+      if (userBadge) {
+        userBadge.textContent = initials + ' ' + portalUser.name.split(' ')[0];
+        userBadge.style.display = 'block';
+      }
+      if (logoutBtn) logoutBtn.textContent = 'Sign Out';
+      
+      // Show all navigation buttons
+      if (navCenter) {
+        navCenter.querySelectorAll('.pnav-btn').forEach(btn => btn.style.display = 'inline-block');
+      }
+
       const hour = new Date().getHours();
       const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
       const greeting = document.getElementById('hero-greeting');
       if (greeting) greeting.textContent = greet + ', ' + portalUser.name.split(' ')[0] + '!';
       const sub = document.getElementById('hero-sub');
       if (sub) sub.textContent = 'How can IT support you today?';
+      
+      try { switchTab('dashboard'); } catch(e) {}
+      try { renderHeroStats(); } catch(e) {}
+      try { renderRecentTickets(); } catch(e) {}
+    } else {
+      // Guest / Quick Track mode
+      if (userBadge) userBadge.style.display = 'none';
+      if (logoutBtn) logoutBtn.textContent = 'Back to Login';
+      
+      // Hide all navigation buttons except Track
+      if (navCenter) {
+        navCenter.querySelectorAll('.pnav-btn').forEach(btn => {
+          if (btn.dataset.tab === 'track') {
+            btn.style.display = 'inline-block';
+          } else {
+            btn.style.display = 'none';
+          }
+        });
+      }
+      
+      try { switchTab('track'); } catch(e) {}
     }
   } catch(e) {
     console.error("Error showing portal:", e);
   }
-  try { switchTab('dashboard'); } catch(e) {}
-  try { renderHeroStats(); } catch(e) {}
-  try { renderRecentTickets(); } catch(e) {}
 }
 
 /* ===== NAVIGATION ===== */
