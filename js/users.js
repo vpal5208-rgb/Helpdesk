@@ -73,15 +73,29 @@ function renderUserStats() {
   const pending   = allUsersData.filter(u=>u.status==='pending').length;
   const total     = allUsersData.length;
   el.innerHTML = `
-    <div class="ustat-card ustat-blue"><div class="ustat-icon">👥</div><div><div class="ustat-val">${total}</div><div class="ustat-label">Total Users</div></div></div>
-    <div class="ustat-card ustat-green"><div class="ustat-icon">✅</div><div><div class="ustat-val">${active}</div><div class="ustat-label">Active</div></div></div>
-    <div class="ustat-card ustat-red"><div class="ustat-icon">⏸</div><div><div class="ustat-val">${suspended}</div><div class="ustat-label">Suspended</div></div></div>
-    <div class="ustat-card ustat-orange"><div class="ustat-icon">⏳</div><div><div class="ustat-val">${pending}</div><div class="ustat-label">Pending</div></div></div>`;
+    <div class="ustat-card ustat-blue" onclick="filterUsersByStatus('')"><div class="ustat-icon">👥</div><div><div class="ustat-val">${total}</div><div class="ustat-label">Total Users</div></div></div>
+    <div class="ustat-card ustat-green" onclick="filterUsersByStatus('active')"><div class="ustat-icon">✅</div><div><div class="ustat-val">${active}</div><div class="ustat-label">Active</div></div></div>
+    <div class="ustat-card ustat-red" onclick="filterUsersByStatus('suspended')"><div class="ustat-icon">⏸</div><div><div class="ustat-val">${suspended}</div><div class="ustat-label">Suspended</div></div></div>
+    <div class="ustat-card ustat-orange" onclick="filterUsersByStatus('pending')"><div class="ustat-icon">⏳</div><div><div class="ustat-val">${pending}</div><div class="ustat-label">Pending</div></div></div>`;
   const badge = document.getElementById('users-count');
   if (badge) badge.textContent = total;
 }
 
 /* ===== FILTER & RENDER TABLE ===== */
+function filterUsersByStatus(status) {
+  const searchEl = document.getElementById('users-search');
+  const deptEl = document.getElementById('users-filter-dept');
+  const statusEl = document.getElementById('users-filter-status');
+  
+  if (searchEl) searchEl.value = '';
+  if (deptEl) deptEl.value = '';
+  if (statusEl) {
+    statusEl.value = status;
+  }
+  applyUsersFilters();
+}
+window.filterUsersByStatus = filterUsersByStatus;
+
 function applyUsersFilters() {
   const search = (document.getElementById('users-search')?.value||'').toLowerCase();
   const status = document.getElementById('users-filter-status')?.value||'';
