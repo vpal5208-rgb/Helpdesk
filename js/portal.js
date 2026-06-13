@@ -187,20 +187,25 @@ function getPortalUsers() {
   } catch(e) {}
   
   if (!explicitlyEmpty && (!list || !list.length)) {
-    list = [
-      { fname:'James', lname:'Wilson', email:'j.wilson@company.com', dept:'Marketing', role:'end-user', status:'active' },
-      { fname:'Emily', lname:'Davis', email:'e.davis@company.com', dept:'Engineering', role:'power-user', status:'active' },
-      { fname:'Robert', lname:'Martinez', email:'r.martinez@company.com', dept:'Finance', role:'end-user', status:'active' },
-      { fname:'Jennifer', lname:'Thompson', email:'j.thompson@company.com', dept:'HR', role:'manager', status:'active' },
-      { fname:'Daniel', lname:'Garcia', email:'d.garcia@company.com', dept:'Sales', role:'end-user', status:'suspended' },
-      { fname:'Ashley', lname:'Johnson', email:'a.johnson@company.com', dept:'Operations', role:'end-user', status:'active' },
-      { fname:'Christopher', lname:'Lee', email:'c.lee@company.com', dept:'Engineering', role:'agent', status:'active' },
-      { fname:'Amanda', lname:'White', email:'a.white@company.com', dept:'Design', role:'end-user', status:'pending' },
-      { fname:'Kevin', lname:'Brown', email:'k.brown@company.com', dept:'Legal', role:'end-user', status:'active' },
-      { fname:'Stephanie', lname:'Harris', email:'s.harris@company.com', dept:'Marketing', role:'power-user', status:'active' },
-      { fname:'Michael', lname:'Chang', email:'m.chang@company.com', dept:'Engineering', role:'end-user', status:'active' },
-      { fname:'Laura', lname:'Patel', email:'l.patel@company.com', dept:'Finance', role:'end-user', status:'suspended' }
-    ];
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocal) {
+      list = [
+        { fname:'James', lname:'Wilson', email:'j.wilson@company.com', dept:'Marketing', role:'end-user', status:'active' },
+        { fname:'Emily', lname:'Davis', email:'e.davis@company.com', dept:'Engineering', role:'power-user', status:'active' },
+        { fname:'Robert', lname:'Martinez', email:'r.martinez@company.com', dept:'Finance', role:'end-user', status:'active' },
+        { fname:'Jennifer', lname:'Thompson', email:'j.thompson@company.com', dept:'HR', role:'manager', status:'active' },
+        { fname:'Daniel', lname:'Garcia', email:'d.garcia@company.com', dept:'Sales', role:'end-user', status:'suspended' },
+        { fname:'Ashley', lname:'Johnson', email:'a.johnson@company.com', dept:'Operations', role:'end-user', status:'active' },
+        { fname:'Christopher', lname:'Lee', email:'c.lee@company.com', dept:'Engineering', role:'agent', status:'active' },
+        { fname:'Amanda', lname:'White', email:'a.white@company.com', dept:'Design', role:'end-user', status:'pending' },
+        { fname:'Kevin', lname:'Brown', email:'k.brown@company.com', dept:'Legal', role:'end-user', status:'active' },
+        { fname:'Stephanie', lname:'Harris', email:'s.harris@company.com', dept:'Marketing', role:'power-user', status:'active' },
+        { fname:'Michael', lname:'Chang', email:'m.chang@company.com', dept:'Engineering', role:'end-user', status:'active' },
+        { fname:'Laura', lname:'Patel', email:'l.patel@company.com', dept:'Finance', role:'end-user', status:'suspended' }
+      ];
+    } else {
+      list = [];
+    }
   }
   
   let modified = false;

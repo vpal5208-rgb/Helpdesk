@@ -45,8 +45,14 @@ function loadUsers() {
       }
     }
   } catch(e){}
-  saveUsers(SEED_USERS);
-  return [...SEED_USERS];
+  
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocal) {
+    saveUsers(SEED_USERS);
+    return [...SEED_USERS];
+  }
+  saveUsers([]);
+  return [];
 }
 function saveUsers(list) { localStorage.setItem(LS_USERS, JSON.stringify(list)); }
 

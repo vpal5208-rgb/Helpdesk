@@ -26,6 +26,19 @@ try {
   }
 } catch (e) {}
 
+// Migration: Clear local storage data on live site to start fresh with zero data
+try {
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (!isLocal && !localStorage.getItem('hd_live_cleared_v1')) {
+    localStorage.setItem('hd_tickets_v1', JSON.stringify([]));
+    localStorage.setItem('hd_users_v1', JSON.stringify([]));
+    localStorage.removeItem('hd_portal_user');
+    localStorage.removeItem('hd_admin_auth_v1');
+    localStorage.removeItem('hd_chat_session');
+    localStorage.setItem('hd_live_cleared_v1', 'true');
+  }
+} catch(e) {}
+
 // Helper: load external script dynamically
 function loadScript(url) {
   return new Promise((resolve, reject) => {

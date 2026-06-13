@@ -129,9 +129,15 @@ function loadTickets(){
       if (Array.isArray(parsed)) return parsed.filter(Boolean);
     }
   }catch(e){}
-  const seed=generateSeedTickets();
-  saveTickets(seed);
-  return seed;
+  
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocal) {
+    const seed=generateSeedTickets();
+    saveTickets(seed);
+    return seed;
+  }
+  saveTickets([]);
+  return [];
 }
 function saveTickets(tickets){ 
   try {
