@@ -445,6 +445,7 @@ function submitTicket() {
     };
     all.unshift(ticket);
     saveTickets(all);
+    triggerEmailNotification('new_ticket', ticket);
 
     // Reset form
     ['nt-subject','nt-desc','nt-device'].forEach(id => document.getElementById(id).value='');
@@ -724,6 +725,11 @@ function doEscalate() {
   t.auditLog.push({ action:`Ticket escalated by user. Reason: ${reason}. Priority changed from ${oldPri} to ${t.priority}.`, time:now, by: portalUser?.name||'User' });
   t.comments.push({ author: portalUser?.name||'User', text:`[Escalation Request] ${reason}`, internal:false, time:now });
   saveTickets(all);
+  
+  // Trigger email notification for status/priority change and comments
+  triggerEmailNotification('status', t);
+  triggerEmailNotification('comment', t);
+
   closeModal('escalate-overlay');
   pToast(`Ticket ${id} escalated to ${t.priority} priority! IT manager notified.`,'success');
   // Refresh views
@@ -742,6 +748,10 @@ function closeUserTicket(id) {
   all[idx].status = 'Closed';
   all[idx].auditLog.push({ action:'Ticket closed by user — issue confirmed resolved.', time:now, by:portalUser?.name||'User' });
   saveTickets(all);
+
+  // Trigger email notification for status change
+  triggerEmailNotification('status', all[idx]);
+
   pToast('Ticket closed. Thank you for confirming the resolution!','success');
   renderMyTickets();
   if (document.getElementById('ptab-track').classList.contains('active')) doTrack();

@@ -163,6 +163,7 @@ function createTicket(data) {
   addActivity('🎫', `New ticket <strong>${id}</strong> created: ${data.subject}`);
   addNotification(`New ticket created: ${id} — ${data.subject}`);
   updateDashboard();
+  triggerEmailNotification('new_ticket', ticket);
 }
 
 function updateTicket(id, data) {
@@ -170,9 +171,13 @@ function updateTicket(id, data) {
   if (idx === -1) return;
   const t = allTickets[idx];
   const now = new Date().toISOString();
-  if (t.status !== data.status)
+  
+  const statusChanged = t.status !== data.status;
+  const agentChanged = t.agentId !== data.agentId;
+
+  if (statusChanged)
     t.auditLog.push({ action:`Status changed from "${t.status}" to "${data.status}"`, time: now, by:'Admin User' });
-  if (t.agentId !== data.agentId) {
+  if (agentChanged) {
     const newAgent = getAgentName(data.agentId);
     t.auditLog.push({ action:`Assigned to ${newAgent}`, time: now, by:'Admin User' });
   }
@@ -181,6 +186,17 @@ function updateTicket(id, data) {
   applyFilters();
   showToast('Ticket updated!', 'success');
   updateDashboard();
+
+  if (statusChanged) {
+    if (t.status === 'Resolved') {
+      triggerEmailNotification('resolved', t);
+    } else {
+      triggerEmailNotification('status', t);
+    }
+  }
+  if (agentChanged && t.agentId) {
+    triggerEmailNotification('assigned', t);
+  }
 }
 
 function deleteTicket(id) {
@@ -201,6 +217,9 @@ function addCommentToTicket(ticketId, text, internal) {
   saveTickets(allTickets);
   renderDetailModal(ticketId);
   showToast('Comment added.', 'success');
+  if (!internal) {
+    triggerEmailNotification('comment', t);
+  }
 }
 
 // ====== DETAIL MODAL ======

@@ -29,6 +29,12 @@ const TEMPLATE_DEFAULTS = {
     header: 'SLA Breach Alert',
     body: 'URGENT: The following ticket has breached its SLA deadline and requires immediate attention.',
     cta: 'Resolve Now'
+  },
+  status_change: {
+    subject: 'Update on Your Ticket {ticketId}: {status}',
+    header: 'Ticket Status Updated',
+    body: 'The status of your support ticket has been updated to: {status}.',
+    cta: 'View Ticket Status'
   }
 };
 
@@ -151,6 +157,25 @@ const EMAIL_TEMPLATES = {
       badgeClass:'badge-critical',
       cta: replacePlaceholders(t.cta, data), ctaHref:'#',
       footer:`SLA Configuration: Critical = 2h | High = 8h | Medium = 24h | Low = 72h\nManage SLA thresholds in Settings › SLA Configuration`,
+      sig: cfg.signature,
+    });
+  },
+  status_change: (cfg) => {
+    const tpls = loadEmailTemplates();
+    const t = tpls.status_change || TEMPLATE_DEFAULTS.status_change;
+    const data = {
+      ticketId: 'TKT-0042', ticketSubject: 'Printer offline on 3rd floor',
+      priority: 'Medium', status: 'In Progress', requester: 'Emily Davis'
+    };
+    return renderEmailPreview({
+      icon:'🔄', subject: replacePlaceholders(t.subject, data),
+      headerTitle: replacePlaceholders(t.header, data), headerSub: 'IT Support Management',
+      greeting:`Hello Emily Davis,`,
+      body: replacePlaceholders(t.body, data),
+      ...data,
+      badgeClass:'badge-inprogress',
+      cta: replacePlaceholders(t.cta, data), ctaHref:'#',
+      footer:`You received this notification because your ticket status changed.\nManage your subscription in Settings › Email Configuration`,
       sig: cfg.signature,
     });
   },
