@@ -11,7 +11,7 @@ const DEFAULT_AUTH_SETTINGS = {
 
 // Migration: Force enable Microsoft SSO on first load of this update
 try {
-  if (!localStorage.getItem('hd_auth_migrated_v3')) {
+  if (!localStorage.getItem('hd_auth_migrated_v4')) {
     const s = localStorage.getItem(LS_AUTH_SETTINGS);
     let settings = { ...DEFAULT_AUTH_SETTINGS };
     if (s) {
@@ -22,7 +22,7 @@ try {
     }
     settings.msO365Enabled = true;
     localStorage.setItem(LS_AUTH_SETTINGS, JSON.stringify(settings));
-    localStorage.setItem('hd_auth_migrated_v3', 'true');
+    localStorage.setItem('hd_auth_migrated_v4', 'true');
   }
 } catch (e) {}
 
