@@ -84,6 +84,7 @@
 }
 .role-manager { background: var(--purple-glow); color: var(--accent-purple); }
 .role-agent   { background: var(--blue-glow);   color: var(--accent-blue); }
+.role-admin   { background: var(--red-glow);    color: var(--accent-red); }
 
 /* ====== MODAL EXTRAS ====== */
 .user-send-invite-row { margin-top: 4px; }

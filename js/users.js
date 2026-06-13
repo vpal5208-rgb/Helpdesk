@@ -129,8 +129,8 @@ function renderUsersTable() {
     const color   = userColor(u);
     const initials= userInitials(u);
     const stCls   = { active:'badge-active', suspended:'badge-suspended', pending:'badge-pending' }[u.status]||'';
-    const roleCls = { manager:'role-manager', agent:'role-agent' }[u.role]||'role-pill';
-    const roleLabel= { 'end-user':'End User','power-user':'Power User','agent':'IT Agent','manager':'IT Manager' }[u.role]||u.role;
+    const roleCls = { manager:'role-manager', agent:'role-agent', admin:'role-admin' }[u.role]||'role-pill';
+    const roleLabel= { 'end-user':'End User','power-user':'Power User','agent':'IT Agent','manager':'IT Manager','admin':'Administrator' }[u.role]||u.role;
     const tickets = userTicketCount(u.email);
     const la      = lastActiveLabel(u.lastActive);
     const tr = document.createElement('tr');
