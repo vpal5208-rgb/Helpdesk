@@ -1155,5 +1155,12 @@ function chatbotAutoReply(userText) {
   renderPortalChatMessages();
 }
 
+// Expose functions to global window scope for inline HTML onclick attributes
+window.switchTab = switchTab;
+window.setCategory = setCategory;
+window.prefillAndGo = prefillAndGo;
+window.openEscalateModal = openEscalateModal;
+window.closeUserTicket = closeUserTicket;
+
 /* ===== INIT ===== */
 document.addEventListener('DOMContentLoaded', initPortal);

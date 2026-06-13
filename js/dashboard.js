@@ -794,3 +794,5 @@ function handleChartClick(e, canvas) {
   }
 }
 
+window.filterTicketsAndNavigate = filterTicketsAndNavigate;
+
