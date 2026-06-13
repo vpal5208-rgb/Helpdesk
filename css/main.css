@@ -260,6 +260,9 @@ body.sidebar-collapsed .main-content { margin-left: 0; }
 h1, h2, h3, h4, .brand-name, .login-brand-name {
   font-family: var(--font-title);
 }
+.brand-name {
+  color: var(--text-primary);
+}
 
 body {
   background: linear-gradient(135deg, var(--bg-base) 0%, #080c10 100%);
