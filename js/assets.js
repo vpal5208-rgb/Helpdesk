@@ -518,13 +518,24 @@ function renderAdminAssets() {
           <div>
             <div style="font-weight: 600; color: var(--text-primary);">${asset.name}</div>
             ${asset.purchaseDate ? `<div style="font-size:0.72rem; color:var(--text-secondary); margin-top:2px;">Purchased: ${asset.purchaseDate}${asset.warrantyMonths ? ` (${asset.warrantyMonths} mo. warranty)` : ''}</div>` : ''}
-            ${asset.poNumber || asset.poValue || asset.assetValue 
-              ? `<div style="font-size:0.72rem; color:var(--text-secondary); margin-top:3px; background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; display:inline-flex; flex-wrap:wrap; gap:8px; border:1px solid var(--border);">
-                  ${asset.poNumber ? `<span>PO: <strong>${asset.poNumber}</strong></span>` : ''}
-                  ${asset.poValue ? `<span>PO Val: <strong>$${parseFloat(asset.poValue).toLocaleString()}</strong></span>` : ''}
-                  ${asset.assetValue ? `<span>Asset Val: <strong>$${parseFloat(asset.assetValue).toLocaleString()}</strong></span>` : ''}
-                 </div>` 
-              : ''}
+            
+            ${(asset.poNumber || asset.poValue || asset.assetValue || asset.invoiceCopy || asset.poCopy) ? `
+              <div style="margin-top:6px; display:flex; flex-direction:column; gap:4px;">
+                ${asset.poNumber || asset.poValue || asset.assetValue 
+                  ? `<div style="font-size:0.72rem; color:var(--text-secondary); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; display:inline-flex; flex-wrap:wrap; gap:8px; border:1px solid var(--border); width:fit-content;">
+                      ${asset.poNumber ? `<span>PO: <strong>${asset.poNumber}</strong></span>` : ''}
+                      ${asset.poValue ? `<span>PO Val: <strong>$${parseFloat(asset.poValue).toLocaleString()}</strong></span>` : ''}
+                      ${asset.assetValue ? `<span>Asset Val: <strong>$${parseFloat(asset.assetValue).toLocaleString()}</strong></span>` : ''}
+                     </div>` 
+                  : ''}
+                ${asset.invoiceCopy || asset.poCopy ? `
+                  <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                    ${asset.invoiceCopy ? `<span class="badge" onclick="viewBase64Document('${asset.invoiceCopy}', '${asset.invoiceCopyName || 'invoice.pdf'}')" style="cursor:pointer; font-size:0.65rem; padding:1px 5px; border-radius:3px; background:rgba(88,166,255,0.1); color:#58a6ff; border:1px solid rgba(88,166,255,0.15); display:inline-flex; align-items:center; gap:2px;">📄 Invoice</span>` : ''}
+                    ${asset.poCopy ? `<span class="badge" onclick="viewBase64Document('${asset.poCopy}', '${asset.poCopyName || 'po_copy.pdf'}')" style="cursor:pointer; font-size:0.65rem; padding:1px 5px; border-radius:3px; background:rgba(63,185,80,0.1); color:#3fb950; border:1px solid rgba(63,185,80,0.15); display:inline-flex; align-items:center; gap:2px;">📄 PO Copy</span>` : ''}
+                  </div>
+                ` : ''}
+              </div>
+            ` : ''}
           </div>
         </div>
       </td>
@@ -532,10 +543,6 @@ function renderAdminAssets() {
         <div style="font-weight:600; color:var(--text-primary);">${asset.make ? `${asset.make} ` : ''}${asset.model || '-'}</div>
         ${asset.modelNumber ? `<div style="font-size:0.75rem; font-family:monospace; margin-top:2px;">Model #: ${asset.modelNumber}</div>` : ''}
         ${asset.vendor ? `<div style="font-size:0.75rem; color:#d29922; margin-top:2px; display:inline-flex; align-items:center; gap:3px;">🏢 ${asset.vendor}</div>` : ''}
-        <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
-          ${asset.invoiceCopy ? `<span class="badge" onclick="viewBase64Document('${asset.invoiceCopy}', '${asset.invoiceCopyName || 'invoice.pdf'}')" style="cursor:pointer; font-size:0.65rem; padding:1px 5px; border-radius:3px; background:rgba(88,166,255,0.1); color:#58a6ff; border:1px solid rgba(88,166,255,0.15); display:inline-flex; align-items:center; gap:2px;">📄 Invoice</span>` : ''}
-          ${asset.poCopy ? `<span class="badge" onclick="viewBase64Document('${asset.poCopy}', '${asset.poCopyName || 'po_copy.pdf'}')" style="cursor:pointer; font-size:0.65rem; padding:1px 5px; border-radius:3px; background:rgba(63,185,80,0.1); color:#3fb950; border:1px solid rgba(63,185,80,0.15); display:inline-flex; align-items:center; gap:2px;">📄 PO Copy</span>` : ''}
-        </div>
       </td>
       <td style="padding: 12px; color: var(--text-secondary);">${asset.category}</td>
       <td style="padding: 12px;">
