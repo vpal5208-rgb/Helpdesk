@@ -757,6 +757,9 @@ function openAssetModal(id = '') {
   if (vendorCustomGroup) vendorCustomGroup.style.display = 'none';
   if (vendorCustomInput) vendorCustomInput.value = '';
 
+  const auditCommentInput = document.getElementById('assetm-audit-comment');
+  if (auditCommentInput) auditCommentInput.value = '';
+
   if (id) {
     // Edit mode
     titleEl.textContent = '✏️ Edit Asset Details';
@@ -1008,6 +1011,30 @@ function saveAssetFromModal() {
 
   const assets = typeof loadAssets === 'function' ? loadAssets() : [];
 
+  let isNewAudit = false;
+  if (id) {
+    const existing = assets.find(a => a.id === id);
+    if (existing) {
+      if (lastAuditDate && lastAuditDate !== existing.lastAuditDate) {
+        if (!existing.lastAuditDate || lastAuditDate > existing.lastAuditDate) {
+          isNewAudit = true;
+        }
+      }
+    }
+  } else {
+    if (lastAuditDate) {
+      isNewAudit = true;
+    }
+  }
+
+  const auditComment = (document.getElementById('assetm-audit-comment')?.value || '').trim();
+  if (isNewAudit && !auditComment) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Audit comment is required to complete or record an audit.', 'error');
+    }
+    return;
+  }
+
   // Unique validation check
   if (id) {
     const duplicate = assets.find(a => a.id.toLowerCase() === tag.toLowerCase() && a.id.toLowerCase() !== id.toLowerCase());
@@ -1137,8 +1164,8 @@ function saveAssetFromModal() {
 
   if (typeof addAuditLog === 'function') {
     const logAction = id 
-      ? `📝 Updated asset ${tag}: Assigned to ${assignedTo || 'Unassigned'}.`
-      : `🖥️ Created asset ${tag}: ${name} (${model}).`;
+      ? `📝 Updated asset ${tag}: Assigned to ${assignedTo || 'Unassigned'}.${isNewAudit ? ` Comment: ${auditComment}` : ''}`
+      : `🖥️ Created asset ${tag}: ${name} (${model}).${isNewAudit ? ` Comment: ${auditComment}` : ''}`;
     addAuditLog(logAction, 'System', tag, 'asset');
   }
 }
@@ -1168,6 +1195,16 @@ function checkInAsset(id) {
 
   if (!confirm(`Are you sure you want to check in asset "${asset.id}" (${asset.name})? This will return it to inventory.`)) return;
 
+  const comment = prompt("Please enter a mandatory comment for check-in:");
+  if (comment === null) return; // User cancelled
+  const trimmedComment = comment.trim();
+  if (!trimmedComment) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Check-in comment is required.', 'error');
+    }
+    return;
+  }
+
   const oldAssignee = asset.assignedTo || 'Unknown';
   asset.status = 'Ready to Deploy';
   asset.assignedTo = '';
@@ -1182,7 +1219,7 @@ function checkInAsset(id) {
   }
 
   if (typeof addAuditLog === 'function') {
-    addAuditLog(`↩️ Checked in asset ${id} (previously assigned to ${oldAssignee}).`, 'System', id, 'asset');
+    addAuditLog(`↩️ Checked in asset ${id} (previously assigned to ${oldAssignee}). Comment: ${trimmedComment}`, 'System', id, 'asset');
   }
 }
 
@@ -1207,6 +1244,16 @@ function quickAuditAsset(id) {
     alert(`Invalid frequency "${freq}". Keeping timeline as "${asset.auditFrequency}".`);
   }
 
+  const comment = prompt("Please enter a mandatory comment for this audit:");
+  if (comment === null) return; // User cancelled
+  const trimmedComment = comment.trim();
+  if (!trimmedComment) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Audit comment is required.', 'error');
+    }
+    return;
+  }
+
   const today = new Date().toISOString().split('T')[0];
   asset.lastAuditDate = today;
   const calculated = calculateNextAuditDate(today, asset.auditFrequency);
@@ -1222,7 +1269,7 @@ function quickAuditAsset(id) {
   }
 
   if (typeof addAuditLog === 'function') {
-    addAuditLog(`📋 Completed quick audit for asset ${id} (Timeline: ${asset.auditFrequency}).`, 'System', id, 'asset');
+    addAuditLog(`📋 Completed quick audit for asset ${id} (Timeline: ${asset.auditFrequency}). Comment: ${trimmedComment}`, 'System', id, 'asset');
   }
 }
 
@@ -1236,6 +1283,16 @@ function bulkAuditAllAssets() {
   }
 
   if (!confirm(`Are you sure you want to mark all ${assets.length} assets as audited today?`)) return;
+
+  const comment = prompt("Please enter a mandatory comment for bulk auditing all assets:");
+  if (comment === null) return; // User cancelled
+  const trimmedComment = comment.trim();
+  if (!trimmedComment) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Bulk audit comment is required.', 'error');
+    }
+    return;
+  }
 
   const today = new Date().toISOString().split('T')[0];
   assets.forEach(asset => {
@@ -1258,7 +1315,7 @@ function bulkAuditAllAssets() {
   }
 
   if (typeof addAuditLog === 'function') {
-    addAuditLog(`📋 Completed bulk audit for all ${assets.length} assets.`, 'System', 'All', 'asset');
+    addAuditLog(`📋 Completed bulk audit for all ${assets.length} assets. Comment: ${trimmedComment}`, 'System', 'All', 'asset');
   }
 }
 
@@ -1270,6 +1327,8 @@ function openCheckoutModal(id) {
   const idInput = document.getElementById('checkout-asset-id');
   const assigneeSelect = document.getElementById('checkout-assignee');
   const dateInput = document.getElementById('checkout-date');
+  const commentsInput = document.getElementById('checkout-comments');
+  if (commentsInput) commentsInput.value = '';
 
   if (!overlay) return;
 
@@ -1309,10 +1368,18 @@ function saveCheckout() {
   const id = document.getElementById('checkout-asset-id').value;
   const assigneeVal = document.getElementById('checkout-assignee').value;
   const checkoutDate = document.getElementById('checkout-date').value;
+  const comments = (document.getElementById('checkout-comments')?.value || '').trim();
 
   if (!assigneeVal) {
     if (typeof showToast === 'function') {
       showToast('❌ Please select an Assignee User.', 'error');
+    }
+    return;
+  }
+
+  if (!comments) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Comments are required for check out.', 'error');
     }
     return;
   }
@@ -1343,7 +1410,7 @@ function saveCheckout() {
   }
 
   if (typeof addAuditLog === 'function') {
-    addAuditLog(`📤 Checked out asset ${id} to ${assignedTo} (${assignedEmail}).`, 'System', id, 'asset');
+    addAuditLog(`📤 Checked out asset ${id} to ${assignedTo} (${assignedEmail}). Comment: ${comments}`, 'System', id, 'asset');
   }
 }
 

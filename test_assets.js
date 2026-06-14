@@ -10,9 +10,11 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 const server = app.listen(3000, async () => {
     console.log('Server running on port 3000');
     let hasError = false;
+    let browser;
+    let page;
     try {
-        const browser = await puppeteer.launch();
-        const page = await browser.newPage();
+        browser = await puppeteer.launch();
+        page = await browser.newPage();
         await page.setViewport({ width: 1280, height: 800 });
 
         page.on('console', msg => {
@@ -157,6 +159,7 @@ const server = app.listen(3000, async () => {
         // Fill checkout modal and submit
         await page.evaluate(() => {
             document.getElementById('checkout-assignee').value = 'Emily Davis|e.davis@company.com';
+            document.getElementById('checkout-comments').value = 'Assigned for testing';
             document.getElementById('checkout-modal-submit').click();
         });
         await delay(1000);
@@ -568,6 +571,7 @@ const server = app.listen(3000, async () => {
             // Save the asset
             console.log('Saving asset with audit config...');
             await page.evaluate(() => {
+                document.getElementById('assetm-audit-comment').value = 'Initial E2E audit schedule setup';
                 document.getElementById('asset-modal-save').click();
             });
             await delay(1500);
@@ -659,6 +663,7 @@ const server = app.listen(3000, async () => {
             // Save the asset again
             console.log('Saving asset after completing audit...');
             await page.evaluate(() => {
+                document.getElementById('assetm-audit-comment').value = 'Scheduled Quarterly Audit';
                 document.getElementById('asset-modal-save').click();
             });
             await delay(1500);
@@ -722,10 +727,15 @@ const server = app.listen(3000, async () => {
             });
             await delay(1000);
 
-            // Mock window.prompt to auto-fill timeline frequency
+            // Mock window.prompt to auto-fill timeline frequency and mandatory comment
             console.log('Mocking window.prompt and clicking inline row "📋 Audit" button...');
             await page.evaluate(() => {
-                window.prompt = () => 'Quarterly';
+                let callCount = 0;
+                window.prompt = () => {
+                    callCount++;
+                    if (callCount === 1) return 'Quarterly';
+                    return 'Completed E2E row audit';
+                };
                 window.alert = () => {};
                 const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
                 const testRow = rows.find(r => r.innerText.includes('AST-0030'));
@@ -761,11 +771,13 @@ const server = app.listen(3000, async () => {
             });
             await delay(1000);
 
-            console.log('Mocking window.confirm and clicking "📋 Bulk Audit All" button...');
+            console.log('Mocking window.confirm/prompt and clicking "📋 Bulk Audit All" button...');
             await page.evaluate(() => {
                 window.confirm = () => true;
+                window.prompt = () => 'Bulk E2E audit comment';
+                const btn = document.getElementById('btn-bulk-audit-all');
+                if (btn) btn.click();
             });
-            await page.click('#btn-bulk-audit-all');
             await delay(1500);
 
             console.log('Clicking the "Due Audits" status tab...');
@@ -837,6 +849,12 @@ const server = app.listen(3000, async () => {
         }
     } catch (e) {
         console.error('Script Error:', e);
+        try {
+            await page.screenshot({ path: path.join(__dirname, 'error_screenshot.png') });
+            console.log('Saved error_screenshot.png');
+        } catch (se) {
+            console.error('Failed to save screenshot', se);
+        }
         server.close();
         process.exit(1);
     }
