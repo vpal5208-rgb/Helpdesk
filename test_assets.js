@@ -221,6 +221,109 @@ const server = app.listen(3000, async () => {
         }
 
         // =============================================
+        // PART 2.5: Custom Asset Tag validation tests
+        // =============================================
+        console.log('\n--- PART 2.5: Custom Asset Tag validation tests ---');
+        console.log('Adding a new asset with a custom asset tag...');
+        await page.click('#btn-add-asset');
+        await delay(1000);
+
+        await page.evaluate(() => {
+            document.getElementById('assetm-tag').value = 'MY-CUSTOM-TAG-99';
+            document.getElementById('assetm-name').value = 'Custom Tag Laptop';
+            document.getElementById('assetm-model').value = 'ThinkPad X1';
+            document.getElementById('assetm-category').value = 'Hardware';
+            document.getElementById('assetm-status').value = 'Ready to Deploy';
+            document.getElementById('asset-modal-save').click();
+        });
+        await delay(1500);
+
+        // Verify the row with custom tag is rendered
+        let customAssetRowText = await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+            const row = rows.find(r => r.innerText.includes('MY-CUSTOM-TAG-99'));
+            return row ? row.innerText : '';
+        });
+        console.log('Custom Asset Row (MY-CUSTOM-TAG-99):', customAssetRowText);
+        if (!customAssetRowText.includes('Custom Tag Laptop')) {
+            console.error('FAIL: Custom asset tag creation failed.');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Custom asset tag creation passed!');
+        }
+
+        // Test editing the custom tag
+        console.log('Editing asset to change custom tag from MY-CUSTOM-TAG-99 to MY-CUSTOM-TAG-88...');
+        await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+            const row = rows.find(r => r.innerText.includes('MY-CUSTOM-TAG-99'));
+            if (row) {
+                const editBtn = row.querySelector('button[onclick^="openAssetModal"]');
+                if (editBtn) editBtn.click();
+            }
+        });
+        await delay(1000);
+
+        // Modify the tag
+        await page.evaluate(() => {
+            document.getElementById('assetm-tag').value = 'MY-CUSTOM-TAG-88';
+            document.getElementById('asset-modal-save').click();
+        });
+        await delay(1500);
+
+        // Verify that tag updated in the grid
+        let updatedRowText88 = await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+            const row = rows.find(r => r.innerText.includes('MY-CUSTOM-TAG-88'));
+            return row ? row.innerText : '';
+        });
+        let oldRowExists = await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+            return rows.some(r => r.innerText.includes('MY-CUSTOM-TAG-99'));
+        });
+        console.log('Updated Custom Asset Row (MY-CUSTOM-TAG-88):', updatedRowText88);
+        console.log('Old Tag MY-CUSTOM-TAG-99 exists:', oldRowExists);
+
+        if (!updatedRowText88.includes('Custom Tag Laptop') || oldRowExists) {
+            console.error('FAIL: Custom asset tag edit/renaming failed.');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Custom asset tag edit/renaming passed!');
+        }
+
+        // Test duplicate tag validation
+        console.log('Testing duplicate tag validation (trying to create asset with MY-CUSTOM-TAG-88)...');
+        await page.click('#btn-add-asset');
+        await delay(1000);
+
+        await page.evaluate(() => {
+            document.getElementById('assetm-tag').value = 'MY-CUSTOM-TAG-88';
+            document.getElementById('assetm-name').value = 'Another Duplicate Laptop';
+            document.getElementById('assetm-model').value = 'ThinkPad X1';
+            document.getElementById('asset-modal-save').click();
+        });
+        await delay(1000);
+
+        // The modal should remain visible because validation failed
+        const isModalOpenAfterDuplicate = await page.evaluate(() => {
+            const overlay = document.getElementById('asset-modal-overlay');
+            return overlay.style.display === 'flex' || window.getComputedStyle(overlay).display === 'flex';
+        });
+        console.log('Is modal open after duplicate save attempt:', isModalOpenAfterDuplicate);
+
+        if (!isModalOpenAfterDuplicate) {
+            console.error('FAIL: Duplicate tag was saved when it should have failed validation.');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Duplicate asset tag validation successfully blocked save!');
+            // Close the modal to cleanup
+            await page.evaluate(() => {
+                document.getElementById('asset-modal-close').click();
+            });
+            await delay(500);
+        }
+
+        // =============================================
         // PART 3: Audit Trail Integration tests for Assets
         // =============================================
         console.log('\n--- PART 3: Central Audit Trail Integration tests for Assets ---');

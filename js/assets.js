@@ -493,7 +493,7 @@ function closeAssetModal() {
 
 function saveAssetFromModal() {
   const id = document.getElementById('assetm-id').value;
-  const tag = document.getElementById('assetm-tag').value;
+  const tag = document.getElementById('assetm-tag').value.trim();
   const name = document.getElementById('assetm-name').value.trim();
   const model = document.getElementById('assetm-model').value.trim();
   const modelNumber = document.getElementById('assetm-model-number').value.trim();
@@ -510,11 +510,39 @@ function saveAssetFromModal() {
   const warrantyVal = document.getElementById('assetm-warranty').value;
   const warrantyMonths = warrantyVal ? parseInt(warrantyVal, 10) : '';
 
+  if (!tag) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Asset Tag is required.', 'error');
+    }
+    return;
+  }
+
   if (!name || !model) {
     if (typeof showToast === 'function') {
       showToast('❌ Please fill in the Asset Name and Model fields.', 'error');
     }
     return;
+  }
+
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+
+  // Unique validation check
+  if (id) {
+    const duplicate = assets.find(a => a.id.toLowerCase() === tag.toLowerCase() && a.id.toLowerCase() !== id.toLowerCase());
+    if (duplicate) {
+      if (typeof showToast === 'function') {
+        showToast(`❌ Asset Tag "${tag}" is already in use by another asset.`, 'error');
+      }
+      return;
+    }
+  } else {
+    const duplicate = assets.find(a => a.id.toLowerCase() === tag.toLowerCase());
+    if (duplicate) {
+      if (typeof showToast === 'function') {
+        showToast(`❌ Asset Tag "${tag}" is already in use.`, 'error');
+      }
+      return;
+    }
   }
 
   if (vendor === '__custom__') {
@@ -535,7 +563,6 @@ function saveAssetFromModal() {
     }
   }
 
-  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
   let assignedTo = '';
   let assignedEmail = '';
 
@@ -570,8 +597,24 @@ function saveAssetFromModal() {
     // Update existing
     const idx = assets.findIndex(a => a.id === id);
     if (idx !== -1) {
+      // If asset tag is customized/renamed, update all audit trail logs referencing it
+      if (tag !== id) {
+        const systemLogs = typeof loadSystemAuditLogs === 'function' ? loadSystemAuditLogs() : [];
+        let logsUpdated = false;
+        systemLogs.forEach(log => {
+          if (log.refId === id) {
+            log.refId = tag;
+            logsUpdated = true;
+          }
+        });
+        if (logsUpdated && typeof saveSystemAuditLogs === 'function') {
+          saveSystemAuditLogs(systemLogs);
+        }
+      }
+
       assets[idx] = {
         ...assets[idx],
+        id: tag,
         ...assetPayload
       };
       
