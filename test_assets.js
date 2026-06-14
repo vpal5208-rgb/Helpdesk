@@ -220,6 +220,71 @@ const server = app.listen(3000, async () => {
             console.log('SUCCESS: Add Asset E2E with detailed properties passed!');
         }
 
+        // =============================================
+        // PART 3: Audit Trail Integration tests for Assets
+        // =============================================
+        console.log('\n--- PART 3: Central Audit Trail Integration tests for Assets ---');
+        console.log('Navigating to Audit Trail tab...');
+        await page.click('button[data-view="audit-trail"]');
+        await delay(1000);
+
+        // Filter by Asset Operations
+        console.log('Filtering Audit Trail by Asset Operations...');
+        await page.evaluate(() => {
+            const filterSelect = document.getElementById('audit-filter-action');
+            filterSelect.value = 'asset';
+            filterSelect.dispatchEvent(new Event('change'));
+        });
+        await delay(1000);
+
+        // Verify that the created asset and checked-out asset are visible in the audit trail
+        const auditRowsText = await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('#audit-trail-table-body tr'));
+            return rows.map(r => r.innerText);
+        });
+        console.log('Audit trail rows (Filtered by Asset Operations):', auditRowsText);
+
+        const hasCreateLog = auditRowsText.some(text => text.includes('Created asset AST-0030') && text.includes('Test E2E Laptop'));
+        const hasCheckoutLog = auditRowsText.some(text => text.includes('Checked out asset AST-0025') && text.includes('Emily Davis'));
+
+        if (!hasCreateLog || !hasCheckoutLog) {
+            console.error('FAIL: Expected asset audit log entries not found.');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Asset operations audit log verification passed!');
+        }
+
+        // Test clicking the Asset ID (AST-0030) opens the asset modal
+        console.log('Clicking on Asset ID link in Audit Trail...');
+        await page.evaluate(() => {
+            const links = Array.from(document.querySelectorAll('#audit-trail-table-body a'));
+            const astLink = links.find(l => l.innerText.includes('AST-0030'));
+            if (astLink) astLink.click();
+        });
+        await delay(1000);
+
+        // Verify the asset modal overlay is open and matches AST-0030
+        const modalState = await page.evaluate(() => {
+            const overlay = document.getElementById('asset-modal-overlay');
+            const title = document.getElementById('asset-modal-title').innerText;
+            const tagInputVal = document.getElementById('assetm-tag').value;
+            const isVisible = overlay.style.display === 'flex' || window.getComputedStyle(overlay).display === 'flex';
+            return { isVisible, title, tagInputVal };
+        });
+        console.log('Asset Modal state after audit trail click:', modalState);
+
+        if (!modalState.isVisible || !modalState.tagInputVal.includes('AST-0030')) {
+            console.error('FAIL: Clicking asset ID in audit trail did not open the edit asset modal correctly.');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Clicking Asset ID link in Audit Trail successfully opens the Asset Edit Modal!');
+            // Close the modal to continue cleanly
+            await page.evaluate(() => {
+                document.getElementById('asset-modal-close').click();
+            });
+            await delay(500);
+        }
+
         // Navigate to Settings
         console.log('Navigating to Settings > Snipe-IT Integration tab...');
         await page.click('button[data-view="settings"]');

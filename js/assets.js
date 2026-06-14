@@ -101,7 +101,7 @@ function initAssets() {
             const assets = typeof loadAssets === 'function' ? loadAssets() : [];
             // Track in audit trail
             if (typeof addAuditLog === 'function') {
-              addAuditLog('🔄 Synced asset registry with endpoint.', 'System', 'System');
+              addAuditLog('🔄 Synced asset registry with endpoint.', 'System', 'System', 'asset');
             }
             
             renderAdminAssets();
@@ -600,7 +600,10 @@ function saveAssetFromModal() {
   }
 
   if (typeof addAuditLog === 'function') {
-    addAuditLog(`📝 Updated asset ${tag}: Assigned to ${assignedTo || 'Unassigned'}.`, 'System', 'System');
+    const logAction = id 
+      ? `📝 Updated asset ${tag}: Assigned to ${assignedTo || 'Unassigned'}.`
+      : `🖥️ Created asset ${tag}: ${name} (${model}).`;
+    addAuditLog(logAction, 'System', tag, 'asset');
   }
 }
 
@@ -618,7 +621,7 @@ function deleteAssetRecord(id) {
   }
 
   if (typeof addAuditLog === 'function') {
-    addAuditLog(`🗑️ Deleted asset record ${id}.`, 'System', 'System');
+    addAuditLog(`🗑️ Deleted asset record ${id}.`, 'System', id, 'asset');
   }
 }
 
@@ -643,7 +646,7 @@ function checkInAsset(id) {
   }
 
   if (typeof addAuditLog === 'function') {
-    addAuditLog(`↩️ Checked in asset ${id} (previously assigned to ${oldAssignee}).`, 'System', 'System');
+    addAuditLog(`↩️ Checked in asset ${id} (previously assigned to ${oldAssignee}).`, 'System', id, 'asset');
   }
 }
 
@@ -728,7 +731,7 @@ function saveCheckout() {
   }
 
   if (typeof addAuditLog === 'function') {
-    addAuditLog(`📤 Checked out asset ${id} to ${assignedTo} (${assignedEmail}).`, 'System', 'System');
+    addAuditLog(`📤 Checked out asset ${id} to ${assignedTo} (${assignedEmail}).`, 'System', id, 'asset');
   }
 }
 
