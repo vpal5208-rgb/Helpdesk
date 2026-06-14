@@ -248,6 +248,14 @@ function initAssets() {
       });
     }
 
+    // Bulk Audit All Button
+    const btnBulkAudit = document.getElementById('btn-bulk-audit-all');
+    if (btnBulkAudit) {
+      btnBulkAudit.addEventListener('click', () => {
+        bulkAuditAllAssets();
+      });
+    }
+
     // Modal Events
     const btnCancel = document.getElementById('asset-modal-cancel');
     const btnClose = document.getElementById('asset-modal-close');
@@ -678,10 +686,7 @@ function renderAdminAssets() {
         ${asset.checkoutDate && asset.status === 'Deployed' ? `<div style="font-size:0.72rem; color:var(--text-secondary); margin-top:2px;">Checked Out: ${asset.checkoutDate}</div>` : ''}
       </td>
       <td style="padding: 12px; text-align: right; white-space: nowrap;">
-        ${asset.auditFrequency 
-          ? `<button class="btn btn-ghost btn-sm btn-quick-audit" onclick="quickAuditAsset('${asset.id}')" title="Mark Asset Audited" style="margin-right:8px; font-size:0.75rem; color:#d29922; font-weight:600; border:1px solid rgba(210,153,34,0.15); padding:2px 6px;">📋 Audit</button>`
-          : ''
-        }
+        <button class="btn btn-ghost btn-sm btn-quick-audit" onclick="quickAuditAsset('${asset.id}')" title="Mark Asset Audited" style="margin-right:8px; font-size:0.75rem; color:#d29922; font-weight:600; border:1px solid rgba(210,153,34,0.15); padding:2px 6px;">📋 Audit</button>
         ${asset.status === 'Deployed' 
           ? `<button class="btn btn-ghost btn-sm" onclick="checkInAsset('${asset.id}')" title="Check In Asset" style="margin-right:8px; font-size:0.75rem; color:#58a6ff; font-weight:600; border:1px solid rgba(88,166,255,0.15); padding:2px 6px;">↩️ Check In</button>`
           : asset.status === 'Ready to Deploy'
@@ -1186,7 +1191,21 @@ function quickAuditAsset(id) {
   const asset = assets.find(a => a.id === id);
   if (!asset) return;
 
-  if (!confirm(`Are you sure you want to mark asset "${asset.id}" (${asset.name}) as audited today?`)) return;
+  const currentFreq = asset.auditFrequency || 'Quarterly';
+  const freq = prompt(`Complete audit for "${id}". Set or change the audit timeline (frequency): \nOptions: Quarterly, Half-Yearly, Yearly`, currentFreq);
+  if (freq === null) return; // User cancelled prompt
+
+  const validFrequencies = ['Quarterly', 'Half-Yearly', 'Yearly'];
+  const sanitizedFreq = freq.trim();
+  
+  if (validFrequencies.includes(sanitizedFreq)) {
+    asset.auditFrequency = sanitizedFreq;
+  } else {
+    if (!asset.auditFrequency) {
+      asset.auditFrequency = 'Quarterly';
+    }
+    alert(`Invalid frequency "${freq}". Keeping timeline as "${asset.auditFrequency}".`);
+  }
 
   const today = new Date().toISOString().split('T')[0];
   asset.lastAuditDate = today;
@@ -1203,7 +1222,43 @@ function quickAuditAsset(id) {
   }
 
   if (typeof addAuditLog === 'function') {
-    addAuditLog(`📋 Completed quick audit for asset ${id}.`, 'System', id, 'asset');
+    addAuditLog(`📋 Completed quick audit for asset ${id} (Timeline: ${asset.auditFrequency}).`, 'System', id, 'asset');
+  }
+}
+
+function bulkAuditAllAssets() {
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  if (assets.length === 0) {
+    if (typeof showToast === 'function') {
+      showToast('No assets found to audit.', 'info');
+    }
+    return;
+  }
+
+  if (!confirm(`Are you sure you want to mark all ${assets.length} assets as audited today?`)) return;
+
+  const today = new Date().toISOString().split('T')[0];
+  assets.forEach(asset => {
+    asset.lastAuditDate = today;
+    const freq = asset.auditFrequency || 'Quarterly';
+    if (!asset.auditFrequency) {
+      asset.auditFrequency = freq;
+    }
+    const calculated = calculateNextAuditDate(today, freq);
+    if (calculated) {
+      asset.nextAuditDate = calculated;
+    }
+  });
+
+  if (typeof saveAssets === 'function') saveAssets(assets);
+  renderAdminAssets();
+
+  if (typeof showToast === 'function') {
+    showToast(`Successfully completed audit for all ${assets.length} assets!`, 'success');
+  }
+
+  if (typeof addAuditLog === 'function') {
+    addAuditLog(`📋 Completed bulk audit for all ${assets.length} assets.`, 'System', 'All', 'asset');
   }
 }
 
@@ -1597,6 +1652,7 @@ window.openCheckoutModal = openCheckoutModal;
 window.closeCheckoutModal = closeCheckoutModal;
 window.saveCheckout = saveCheckout;
 window.quickAuditAsset = quickAuditAsset;
+window.bulkAuditAllAssets = bulkAuditAllAssets;
 
 // Load event binder
 if (document.readyState === 'loading') {

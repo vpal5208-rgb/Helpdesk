@@ -722,10 +722,11 @@ const server = app.listen(3000, async () => {
             });
             await delay(1000);
 
-            // Mock window.confirm to auto-approve
-            console.log('Mocking window.confirm and clicking inline row "📋 Audit" button...');
+            // Mock window.prompt to auto-fill timeline frequency
+            console.log('Mocking window.prompt and clicking inline row "📋 Audit" button...');
             await page.evaluate(() => {
-                window.confirm = () => true;
+                window.prompt = () => 'Quarterly';
+                window.alert = () => {};
                 const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
                 const testRow = rows.find(r => r.innerText.includes('AST-0030'));
                 if (testRow) {
@@ -748,6 +749,45 @@ const server = app.listen(3000, async () => {
                 hasError = true;
             } else {
                 console.log('SUCCESS: Asset AST-0030 is no longer in the Due Audits view after inline row audit!');
+            }
+
+            // --- TEST BULK AUDIT ALL ASSETS BUTTON ---
+            console.log('\nTesting Bulk Audit All Assets button...');
+            console.log('Restoring "All Assets" status tab...');
+            await page.evaluate(() => {
+                const tabs = Array.from(document.querySelectorAll('#asset-status-tabs .settings-tab'));
+                const allTab = tabs.find(t => t.innerText.includes('All Assets'));
+                if (allTab) allTab.click();
+            });
+            await delay(1000);
+
+            console.log('Mocking window.confirm and clicking "📋 Bulk Audit All" button...');
+            await page.evaluate(() => {
+                window.confirm = () => true;
+            });
+            await page.click('#btn-bulk-audit-all');
+            await delay(1500);
+
+            console.log('Clicking the "Due Audits" status tab...');
+            await page.evaluate(() => {
+                const tabs = Array.from(document.querySelectorAll('#asset-status-tabs .settings-tab'));
+                const dueTab = tabs.find(t => t.dataset.status === 'due-audits');
+                if (dueTab) dueTab.click();
+            });
+            await delay(1000);
+
+            const bulkPostAuditGridState = await page.evaluate(() => {
+                const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+                const text = rows.map(r => r.innerText).join('\n');
+                const hasNoAssets = text.includes('No assets found matching your criteria.');
+                return { hasNoAssets, count: rows.length };
+            });
+            console.log('Due Audits tab grid state post bulk audit:', bulkPostAuditGridState);
+            if (!bulkPostAuditGridState.hasNoAssets) {
+                console.error('FAIL: Due Audits tab is not empty after bulk audit.');
+                hasError = true;
+            } else {
+                console.log('SUCCESS: All assets successfully bulk audited and cleared from Due Audits view!');
             }
 
             // Restore "All Assets" tab filter
