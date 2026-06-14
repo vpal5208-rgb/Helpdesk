@@ -82,6 +82,54 @@ function viewBase64Document(dataUrl, filename) {
 }
 window.viewBase64Document = viewBase64Document;
 
+function calculateNextAuditDate(lastAuditDateStr, frequency) {
+  if (!lastAuditDateStr || !frequency) return '';
+  const date = new Date(lastAuditDateStr);
+  if (isNaN(date.getTime())) return '';
+  
+  if (frequency === 'Quarterly') {
+    date.setMonth(date.getMonth() + 3);
+  } else if (frequency === 'Half-Yearly') {
+    date.setMonth(date.getMonth() + 6);
+  } else if (frequency === 'Yearly') {
+    date.setMonth(date.getMonth() + 12);
+  } else {
+    return '';
+  }
+  return date.toISOString().split('T')[0];
+}
+
+function checkAssetAuditsNotifications() {
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  assets.forEach(asset => {
+    if (asset.auditFrequency && asset.nextAuditDate) {
+      const nextDate = new Date(asset.nextAuditDate);
+      const diffTime = nextDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays <= 7) {
+        const sessionKey = `hd_audit_notified_${asset.id}_${asset.nextAuditDate}`;
+        if (!sessionStorage.getItem(sessionKey)) {
+          const daysText = diffDays < 0 ? `overdue by ${Math.abs(diffDays)} days` : (diffDays === 0 ? 'due today' : `due in ${diffDays} days`);
+          const text = `⚠️ Asset Audit: ${asset.name} (${asset.id}) is ${daysText} (Next Due: ${asset.nextAuditDate}).`;
+          
+          if (typeof addNotification === 'function') {
+            addNotification(text);
+          }
+          if (typeof showToast === 'function') {
+            showToast(text, 'warning');
+          }
+          
+          sessionStorage.setItem(sessionKey, 'true');
+        }
+      }
+    }
+  });
+}
+
 let activeAssetStatusTab = '';
 
 function initAssets() {
@@ -89,6 +137,7 @@ function initAssets() {
   const isAdminPage = !!document.getElementById('view-assets');
   
   if (isAdminPage) {
+    checkAssetAuditsNotifications();
     // Load existing settings into UI
     const settings = typeof loadSnipeSettings === 'function' ? loadSnipeSettings() : { enabled: true, url: '', token: '' };
     const enabledInput = document.getElementById('snipe-enabled');
@@ -285,6 +334,42 @@ function initAssets() {
         activeAssetStatusTab = btn.dataset.status || '';
         renderAdminAssets();
       });
+    // Audit date auto-calculation and listeners
+    const freqSelect = document.getElementById('assetm-audit-frequency');
+    const lastAuditInput = document.getElementById('assetm-last-audit-date');
+    const nextAuditInput = document.getElementById('assetm-next-audit-date');
+    const btnMarkAudited = document.getElementById('btn-mark-audited');
+
+    const updateCalculatedDueDate = () => {
+      if (freqSelect && lastAuditInput && nextAuditInput) {
+        const calculated = calculateNextAuditDate(lastAuditInput.value, freqSelect.value);
+        if (calculated) {
+          nextAuditInput.value = calculated;
+        }
+      }
+      if (btnMarkAudited) {
+        btnMarkAudited.style.display = freqSelect && freqSelect.value ? 'inline-block' : 'none';
+      }
+    };
+
+    if (freqSelect) freqSelect.addEventListener('change', updateCalculatedDueDate);
+    if (lastAuditInput) lastAuditInput.addEventListener('change', updateCalculatedDueDate);
+
+    if (btnMarkAudited) {
+      btnMarkAudited.addEventListener('click', () => {
+        if (lastAuditInput && freqSelect && nextAuditInput) {
+          const today = new Date().toISOString().split('T')[0];
+          lastAuditInput.value = today;
+          const calculated = calculateNextAuditDate(today, freqSelect.value);
+          if (calculated) {
+            nextAuditInput.value = calculated;
+          }
+          if (typeof showToast === 'function') {
+            showToast('IT Asset Audit marked as completed!', 'success');
+          }
+        }
+      });
+    }
     }
 
     // Setup file attachment listeners for Asset modal
@@ -471,7 +556,21 @@ function renderAdminAssets() {
     const matchesCategory = !categoryFilter || asset.category === categoryFilter;
 
     // 3. Status filter
-    const matchesStatus = !statusFilter || asset.status === statusFilter;
+    let matchesStatus = true;
+    if (statusFilter === 'due-audits') {
+      if (!asset.auditFrequency || !asset.nextAuditDate) {
+        matchesStatus = false;
+      } else {
+        const nextDate = new Date(asset.nextAuditDate);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const diffTime = nextDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        matchesStatus = diffDays <= 7;
+      }
+    } else if (statusFilter) {
+      matchesStatus = asset.status === statusFilter;
+    }
 
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -508,6 +607,28 @@ function renderAdminAssets() {
       badgeColor = '#d29922';
     }
 
+    // Audit Warning badge styling
+    let auditWarningHTML = '';
+    if (asset.auditFrequency && asset.nextAuditDate) {
+      const nextDate = new Date(asset.nextAuditDate);
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const diffTime = nextDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays <= 7) {
+        const badgeColor = diffDays <= 0 ? 'var(--accent-red)' : 'var(--accent-orange)';
+        const text = diffDays < 0 ? 'Overdue' : (diffDays === 0 ? 'Due Today' : 'Due Soon');
+        auditWarningHTML = `
+          <div style="margin-top: 3px;">
+            <span class="badge" title="Audit is ${text} (Due: ${asset.nextAuditDate})" style="font-size:0.65rem; padding:2px 6px; border-radius:3px; background:rgba(210,153,34,0.1); color:${badgeColor}; border:1px solid ${badgeColor}; display:inline-flex; align-items:center; gap:2px; cursor:pointer;" onclick="openAssetModal('${asset.id}')">
+              ⚠️ Audit: ${text} (${asset.nextAuditDate})
+            </span>
+          </div>
+        `;
+      }
+    }
+
     tr.innerHTML = `
       <td style="padding: 12px; font-family: monospace; font-weight: 600; color: var(--text-primary);">${asset.id}</td>
       <td style="padding: 12px;">
@@ -518,6 +639,7 @@ function renderAdminAssets() {
           <div>
             <div style="font-weight: 600; color: var(--text-primary);">${asset.name}</div>
             ${asset.purchaseDate ? `<div style="font-size:0.72rem; color:var(--text-secondary); margin-top:2px;">Purchased: ${asset.purchaseDate}${asset.warrantyMonths ? ` (${asset.warrantyMonths} mo. warranty)` : ''}</div>` : ''}
+            ${auditWarningHTML}
             
             ${(asset.poNumber || asset.poValue || asset.assetValue || asset.invoiceCopy || asset.poCopy) ? `
               <div style="margin-top:6px; display:flex; flex-direction:column; gap:4px;">
@@ -718,6 +840,17 @@ function openAssetModal(id = '') {
     if (poNameSpan) poNameSpan.textContent = asset.poCopyName || '';
     if (poPreviewContainer) poPreviewContainer.style.display = asset.poCopy ? 'flex' : 'none';
 
+    const auditFreqInput = document.getElementById('assetm-audit-frequency');
+    const lastAuditDateInput = document.getElementById('assetm-last-audit-date');
+    const nextAuditDateInput = document.getElementById('assetm-next-audit-date');
+    const btnMarkAudited = document.getElementById('btn-mark-audited');
+
+    if (auditFreqInput) auditFreqInput.value = asset.auditFrequency || '';
+    if (lastAuditDateInput) lastAuditDateInput.value = asset.lastAuditDate || '';
+    if (nextAuditDateInput) nextAuditDateInput.value = asset.nextAuditDate || '';
+    if (btnMarkAudited) {
+      btnMarkAudited.style.display = asset.auditFrequency ? 'inline-block' : 'none';
+    }
   } else {
     // Add mode
     titleEl.textContent = '🖥️ Add New Asset';
@@ -793,6 +926,16 @@ function openAssetModal(id = '') {
     if (poFilenameInput) poFilenameInput.value = '';
     if (poNameSpan) poNameSpan.textContent = '';
     if (poPreviewContainer) poPreviewContainer.style.display = 'none';
+
+    const auditFreqInput = document.getElementById('assetm-audit-frequency');
+    const lastAuditDateInput = document.getElementById('assetm-last-audit-date');
+    const nextAuditDateInput = document.getElementById('assetm-next-audit-date');
+    const btnMarkAudited = document.getElementById('btn-mark-audited');
+
+    if (auditFreqInput) auditFreqInput.value = '';
+    if (lastAuditDateInput) lastAuditDateInput.value = '';
+    if (nextAuditDateInput) nextAuditDateInput.value = '';
+    if (btnMarkAudited) btnMarkAudited.style.display = 'none';
   }
 
   overlay.style.display = 'flex';
@@ -834,6 +977,11 @@ function saveAssetFromModal() {
   const invoiceCopyName = document.getElementById('assetm-invoice-filename')?.value || '';
   const poCopy = document.getElementById('assetm-po-data')?.value || '';
   const poCopyName = document.getElementById('assetm-po-filename')?.value || '';
+
+  // Retrieve audit properties
+  const auditFrequency = document.getElementById('assetm-audit-frequency')?.value || '';
+  const lastAuditDate = document.getElementById('assetm-last-audit-date')?.value || '';
+  const nextAuditDate = document.getElementById('assetm-next-audit-date')?.value || '';
 
   if (!tag) {
     if (typeof showToast === 'function') {
@@ -923,7 +1071,10 @@ function saveAssetFromModal() {
     invoiceCopy,
     invoiceCopyName,
     poCopy,
-    poCopyName
+    poCopyName,
+    auditFrequency,
+    lastAuditDate,
+    nextAuditDate
   };
 
   if (id) {

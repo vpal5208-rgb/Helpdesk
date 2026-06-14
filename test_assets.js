@@ -538,11 +538,154 @@ const server = app.listen(3000, async () => {
             hasError = true;
         } else {
             console.log('SUCCESS: Clicking Asset ID link in Audit Trail successfully opens the Asset Edit Modal!');
-            // Close the modal to continue cleanly
+            
+            // =============================================
+            // PART 2.10: IT Asset Audits E2E tests
+            // =============================================
+            console.log('\n--- PART 2.10: IT Asset Audits E2E tests ---');
+            console.log('Configuring Quarterly audit for AST-0030...');
             await page.evaluate(() => {
-                document.getElementById('asset-modal-close').click();
+                document.getElementById('assetm-audit-frequency').value = 'Quarterly';
+                document.getElementById('assetm-last-audit-date').value = '2026-03-01';
+                
+                // Trigger change event to auto-calculate next due date
+                const freqSelect = document.getElementById('assetm-audit-frequency');
+                freqSelect.dispatchEvent(new Event('change'));
             });
             await delay(500);
+
+            const calculatedDate = await page.evaluate(() => {
+                return document.getElementById('assetm-next-audit-date').value;
+            });
+            console.log('Auto-calculated next audit due date:', calculatedDate);
+            if (calculatedDate !== '2026-06-01') {
+                console.error('FAIL: Auto-calculated next audit due date is incorrect. Expected: 2026-06-01, Got:', calculatedDate);
+                hasError = true;
+            } else {
+                console.log('SUCCESS: Next audit due date auto-calculated successfully!');
+            }
+
+            // Save the asset
+            console.log('Saving asset with audit config...');
+            await page.evaluate(() => {
+                document.getElementById('asset-modal-save').click();
+            });
+            await delay(1500);
+
+            // Reload page to trigger the notifications scan on load
+            console.log('Reloading page to trigger notifications scan...');
+            await page.reload();
+            await delay(1500);
+
+            // Navigate back to Assets
+            await page.click('button[data-view="assets"]');
+            await delay(1000);
+
+            // Check if in-app notification is present
+            const auditNotificationExists = await page.evaluate(() => {
+                const badge = document.getElementById('notif-badge');
+                const badgeVisible = badge && badge.style.display !== 'none';
+                
+                // Trigger dropdown click to see notifications text
+                document.getElementById('notif-btn').click();
+                const listText = document.getElementById('notif-list').innerText;
+                document.getElementById('notif-btn').click(); // close it
+                
+                return { badgeVisible, listText };
+            });
+            console.log('Notification Badge status & List Text:', auditNotificationExists);
+            if (!auditNotificationExists.listText.includes('AST-0030') || !auditNotificationExists.listText.includes('overdue')) {
+                console.error('FAIL: System did not generate notification for overdue asset audit.');
+                hasError = true;
+            } else {
+                console.log('SUCCESS: System correctly notified user of overdue asset audit!');
+            }
+
+            // Click the "Due Audits" tab filter
+            console.log('Clicking the "Due Audits" status tab...');
+            await page.evaluate(() => {
+                const tabs = Array.from(document.querySelectorAll('#asset-status-tabs .settings-tab'));
+                const dueTab = tabs.find(t => t.dataset.status === 'due-audits');
+                if (dueTab) dueTab.click();
+            });
+            await delay(1000);
+
+            // Verify AST-0030 is displayed and the Warning Badge is visible
+            const dueGridState = await page.evaluate(() => {
+                const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+                const text = rows.map(r => r.innerText).join('\n');
+                const hasAST30 = text.includes('AST-0030');
+                const hasWarningBadge = text.includes('⚠️ Audit: Overdue');
+                return { hasAST30, hasWarningBadge, count: rows.length };
+            });
+            console.log('Due Audits tab grid state:', dueGridState);
+            if (!dueGridState.hasAST30 || !dueGridState.hasWarningBadge) {
+                console.error('FAIL: Asset AST-0030 or its Overdue warning badge is missing from Due Audits tab.');
+                hasError = true;
+            } else {
+                console.log('SUCCESS: Due Audits tab correctly filtered and rendered overdue warning badge!');
+            }
+
+            // Click edit on AST-0030 from the grid
+            console.log('Opening edit modal for AST-0030 from Due Audits view...');
+            await page.evaluate(() => {
+                const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+                const testRow = rows.find(r => r.innerText.includes('AST-0030'));
+                if (testRow) {
+                    const editBtn = testRow.querySelector('button[title="Edit Asset"]');
+                    if (editBtn) editBtn.click();
+                }
+            });
+            await delay(1000);
+
+            // Click "Complete Current Audit" button
+            console.log('Clicking "Complete Current Audit" button inside modal...');
+            const auditDatesAfterComplete = await page.evaluate(() => {
+                document.getElementById('btn-mark-audited').click();
+                return {
+                    lastAudit: document.getElementById('assetm-last-audit-date').value,
+                    nextAudit: document.getElementById('assetm-next-audit-date').value
+                };
+            });
+            console.log('Dates after completing audit:', auditDatesAfterComplete);
+            const todayStr = new Date().toISOString().split('T')[0];
+            if (auditDatesAfterComplete.lastAudit !== todayStr) {
+                console.error('FAIL: Last audit date did not update to today.');
+                hasError = true;
+            } else {
+                console.log('SUCCESS: Last audit date successfully updated to today!');
+            }
+
+            // Save the asset again
+            console.log('Saving asset after completing audit...');
+            await page.evaluate(() => {
+                document.getElementById('asset-modal-save').click();
+            });
+            await delay(1500);
+
+            // Verify AST-0030 is no longer shown in the "Due Audits" tab filter
+            const postAuditGridState = await page.evaluate(() => {
+                const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+                const text = rows.map(r => r.innerText).join('\n');
+                const hasAST30 = text.includes('AST-0030');
+                return { hasAST30, count: rows.length };
+            });
+            console.log('Due Audits tab grid state post audit completion:', postAuditGridState);
+            if (postAuditGridState.hasAST30) {
+                console.error('FAIL: Asset AST-0030 is still displayed in Due Audits view.');
+                hasError = true;
+            } else {
+                console.log('SUCCESS: Asset AST-0030 is no longer in the Due Audits view!');
+            }
+
+            // Restore "All Assets" tab filter
+            console.log('Restoring "All Assets" status tab...');
+            await page.evaluate(() => {
+                const tabs = Array.from(document.querySelectorAll('#asset-status-tabs .settings-tab'));
+                const allTab = tabs.find(t => t.innerText.includes('All Assets'));
+                if (allTab) allTab.click();
+            });
+            await delay(1000);
         }
 
         // Navigate to Settings

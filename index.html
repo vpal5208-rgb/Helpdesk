@@ -1164,6 +1164,7 @@ support@company.com | +1 (800) 555-0199</textarea>
         <button class="settings-tab" data-status="Ready to Deploy">🟢 Ready to Deploy</button>
         <button class="settings-tab" data-status="Deployed">🔵 Deployed</button>
         <button class="settings-tab" data-status="Archived">🟡 Archived</button>
+        <button class="settings-tab" data-status="due-audits">🔍 Due Audits</button>
       </div>
 
       <div class="toolbar" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -1729,6 +1730,38 @@ support@company.com | +1 (800) 555-0199</textarea>
                 <button type="button" class="btn btn-ghost btn-sm" id="assetm-po-clear" style="color:var(--accent-red); padding:2px 6px; font-size:0.75rem;">✕</button>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IT Asset Audit Configuration Section -->
+      <div style="border-top:1px dashed var(--border); margin-top:20px; padding-top:16px;">
+        <h4 style="margin:0 0 12px 0; font-size:0.9rem; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+          <span>🔍 IT Asset Audit Settings</span>
+        </h4>
+        <div class="form-row" style="display:flex; gap:16px; margin-bottom:16px;">
+          <div class="form-group" style="flex:1;">
+            <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Audit Frequency</label>
+            <select id="assetm-audit-frequency" class="form-input" style="width:100%">
+              <option value="">No Scheduled Audit</option>
+              <option value="Quarterly">Quarterly (3 months)</option>
+              <option value="Half-Yearly">Half-Yearly (6 months)</option>
+              <option value="Yearly">Yearly (12 months)</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Last Audit Date</label>
+            <input type="date" id="assetm-last-audit-date" class="form-input" style="width:100%"/>
+          </div>
+        </div>
+        <div class="form-row" style="display:flex; gap:16px; margin-bottom:16px;">
+          <div class="form-group" style="flex:1;">
+            <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Next Audit Due Date</label>
+            <input type="date" id="assetm-next-audit-date" class="form-input" style="width:100%"/>
+            <span style="font-size:0.72rem;color:var(--text-secondary)">Calculated automatically based on frequency, but customizable.</span>
+          </div>
+          <div class="form-group" style="flex:1; display:flex; align-items:flex-end;">
+            <button type="button" class="btn btn-ghost" id="btn-mark-audited" style="width:100%; display:none; padding:8px; font-size:0.85rem;">✅ Complete Current Audit</button>
           </div>
         </div>
       </div>
