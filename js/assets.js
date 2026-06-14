@@ -6,6 +6,82 @@
 const LS_ASSETS = 'hd_assets_v1';
 const LS_SNIPE = 'hd_snipe_it_settings_v1';
 
+// Image compression helper using HTML5 canvas
+function compressImage(file, callback) {
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = function (event) {
+    const img = new Image();
+    img.src = event.target.result;
+    img.onload = function () {
+      const canvas = document.createElement('canvas');
+      const MAX_WIDTH = 300;
+      const MAX_HEIGHT = 300;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height;
+          height = MAX_HEIGHT;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // compress quality to 70%
+      callback(dataUrl);
+    };
+  };
+}
+
+// Document file reader helper with size validation (max 300KB)
+function readDocumentFile(file, callback) {
+  if (file.size > 300 * 1024) {
+    if (typeof showToast === 'function') {
+      showToast('❌ File is too large! Please keep Invoice/PO documents under 300KB.', 'error');
+    }
+    return;
+  }
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = function (event) {
+    callback(event.target.result, file.name);
+  };
+}
+
+// Global viewer helper for base64 document files
+function viewBase64Document(dataUrl, filename) {
+  try {
+    const win = window.open();
+    if (win) {
+      if (dataUrl.startsWith('data:application/pdf')) {
+        win.document.write(`<iframe src="${dataUrl}" style="border:0; top:0; left:0; bottom:0; right:0; width:100%; height:100%; position:fixed;" allowfullscreen></iframe>`);
+      } else {
+        win.document.write(`<img src="${dataUrl}" style="max-width:100%; max-height:100%; display:block; margin:auto;" />`);
+      }
+      win.document.title = filename;
+    } else {
+      // fallback download
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  } catch (e) {
+    console.error('Failed to view document', e);
+  }
+}
+window.viewBase64Document = viewBase64Document;
+
 function initAssets() {
   // 1. Check if we are on the Admin Dashboard page
   const isAdminPage = !!document.getElementById('view-assets');
@@ -197,6 +273,116 @@ function initAssets() {
       if (el) el.addEventListener('input', renderAdminAssets);
     });
 
+    // Setup file attachment listeners for Asset modal
+    const picFileInput = document.getElementById('assetm-pic-file');
+    const picDataInput = document.getElementById('assetm-pic-data');
+    const picPreviewContainer = document.getElementById('assetm-pic-preview-container');
+    const picPreview = document.getElementById('assetm-pic-preview');
+    const picClear = document.getElementById('assetm-pic-clear');
+
+    if (picFileInput) {
+      picFileInput.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (file) {
+          compressImage(file, dataUrl => {
+            if (picDataInput) picDataInput.value = dataUrl;
+            if (picPreview) picPreview.src = dataUrl;
+            if (picPreviewContainer) picPreviewContainer.style.display = 'flex';
+          });
+        }
+      });
+    }
+
+    if (picClear) {
+      picClear.addEventListener('click', () => {
+        if (picFileInput) picFileInput.value = '';
+        if (picDataInput) picDataInput.value = '';
+        if (picPreviewContainer) picPreviewContainer.style.display = 'none';
+      });
+    }
+
+    const invoiceFileInput = document.getElementById('assetm-invoice-file');
+    const invoiceDataInput = document.getElementById('assetm-invoice-data');
+    const invoiceFilenameInput = document.getElementById('assetm-invoice-filename');
+    const invoicePreviewContainer = document.getElementById('assetm-invoice-preview-container');
+    const invoiceNameSpan = document.getElementById('assetm-invoice-name');
+    const invoiceClear = document.getElementById('assetm-invoice-clear');
+    const invoiceView = document.getElementById('assetm-invoice-view');
+
+    if (invoiceFileInput) {
+      invoiceFileInput.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (file) {
+          readDocumentFile(file, (dataUrl, filename) => {
+            if (invoiceDataInput) invoiceDataInput.value = dataUrl;
+            if (invoiceFilenameInput) invoiceFilenameInput.value = filename;
+            if (invoiceNameSpan) invoiceNameSpan.textContent = filename;
+            if (invoicePreviewContainer) invoicePreviewContainer.style.display = 'flex';
+          });
+        }
+      });
+    }
+
+    if (invoiceClear) {
+      invoiceClear.addEventListener('click', () => {
+        if (invoiceFileInput) invoiceFileInput.value = '';
+        if (invoiceDataInput) invoiceDataInput.value = '';
+        if (invoiceFilenameInput) invoiceFilenameInput.value = '';
+        if (invoicePreviewContainer) invoicePreviewContainer.style.display = 'none';
+      });
+    }
+
+    if (invoiceView) {
+      invoiceView.addEventListener('click', () => {
+        const dataUrl = invoiceDataInput?.value;
+        const filename = invoiceFilenameInput?.value || 'invoice.pdf';
+        if (dataUrl) {
+          viewBase64Document(dataUrl, filename);
+        }
+      });
+    }
+
+    const poFileInput = document.getElementById('assetm-po-file');
+    const poDataInput = document.getElementById('assetm-po-data');
+    const poFilenameInput = document.getElementById('assetm-po-filename');
+    const poPreviewContainer = document.getElementById('assetm-po-preview-container');
+    const poNameSpan = document.getElementById('assetm-po-name');
+    const poClear = document.getElementById('assetm-po-clear');
+    const poView = document.getElementById('assetm-po-view');
+
+    if (poFileInput) {
+      poFileInput.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (file) {
+          readDocumentFile(file, (dataUrl, filename) => {
+            if (poDataInput) poDataInput.value = dataUrl;
+            if (poFilenameInput) poFilenameInput.value = filename;
+            if (poNameSpan) poNameSpan.textContent = filename;
+            if (poPreviewContainer) poPreviewContainer.style.display = 'flex';
+          });
+        }
+      });
+    }
+
+    if (poClear) {
+      poClear.addEventListener('click', () => {
+        if (poFileInput) poFileInput.value = '';
+        if (poDataInput) poDataInput.value = '';
+        if (poFilenameInput) poFilenameInput.value = '';
+        if (poPreviewContainer) poPreviewContainer.style.display = 'none';
+      });
+    }
+
+    if (poView) {
+      poView.addEventListener('click', () => {
+        const dataUrl = poDataInput?.value;
+        const filename = poFilenameInput?.value || 'po_copy.pdf';
+        if (dataUrl) {
+          viewBase64Document(dataUrl, filename);
+        }
+      });
+    }
+
     // Initial render
     renderAdminAssets();
   } else {
@@ -311,13 +497,29 @@ function renderAdminAssets() {
     tr.innerHTML = `
       <td style="padding: 12px; font-family: monospace; font-weight: 600; color: var(--text-primary);">${asset.id}</td>
       <td style="padding: 12px;">
-        <div style="font-weight: 600; color: var(--text-primary);">${asset.name}</div>
-        ${asset.purchaseDate ? `<div style="font-size:0.72rem; color:var(--text-secondary); margin-top:2px;">Purchased: ${asset.purchaseDate}${asset.warrantyMonths ? ` (${asset.warrantyMonths} mo. warranty)` : ''}</div>` : ''}
+        <div style="display:flex; align-items:center; gap:8px;">
+          ${asset.picture ? `<img src="${asset.picture}" style="width:32px; height:32px; border-radius:4px; object-fit:cover; border:1px solid var(--border);" />` : ''}
+          <div>
+            <div style="font-weight: 600; color: var(--text-primary);">${asset.name}</div>
+            ${asset.purchaseDate ? `<div style="font-size:0.72rem; color:var(--text-secondary); margin-top:2px;">Purchased: ${asset.purchaseDate}${asset.warrantyMonths ? ` (${asset.warrantyMonths} mo. warranty)` : ''}</div>` : ''}
+            ${asset.poNumber || asset.poValue || asset.assetValue 
+              ? `<div style="font-size:0.72rem; color:var(--text-secondary); margin-top:3px; background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; display:inline-flex; flex-wrap:wrap; gap:8px; border:1px solid var(--border);">
+                  ${asset.poNumber ? `<span>PO: <strong>${asset.poNumber}</strong></span>` : ''}
+                  ${asset.poValue ? `<span>PO Val: <strong>$${parseFloat(asset.poValue).toLocaleString()}</strong></span>` : ''}
+                  ${asset.assetValue ? `<span>Asset Val: <strong>$${parseFloat(asset.assetValue).toLocaleString()}</strong></span>` : ''}
+                 </div>` 
+              : ''}
+          </div>
+        </div>
       </td>
       <td style="padding: 12px; color: var(--text-secondary);">
         <div style="font-weight:600; color:var(--text-primary);">${asset.make ? `${asset.make} ` : ''}${asset.model || '-'}</div>
         ${asset.modelNumber ? `<div style="font-size:0.75rem; font-family:monospace; margin-top:2px;">Model #: ${asset.modelNumber}</div>` : ''}
         ${asset.vendor ? `<div style="font-size:0.75rem; color:#d29922; margin-top:2px; display:inline-flex; align-items:center; gap:3px;">🏢 ${asset.vendor}</div>` : ''}
+        <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
+          ${asset.invoiceCopy ? `<span class="badge" onclick="viewBase64Document('${asset.invoiceCopy}', '${asset.invoiceCopyName || 'invoice.pdf'}')" style="cursor:pointer; font-size:0.65rem; padding:1px 5px; border-radius:3px; background:rgba(88,166,255,0.1); color:#58a6ff; border:1px solid rgba(88,166,255,0.15); display:inline-flex; align-items:center; gap:2px;">📄 Invoice</span>` : ''}
+          ${asset.poCopy ? `<span class="badge" onclick="viewBase64Document('${asset.poCopy}', '${asset.poCopyName || 'po_copy.pdf'}')" style="cursor:pointer; font-size:0.65rem; padding:1px 5px; border-radius:3px; background:rgba(63,185,80,0.1); color:#3fb950; border:1px solid rgba(63,185,80,0.15); display:inline-flex; align-items:center; gap:2px;">📄 PO Copy</span>` : ''}
+        </div>
       </td>
       <td style="padding: 12px; color: var(--text-secondary);">${asset.category}</td>
       <td style="padding: 12px;">
@@ -449,6 +651,50 @@ function openAssetModal(id = '') {
     if (warrantyInput) {
       warrantyInput.value = asset.warrantyMonths !== undefined ? asset.warrantyMonths : '';
     }
+
+    // Populate new financial and file inputs
+    const poNumberInput = document.getElementById('assetm-po-number');
+    const poValueInput = document.getElementById('assetm-po-value');
+    const assetValueInput = document.getElementById('assetm-asset-value');
+    
+    const picFileInput = document.getElementById('assetm-pic-file');
+    const picDataInput = document.getElementById('assetm-pic-data');
+    const picPreviewContainer = document.getElementById('assetm-pic-preview-container');
+    const picPreview = document.getElementById('assetm-pic-preview');
+
+    const invoiceFileInput = document.getElementById('assetm-invoice-file');
+    const invoiceDataInput = document.getElementById('assetm-invoice-data');
+    const invoiceFilenameInput = document.getElementById('assetm-invoice-filename');
+    const invoicePreviewContainer = document.getElementById('assetm-invoice-preview-container');
+    const invoiceNameSpan = document.getElementById('assetm-invoice-name');
+
+    const poFileInput = document.getElementById('assetm-po-file');
+    const poDataInput = document.getElementById('assetm-po-data');
+    const poFilenameInput = document.getElementById('assetm-po-filename');
+    const poPreviewContainer = document.getElementById('assetm-po-preview-container');
+    const poNameSpan = document.getElementById('assetm-po-name');
+
+    if (poNumberInput) poNumberInput.value = asset.poNumber || '';
+    if (poValueInput) poValueInput.value = asset.poValue !== undefined ? asset.poValue : '';
+    if (assetValueInput) assetValueInput.value = asset.assetValue !== undefined ? asset.assetValue : '';
+
+    if (picFileInput) picFileInput.value = '';
+    if (picDataInput) picDataInput.value = asset.picture || '';
+    if (picPreview) picPreview.src = asset.picture || '';
+    if (picPreviewContainer) picPreviewContainer.style.display = asset.picture ? 'flex' : 'none';
+
+    if (invoiceFileInput) invoiceFileInput.value = '';
+    if (invoiceDataInput) invoiceDataInput.value = asset.invoiceCopy || '';
+    if (invoiceFilenameInput) invoiceFilenameInput.value = asset.invoiceCopyName || '';
+    if (invoiceNameSpan) invoiceNameSpan.textContent = asset.invoiceCopyName || '';
+    if (invoicePreviewContainer) invoicePreviewContainer.style.display = asset.invoiceCopy ? 'flex' : 'none';
+
+    if (poFileInput) poFileInput.value = '';
+    if (poDataInput) poDataInput.value = asset.poCopy || '';
+    if (poFilenameInput) poFilenameInput.value = asset.poCopyName || '';
+    if (poNameSpan) poNameSpan.textContent = asset.poCopyName || '';
+    if (poPreviewContainer) poPreviewContainer.style.display = asset.poCopy ? 'flex' : 'none';
+
   } else {
     // Add mode
     titleEl.textContent = '🖥️ Add New Asset';
@@ -481,6 +727,49 @@ function openAssetModal(id = '') {
       purchaseDateInput.value = new Date().toISOString().split('T')[0];
     }
     if (warrantyInput) warrantyInput.value = '36'; // Default to 36 months
+
+    // Reset financial and file inputs
+    const poNumberInput = document.getElementById('assetm-po-number');
+    const poValueInput = document.getElementById('assetm-po-value');
+    const assetValueInput = document.getElementById('assetm-asset-value');
+    
+    const picFileInput = document.getElementById('assetm-pic-file');
+    const picDataInput = document.getElementById('assetm-pic-data');
+    const picPreviewContainer = document.getElementById('assetm-pic-preview-container');
+    const picPreview = document.getElementById('assetm-pic-preview');
+
+    const invoiceFileInput = document.getElementById('assetm-invoice-file');
+    const invoiceDataInput = document.getElementById('assetm-invoice-data');
+    const invoiceFilenameInput = document.getElementById('assetm-invoice-filename');
+    const invoicePreviewContainer = document.getElementById('assetm-invoice-preview-container');
+    const invoiceNameSpan = document.getElementById('assetm-invoice-name');
+
+    const poFileInput = document.getElementById('assetm-po-file');
+    const poDataInput = document.getElementById('assetm-po-data');
+    const poFilenameInput = document.getElementById('assetm-po-filename');
+    const poPreviewContainer = document.getElementById('assetm-po-preview-container');
+    const poNameSpan = document.getElementById('assetm-po-name');
+
+    if (poNumberInput) poNumberInput.value = '';
+    if (poValueInput) poValueInput.value = '';
+    if (assetValueInput) assetValueInput.value = '';
+
+    if (picFileInput) picFileInput.value = '';
+    if (picDataInput) picDataInput.value = '';
+    if (picPreview) picPreview.src = '';
+    if (picPreviewContainer) picPreviewContainer.style.display = 'none';
+
+    if (invoiceFileInput) invoiceFileInput.value = '';
+    if (invoiceDataInput) invoiceDataInput.value = '';
+    if (invoiceFilenameInput) invoiceFilenameInput.value = '';
+    if (invoiceNameSpan) invoiceNameSpan.textContent = '';
+    if (invoicePreviewContainer) invoicePreviewContainer.style.display = 'none';
+
+    if (poFileInput) poFileInput.value = '';
+    if (poDataInput) poDataInput.value = '';
+    if (poFilenameInput) poFilenameInput.value = '';
+    if (poNameSpan) poNameSpan.textContent = '';
+    if (poPreviewContainer) poPreviewContainer.style.display = 'none';
   }
 
   overlay.style.display = 'flex';
@@ -509,6 +798,19 @@ function saveAssetFromModal() {
   const purchaseDate = document.getElementById('assetm-purchase-date').value;
   const warrantyVal = document.getElementById('assetm-warranty').value;
   const warrantyMonths = warrantyVal ? parseInt(warrantyVal, 10) : '';
+
+  // Retrieve new financial and file upload properties
+  const poNumber = document.getElementById('assetm-po-number')?.value.trim() || '';
+  const poValueVal = document.getElementById('assetm-po-value')?.value || '';
+  const poValue = poValueVal ? parseFloat(poValueVal) : '';
+  const assetValueVal = document.getElementById('assetm-asset-value')?.value || '';
+  const assetValue = assetValueVal ? parseFloat(assetValueVal) : '';
+
+  const picture = document.getElementById('assetm-pic-data')?.value || '';
+  const invoiceCopy = document.getElementById('assetm-invoice-data')?.value || '';
+  const invoiceCopyName = document.getElementById('assetm-invoice-filename')?.value || '';
+  const poCopy = document.getElementById('assetm-po-data')?.value || '';
+  const poCopyName = document.getElementById('assetm-po-filename')?.value || '';
 
   if (!tag) {
     if (typeof showToast === 'function') {
@@ -590,7 +892,15 @@ function saveAssetFromModal() {
     vendor,
     vendorDetails,
     warrantyMonths,
-    purchaseDate
+    purchaseDate,
+    poNumber,
+    poValue,
+    assetValue,
+    picture,
+    invoiceCopy,
+    invoiceCopyName,
+    poCopy,
+    poCopyName
   };
 
   if (id) {
@@ -971,10 +1281,12 @@ function renderPortalAssets() {
     const icon = asset.category === 'Software' ? '🔑' : '🖥️';
 
     card.innerHTML = `
-      <div>
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-          <span style="font-size:2rem; margin-bottom:8px;">${icon}</span>
-          <span style="font-size:0.68rem; font-weight:700; background:rgba(88, 166, 255, 0.15); color:#58a6ff; padding:2px 8px; border-radius:12px;">${asset.category}</span>
+      <div style="width: 100%;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; width: 100%;">
+          ${asset.picture 
+            ? `<img src="${asset.picture}" style="width:100%; height:120px; object-fit:cover; border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:12px;" />` 
+            : `<span style="font-size:2rem; margin-bottom:8px;">${icon}</span>`}
+          <span style="font-size:0.68rem; font-weight:700; background:rgba(88, 166, 255, 0.15); color:#58a6ff; padding:2px 8px; border-radius:12px; margin-left:auto;">${asset.category}</span>
         </div>
         <h3 style="font-size:1.1rem; font-weight:700; color:#fff; margin-bottom:4px; margin-top:10px;">${asset.name}</h3>
         <p style="font-size:0.85rem; color:var(--text-3); font-weight:600; margin-bottom:12px;">${asset.make ? `${asset.make} ` : ''}${asset.model || '-'}</p>

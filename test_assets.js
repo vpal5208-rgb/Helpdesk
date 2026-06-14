@@ -324,6 +324,103 @@ const server = app.listen(3000, async () => {
         }
 
         // =============================================
+        // PART 2.7: Asset Financial Details & File Uploads E2E tests
+        // =============================================
+        console.log('\n--- PART 2.7: Asset Financial Details & File Uploads E2E tests ---');
+        console.log('Opening edit modal for MY-CUSTOM-TAG-88 to add financial details and mock uploads...');
+        await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+            const row = rows.find(r => r.innerText.includes('MY-CUSTOM-TAG-88'));
+            if (row) {
+                const editBtn = row.querySelector('button[onclick^="openAssetModal"]');
+                if (editBtn) editBtn.click();
+            }
+        });
+        await delay(1000);
+
+        console.log('Filling financial fields and injecting mock file base64 data...');
+        await page.evaluate(() => {
+            document.getElementById('assetm-po-number').value = 'PO-E2E-12345';
+            document.getElementById('assetm-po-value').value = '4500.50';
+            document.getElementById('assetm-asset-value').value = '4200.75';
+            
+            // Assign to James Wilson so it shows in user portal
+            document.getElementById('assetm-assignee').value = 'James Wilson|j.wilson@company.com';
+
+            // Mock uploads via base64 hidden inputs
+            document.getElementById('assetm-pic-data').value = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+            document.getElementById('assetm-invoice-data').value = 'data:application/pdf;base64,JVBERi0xLjQKJcOkw7zDtsOfCjIgMCBvYmoKPDwvTGVuZ3RoIDMgMCBSL0ZpbHRlci9GbGF0ZURlY29kZT4+CnN0cmVhbQp4nDMwMDBMYQADAgZ7CQE=';
+            document.getElementById('assetm-invoice-filename').value = 'e2e_invoice.pdf';
+            document.getElementById('assetm-po-data').value = 'data:application/pdf;base64,JVBERi0xLjQKJcOkw7zDtsOfCjIgMCBvYmoKPDwvTGVuZ3RoIDMgMCBSL0ZpbHRlci9GbGF0ZURlY29kZT4+CnN0cmVhbQp4nDMwMDBMYQADAgZ7CQE=';
+            document.getElementById('assetm-po-filename').value = 'e2e_po_copy.pdf';
+
+            document.getElementById('asset-modal-save').click();
+        });
+        await delay(1500);
+
+        // Verify values display in admin grid row
+        const financialRowHTML = await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+            const testRow = rows.find(r => r.innerText.includes('MY-CUSTOM-TAG-88'));
+            return testRow ? testRow.innerHTML : '';
+        });
+
+        console.log('Verifying financial fields render in admin grid...');
+        const hasPOText = financialRowHTML.includes('PO: <strong>PO-E2E-12345</strong>');
+        const hasPOValue = financialRowHTML.includes('PO Val: <strong>$4,500.5</strong>');
+        const hasAssetValue = financialRowHTML.includes('Asset Val: <strong>$4,200.75</strong>');
+        const hasPicThumbnail = financialRowHTML.includes('<img src="data:image/png;base64');
+        const hasInvoiceBadge = financialRowHTML.includes('📄 Invoice');
+        const hasPOCopyBadge = financialRowHTML.includes('📄 PO Copy');
+
+        if (!hasPOText || !hasPOValue || !hasAssetValue || !hasPicThumbnail || !hasInvoiceBadge || !hasPOCopyBadge) {
+            console.error('FAIL: Financial details or file uploads did not render correctly in admin grid.');
+            console.log('Row HTML details:', financialRowHTML);
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Asset financial details and file upload badges rendered correctly in admin grid!');
+        }
+
+        // Navigate to User Portal to verify image banner displays on James Wilson's assets page
+        console.log('Navigating back to User Portal...');
+        await page.goto('http://localhost:3000/portal.html');
+        await delay(1000);
+
+        console.log('Logging in as James Wilson...');
+        await page.type('#login-email', 'j.wilson@company.com');
+        await page.type('#login-password', 'User@123');
+        await page.click('#login-btn');
+        await delay(1500);
+
+        console.log('Navigating to My Assets tab...');
+        await page.click('button[data-tab="assets"]');
+        await delay(1000);
+
+        const portalCardWithImageHTML = await page.evaluate(() => {
+            const cards = Array.from(document.querySelectorAll('#assets-grid-container .kb-sidebar-card'));
+            const customCard = cards.find(c => c.innerText.includes('MY-CUSTOM-TAG-88'));
+            return customCard ? customCard.innerHTML : '';
+        });
+
+        console.log('Verifying picture banner renders in user portal asset card...');
+        const hasPortalImageBanner = portalCardWithImageHTML.includes('<img src="data:image/png;base64');
+        
+        if (!hasPortalImageBanner) {
+            console.error('FAIL: Picture banner did not display on portal asset card.');
+            console.log('Card HTML details:', portalCardWithImageHTML);
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Picture banner rendered perfectly on user portal asset card!');
+        }
+
+        // Return to admin dashboard for the remaining part of tests
+        console.log('Returning to Admin Dashboard...');
+        await page.goto('http://localhost:3000/index.html');
+        await delay(1000);
+        await page.click('button[data-view="assets"]');
+        await delay(1000);
+
+        // =============================================
         // PART 3: Audit Trail Integration tests for Assets
         // =============================================
         console.log('\n--- PART 3: Central Audit Trail Integration tests for Assets ---');
