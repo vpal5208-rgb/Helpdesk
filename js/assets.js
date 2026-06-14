@@ -511,8 +511,10 @@ function renderAdminAssets() {
     tr.innerHTML = `
       <td style="padding: 12px; font-family: monospace; font-weight: 600; color: var(--text-primary);">${asset.id}</td>
       <td style="padding: 12px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          ${asset.picture ? `<img src="${asset.picture}" style="width:32px; height:32px; border-radius:4px; object-fit:cover; border:1px solid var(--border);" />` : ''}
+        <div style="display:flex; align-items:center; gap:10px;">
+          ${asset.picture 
+            ? `<img src="${asset.picture}" style="width:32px; height:32px; border-radius:6px; object-fit:cover; border:1px solid var(--border); flex-shrink:0;" />` 
+            : `<div class="email-card-icon ${asset.category === 'Software' ? 'test-icon' : 'smtp-icon'}" style="width:32px; height:32px; border-radius:6px; font-size:1.1rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; background: ${asset.category === 'Software' ? 'rgba(188,140,255,0.15)' : 'rgba(88,166,255,0.15)'};">${asset.category === 'Software' ? '🔑' : '🖥️'}</div>`}
           <div>
             <div style="font-weight: 600; color: var(--text-primary);">${asset.name}</div>
             ${asset.purchaseDate ? `<div style="font-size:0.72rem; color:var(--text-secondary); margin-top:2px;">Purchased: ${asset.purchaseDate}${asset.warrantyMonths ? ` (${asset.warrantyMonths} mo. warranty)` : ''}</div>` : ''}
