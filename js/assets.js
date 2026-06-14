@@ -490,6 +490,11 @@ function initAssets() {
       });
     }
 
+    // Initialize tab and maintenance functionality for the asset modal
+    if (typeof initAssetModalTabs === 'function') {
+      initAssetModalTabs();
+    }
+
     // Initial render
     renderAdminAssets();
   } else {
@@ -752,6 +757,33 @@ function openAssetModal(id = '') {
   populateAssigneeDropdown();
   // Dynamically populate vendors list
   populateVendorDropdown();
+
+  // Reset tab navigation state
+  const tabsContainer = document.getElementById('asset-modal-tabs');
+  const detailsContent = document.getElementById('asset-modal-tab-details-content');
+  const historyContent = document.getElementById('asset-modal-tab-history-content');
+  
+  if (tabsContainer) {
+    const tabButtons = tabsContainer.querySelectorAll('.modal-tab-btn');
+    tabButtons.forEach(b => {
+      b.classList.remove('active');
+      b.style.borderBottomColor = 'transparent';
+      b.style.color = 'var(--text-secondary)';
+      if (b.dataset.tab === 'details') {
+        b.classList.add('active');
+        b.style.borderBottomColor = 'var(--accent-blue)';
+        b.style.color = 'var(--text-primary)';
+      }
+    });
+    // In edit mode we show tabs, in add mode we hide the tabs container (just show general edit details)
+    tabsContainer.style.display = id ? 'flex' : 'none';
+  }
+  if (detailsContent) detailsContent.style.display = 'block';
+  if (historyContent) historyContent.style.display = 'none';
+
+  // Hide maintenance form
+  const maintForm = document.getElementById('assetm-maintenance-form');
+  if (maintForm) maintForm.style.display = 'none';
 
   // Reset custom vendor field
   if (vendorCustomGroup) vendorCustomGroup.style.display = 'none';
@@ -1113,6 +1145,18 @@ function saveAssetFromModal() {
     nextAuditDate
   };
 
+  let oldStatus = '';
+  let oldAssignee = '';
+  let oldMaintenance = [];
+  if (id) {
+    const existing = assets.find(a => a.id === id);
+    if (existing) {
+      oldStatus = existing.status || '';
+      oldAssignee = existing.assignedTo || '';
+      oldMaintenance = existing.maintenance || [];
+    }
+  }
+
   if (id) {
     // Update existing
     const idx = assets.findIndex(a => a.id === id);
@@ -1135,7 +1179,8 @@ function saveAssetFromModal() {
       assets[idx] = {
         ...assets[idx],
         id: tag,
-        ...assetPayload
+        ...assetPayload,
+        maintenance: oldMaintenance
       };
       
       // Maintain checkoutDate correctly
@@ -1150,7 +1195,8 @@ function saveAssetFromModal() {
     assets.push({
       id: tag,
       ...assetPayload,
-      checkoutDate: status === 'Deployed' ? new Date().toISOString().split('T')[0] : ''
+      checkoutDate: status === 'Deployed' ? new Date().toISOString().split('T')[0] : '',
+      maintenance: []
     });
   }
 
@@ -1163,9 +1209,20 @@ function saveAssetFromModal() {
   }
 
   if (typeof addAuditLog === 'function') {
-    const logAction = id 
-      ? `📝 Updated asset ${tag}: Assigned to ${assignedTo || 'Unassigned'}.${isNewAudit ? ` Comment: ${auditComment}` : ''}`
-      : `🖥️ Created asset ${tag}: ${name} (${model}).${isNewAudit ? ` Comment: ${auditComment}` : ''}`;
+    let logAction = '';
+    if (!id) {
+      logAction = `🖥️ Created asset ${tag}: ${name} (${model}).${isNewAudit ? ` Comment: ${auditComment}` : ''}`;
+    } else if (oldStatus !== status) {
+      if (status === 'Deployed') {
+        logAction = `🚀 Deployed asset ${tag} (Assigned to: ${assignedTo || 'Unassigned'}).${isNewAudit ? ` Comment: ${auditComment}` : ''}`;
+      } else if (status === 'Ready to Deploy') {
+        logAction = `🔄 Set asset ${tag} status to Ready to Deploy.${isNewAudit ? ` Comment: ${auditComment}` : ''}`;
+      } else {
+        logAction = `📝 Updated asset ${tag}: Status changed to ${status}.${isNewAudit ? ` Comment: ${auditComment}` : ''}`;
+      }
+    } else {
+      logAction = `📝 Updated asset ${tag}: Assigned to ${assignedTo || 'Unassigned'}.${isNewAudit ? ` Comment: ${auditComment}` : ''}`;
+    }
     addAuditLog(logAction, 'System', tag, 'asset');
   }
 }
@@ -1703,6 +1760,236 @@ function reportAssetIssue(assetId) {
   }
 }
 
+function initAssetModalTabs() {
+  const tabsContainer = document.getElementById('asset-modal-tabs');
+  if (!tabsContainer || tabsContainer.dataset.initialized === 'true') return;
+  tabsContainer.dataset.initialized = 'true';
+
+  const tabButtons = tabsContainer.querySelectorAll('.modal-tab-btn');
+  const detailsContent = document.getElementById('asset-modal-tab-details-content');
+  const historyContent = document.getElementById('asset-modal-tab-history-content');
+
+  // Tab switching click handler
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabButtons.forEach(b => {
+        b.classList.remove('active');
+        b.style.borderBottomColor = 'transparent';
+        b.style.color = 'var(--text-secondary)';
+      });
+      btn.classList.add('active');
+      btn.style.borderBottomColor = 'var(--accent-blue)';
+      btn.style.color = 'var(--text-primary)';
+
+      const tab = btn.dataset.tab;
+      if (tab === 'details') {
+        if (detailsContent) detailsContent.style.display = 'block';
+        if (historyContent) historyContent.style.display = 'none';
+      } else {
+        if (detailsContent) detailsContent.style.display = 'none';
+        if (historyContent) historyContent.style.display = 'block';
+        // Render history
+        const id = document.getElementById('assetm-id').value;
+        renderAssetHistory(id);
+      }
+    });
+  });
+
+  // Log Maintenance button click
+  const btnAddMaint = document.getElementById('btn-add-maintenance-modal');
+  const maintForm = document.getElementById('assetm-maintenance-form');
+  if (btnAddMaint && maintForm) {
+    btnAddMaint.addEventListener('click', () => {
+      maintForm.style.display = maintForm.style.display === 'none' ? 'block' : 'none';
+      // Reset form fields
+      document.getElementById('assetm-maint-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('assetm-maint-type').value = '';
+      document.getElementById('assetm-maint-cost').value = '';
+      document.getElementById('assetm-maint-notes').value = '';
+    });
+  }
+
+  // Cancel Maintenance button click
+  const btnCancelMaint = document.getElementById('btn-cancel-maintenance');
+  if (btnCancelMaint && maintForm) {
+    btnCancelMaint.addEventListener('click', () => {
+      maintForm.style.display = 'none';
+    });
+  }
+
+  // Save Maintenance button click
+  const btnSaveMaint = document.getElementById('btn-save-maintenance');
+  if (btnSaveMaint) {
+    btnSaveMaint.addEventListener('click', () => {
+      const id = document.getElementById('assetm-id').value;
+      if (!id) {
+        if (typeof showToast === 'function') {
+          showToast('❌ Save the asset details first before logging maintenance.', 'error');
+        }
+        return;
+      }
+
+      const maintDate = document.getElementById('assetm-maint-date').value || new Date().toISOString().split('T')[0];
+      const maintType = document.getElementById('assetm-maint-type').value.trim();
+      const maintCostVal = document.getElementById('assetm-maint-cost').value;
+      const maintCost = maintCostVal ? parseFloat(maintCostVal) : 0;
+      const maintNotes = document.getElementById('assetm-maint-notes').value.trim();
+
+      if (!maintType) {
+        if (typeof showToast === 'function') {
+          showToast('❌ Maintenance type/description is required.', 'error');
+        }
+        return;
+      }
+
+      if (maintCostVal === '' || isNaN(maintCost) || maintCost < 0) {
+        if (typeof showToast === 'function') {
+          showToast('❌ Please enter a valid maintenance cost.', 'error');
+        }
+        return;
+      }
+
+      const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+      const asset = assets.find(a => a.id === id);
+      if (!asset) return;
+
+      if (!asset.maintenance) {
+        asset.maintenance = [];
+      }
+
+      const newLog = {
+        date: maintDate,
+        type: maintType,
+        cost: maintCost,
+        notes: maintNotes,
+        by: getCurrentActorName()
+      };
+
+      asset.maintenance.push(newLog);
+
+      if (typeof saveAssets === 'function') saveAssets(assets);
+
+      // Log to system audit log
+      if (typeof addAuditLog === 'function') {
+        addAuditLog(`🔧 Logged maintenance: ${maintType} (Cost: $${maintCost.toFixed(2)}). Notes: ${maintNotes}`, getCurrentActorName(), id, 'asset');
+      }
+
+      if (typeof showToast === 'function') {
+        showToast('Maintenance logged successfully!', 'success');
+      }
+
+      // Hide form and refresh history
+      if (maintForm) maintForm.style.display = 'none';
+      renderAssetHistory(id);
+      renderAdminAssets();
+    });
+  }
+}
+
+function renderAssetHistory(id) {
+  const timelineEl = document.getElementById('assetm-history-timeline');
+  const costEl = document.getElementById('assetm-total-maintenance-cost');
+  if (!timelineEl) return;
+
+  if (!id) {
+    if (costEl) costEl.textContent = '$0.00';
+    timelineEl.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:0.85rem;">Save this asset first to start recording history and maintenance logs.</div>`;
+    return;
+  }
+
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const asset = assets.find(a => a.id === id);
+  if (!asset) {
+    if (costEl) costEl.textContent = '$0.00';
+    timelineEl.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:0.85rem;">Asset not found.</div>`;
+    return;
+  }
+
+  // Calculate total maintenance cost
+  const maintenanceLogs = asset.maintenance || [];
+  const totalCost = maintenanceLogs.reduce((sum, log) => sum + (log.cost || 0), 0);
+  if (costEl) {
+    costEl.textContent = `$${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  // Compile lifecycle events from system logs
+  const systemLogs = typeof loadSystemAuditLogs === 'function' ? loadSystemAuditLogs() : [];
+  const assetLogs = systemLogs.filter(log => log.refId === id);
+
+  let events = [];
+
+  // Parse system logs
+  assetLogs.forEach(log => {
+    let emoji = '📋';
+    let title = log.action;
+    const act = log.action.toLowerCase();
+    
+    if (act.includes('created asset')) {
+      emoji = '🖥️';
+    } else if (act.includes('checked out') || act.includes('deployed')) {
+      emoji = '🚀';
+    } else if (act.includes('checked in') || act.includes('ready to deploy')) {
+      emoji = '↩️';
+    } else if (act.includes('completed quick audit') || act.includes('completed bulk audit') || act.includes('updated asset') && act.includes('comment:')) {
+      emoji = '📋';
+    } else if (act.includes('updated asset')) {
+      emoji = '📝';
+    } else if (act.includes('logged maintenance')) {
+      // Skip duplicate system log because we will add maintenance events from the asset.maintenance list directly
+      return;
+    }
+
+    events.push({
+      date: new Date(log.time).toISOString().split('T')[0],
+      time: log.time,
+      type: 'system',
+      emoji,
+      title,
+      by: log.by || 'System'
+    });
+  });
+
+  // Add maintenance logs from asset object
+  maintenanceLogs.forEach(log => {
+    events.push({
+      date: log.date,
+      time: `${log.date}T12:00:00.000Z`,
+      type: 'maintenance',
+      emoji: '🔧',
+      title: `Logged maintenance: ${log.type} (Cost: $${(log.cost || 0).toFixed(2)})`,
+      notes: log.notes || '',
+      by: log.by || 'System'
+    });
+  });
+
+  // Sort events descending
+  events.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+  if (events.length === 0) {
+    timelineEl.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:0.85rem;">No history entries found.</div>`;
+    return;
+  }
+
+  timelineEl.innerHTML = events.map(evt => {
+    const dateStr = new Date(evt.time).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    const notesHtml = evt.notes ? `<div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px; padding-left:8px; border-left:2px solid var(--border);">${evt.notes}</div>` : '';
+    
+    return `
+      <div style="display:flex; gap:12px; margin-bottom:14px; position:relative;">
+        <div style="font-size:1.1rem; width:24px; text-align:center;">${evt.emoji}</div>
+        <div style="flex:1;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;">
+            <span style="font-size:0.8rem; font-weight:600; color:var(--text-primary);">${evt.title}</span>
+            <span style="font-size:0.7rem; color:var(--text-muted); white-space:nowrap;">${dateStr}</span>
+          </div>
+          <div style="font-size:0.72rem; color:var(--text-muted);">by ${evt.by}</div>
+          ${notesHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 // Global exposure
 window.initAssets = initAssets;
 window.renderAdminAssets = renderAdminAssets;
@@ -1720,6 +2007,8 @@ window.closeCheckoutModal = closeCheckoutModal;
 window.saveCheckout = saveCheckout;
 window.quickAuditAsset = quickAuditAsset;
 window.bulkAuditAllAssets = bulkAuditAllAssets;
+window.initAssetModalTabs = initAssetModalTabs;
+window.renderAssetHistory = renderAssetHistory;
 
 // Load event binder
 if (document.readyState === 'loading') {

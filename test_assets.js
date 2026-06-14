@@ -810,6 +810,77 @@ const server = app.listen(3000, async () => {
                 if (allTab) allTab.click();
             });
             await delay(1000);
+
+            // --- TEST ASSET LIFECYCLE HISTORY & MAINTENANCE LOGS ---
+            console.log('\nTesting Asset Lifecycle History & Maintenance Logs...');
+            console.log('Opening edit modal for AST-0030...');
+            await page.evaluate(() => {
+                const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+                const testRow = rows.find(r => r.innerText.includes('AST-0030'));
+                if (testRow) {
+                    const editBtn = testRow.querySelector('button[title="Edit Asset"]');
+                    if (editBtn) editBtn.click();
+                }
+            });
+            await delay(1000);
+
+            console.log('Clicking the "History & Maintenance" tab...');
+            await page.evaluate(() => {
+                const btn = Array.from(document.querySelectorAll('.modal-tab-btn')).find(b => b.innerText.includes('History'));
+                if (btn) btn.click();
+            });
+            await delay(500);
+
+            console.log('Verifying initial history timeline contains creation/audit logs...');
+            const initialTimelineHTML = await page.evaluate(() => {
+                return document.getElementById('assetm-history-timeline').innerHTML;
+            });
+            if (!initialTimelineHTML.includes('Created asset') && !initialTimelineHTML.includes('Audit')) {
+                console.error('FAIL: Creation or audit logs missing in asset history timeline.');
+                hasError = true;
+            } else {
+                console.log('SUCCESS: Asset history timeline loaded with initial logs!');
+            }
+
+            console.log('Clicking "Log Maintenance" button to open form...');
+            await page.evaluate(() => {
+                const btn = document.getElementById('btn-add-maintenance-modal');
+                if (btn) btn.click();
+            });
+            await delay(500);
+
+            console.log('Filling maintenance form and saving...');
+            await page.evaluate(() => {
+                document.getElementById('assetm-maint-type').value = 'Battery replacement';
+                document.getElementById('assetm-maint-cost').value = '120.00';
+                document.getElementById('assetm-maint-notes').value = 'Replaced swelling battery with OEM battery.';
+                document.getElementById('btn-save-maintenance').click();
+            });
+            await delay(1000);
+
+            console.log('Verifying maintenance cost and history updates...');
+            const maintenanceState = await page.evaluate(() => {
+                const costText = document.getElementById('assetm-total-maintenance-cost').innerText;
+                const timelineText = document.getElementById('assetm-history-timeline').innerText;
+                return { costText, timelineText };
+            });
+            console.log('Maintenance state post-save:', maintenanceState);
+            if (!maintenanceState.costText.includes('120.00')) {
+                console.error('FAIL: Total maintenance cost not updated correctly.');
+                hasError = true;
+            } else if (!maintenanceState.timelineText.includes('Battery replacement') || !maintenanceState.timelineText.includes('Cost: $120.00')) {
+                console.error('FAIL: Maintenance event not listed in history timeline.');
+                hasError = true;
+            } else {
+                console.log('SUCCESS: Maintenance logged and rendered correctly in history tab!');
+            }
+
+            console.log('Closing the asset modal...');
+            await page.evaluate(() => {
+                const btn = document.getElementById('asset-modal-close');
+                if (btn) btn.click();
+            });
+            await delay(1000);
         }
 
         // Navigate to Settings
