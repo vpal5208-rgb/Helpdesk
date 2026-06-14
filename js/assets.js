@@ -82,6 +82,8 @@ function viewBase64Document(dataUrl, filename) {
 }
 window.viewBase64Document = viewBase64Document;
 
+let activeAssetStatusTab = '';
+
 function initAssets() {
   // 1. Check if we are on the Admin Dashboard page
   const isAdminPage = !!document.getElementById('view-assets');
@@ -268,10 +270,22 @@ function initAssets() {
     }
 
     // Search and filters
-    ['asset-search', 'asset-filter-category', 'asset-filter-status'].forEach(id => {
+    ['asset-search', 'asset-filter-category'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('input', renderAdminAssets);
     });
+
+    const statusTabs = document.getElementById('asset-status-tabs');
+    if (statusTabs) {
+      statusTabs.addEventListener('click', e => {
+        const btn = e.target.closest('.settings-tab');
+        if (!btn) return;
+        statusTabs.querySelectorAll('.settings-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeAssetStatusTab = btn.dataset.status || '';
+        renderAdminAssets();
+      });
+    }
 
     // Setup file attachment listeners for Asset modal
     const picFileInput = document.getElementById('assetm-pic-file');
@@ -436,7 +450,7 @@ function renderAdminAssets() {
 
   const searchQuery = (document.getElementById('asset-search')?.value || '').toLowerCase().trim();
   const categoryFilter = document.getElementById('asset-filter-category')?.value || '';
-  const statusFilter = document.getElementById('asset-filter-status')?.value || '';
+  const statusFilter = activeAssetStatusTab;
 
   const assets = typeof loadAssets === 'function' ? loadAssets() : [];
   tbody.innerHTML = '';

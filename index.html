@@ -1147,7 +1147,12 @@ support@company.com | +1 (800) 555-0199</textarea>
           <button class="btn btn-ghost" id="btn-sync-assets-top">🔄 Sync Assets</button>
           <button class="btn btn-ghost" id="btn-manage-vendors">🏢 Manage Vendors</button>
           <button class="btn btn-primary" id="btn-add-asset">+ Add Asset</button>
-        </div>
+      <!-- Asset View Tabs -->
+      <div class="settings-tabs" id="asset-status-tabs" style="margin-bottom: 16px;">
+        <button class="settings-tab active" data-status="">📋 All Assets</button>
+        <button class="settings-tab" data-status="Ready to Deploy">🟢 Ready to Deploy</button>
+        <button class="settings-tab" data-status="Deployed">🔵 Deployed</button>
+        <button class="settings-tab" data-status="Archived">🟡 Archived</button>
       </div>
 
       <div class="toolbar" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -1157,12 +1162,6 @@ support@company.com | +1 (800) 555-0199</textarea>
             <option value="">All Categories</option>
             <option>Hardware</option>
             <option>Software</option>
-          </select>
-          <select id="asset-filter-status" class="form-input" style="max-width: 180px;">
-            <option value="">All Statuses</option>
-            <option>Deployed</option>
-            <option>Ready to Deploy</option>
-            <option>Archived</option>
           </select>
         </div>
       </div>
@@ -1823,18 +1822,18 @@ support@company.com | +1 (800) 555-0199</textarea>
 <!-- Toast container -->
 <div class="toast-container" id="toast-container"></div>
 
-<script src="js/data.js?v=25"></script>
-<script src="js/tickets.js?v=25"></script>
-<script src="js/dashboard.js?v=25"></script>
-<script src="js/ui.js?v=25"></script>
-<script src="js/email.js?v=25"></script>
-<script src="js/roles.js?v=25"></script>
-<script src="js/users.js?v=25"></script>
-<script src="js/audit.js?v=25"></script>
-<script src="js/chat.js?v=25"></script>
-<script src="js/sso.js?v=25"></script>
-<script src="js/kb.js?v=25"></script>
-<script src="js/assets.js?v=25"></script>
-<script src="js/app.js?v=25"></script>
+<script src="js/data.js?v=26"></script>
+<script src="js/tickets.js?v=26"></script>
+<script src="js/dashboard.js?v=26"></script>
+<script src="js/ui.js?v=26"></script>
+<script src="js/email.js?v=26"></script>
+<script src="js/roles.js?v=26"></script>
+<script src="js/users.js?v=26"></script>
+<script src="js/audit.js?v=26"></script>
+<script src="js/chat.js?v=26"></script>
+<script src="js/sso.js?v=26"></script>
+<script src="js/kb.js?v=26"></script>
+<script src="js/assets.js?v=26"></script>
+<script src="js/app.js?v=26"></script>
 </body>
 </html>

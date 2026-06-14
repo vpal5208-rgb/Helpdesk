@@ -421,6 +421,66 @@ const server = app.listen(3000, async () => {
         await delay(1000);
 
         // =============================================
+        // PART 2.9: Asset Status Tabs Navigation E2E tests
+        // =============================================
+        console.log('\n--- PART 2.9: Asset Status Tabs Navigation E2E tests ---');
+        console.log('Clicking the "Ready to Deploy" status tab...');
+        await page.evaluate(() => {
+            const tabs = Array.from(document.querySelectorAll('#asset-status-tabs .settings-tab'));
+            const readyTab = tabs.find(t => t.innerText.includes('Ready to Deploy'));
+            if (readyTab) readyTab.click();
+        });
+        await delay(1000);
+
+        // Assert that unassigned asset (AST-0030) is present and deployed asset (AST-0025) is NOT present
+        let readyState = await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+            const text = rows.map(r => r.innerText).join('\n');
+            const hasReady = text.includes('AST-0030');
+            const hasDeployed = text.includes('AST-0025');
+            return { hasReady, hasDeployed, count: rows.length };
+        });
+        console.log('Ready to Deploy tab state:', readyState);
+        if (!readyState.hasReady || readyState.hasDeployed) {
+            console.error('FAIL: Status filtering tab "Ready to Deploy" failed.');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Status filtering tab "Ready to Deploy" passed!');
+        }
+
+        console.log('Clicking the "Deployed" status tab...');
+        await page.evaluate(() => {
+            const tabs = Array.from(document.querySelectorAll('#asset-status-tabs .settings-tab'));
+            const deployedTab = tabs.find(t => t.innerText.includes('Deployed'));
+            if (deployedTab) deployedTab.click();
+        });
+        await delay(1000);
+
+        // Assert that deployed asset (AST-0025) is present and unassigned (AST-0030) is NOT present
+        let deployedState = await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+            const text = rows.map(r => r.innerText).join('\n');
+            const hasReady = text.includes('AST-0030');
+            const hasDeployed = text.includes('AST-0025');
+            return { hasReady, hasDeployed, count: rows.length };
+        });
+        console.log('Deployed tab state:', deployedState);
+        if (deployedState.hasReady || !deployedState.hasDeployed) {
+            console.error('FAIL: Status filtering tab "Deployed" failed.');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Status filtering tab "Deployed" passed!');
+        }
+
+        console.log('Restoring "All Assets" status tab...');
+        await page.evaluate(() => {
+            const tabs = Array.from(document.querySelectorAll('#asset-status-tabs .settings-tab'));
+            const allTab = tabs.find(t => t.innerText.includes('All Assets'));
+            if (allTab) allTab.click();
+        });
+        await delay(1000);
+
+        // =============================================
         // PART 3: Audit Trail Integration tests for Assets
         // =============================================
         console.log('\n--- PART 3: Central Audit Trail Integration tests for Assets ---');
