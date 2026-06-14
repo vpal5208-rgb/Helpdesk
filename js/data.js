@@ -658,7 +658,10 @@ const DEFAULT_ASSETS = [
     purchaseDate: '2024-03-12',
     checkoutDate: '2025-03-12',
     assignedTo: 'James Wilson',
-    assignedEmail: 'j.wilson@company.com'
+    assignedEmail: 'j.wilson@company.com',
+    auditFrequency: 'Quarterly',
+    lastAuditDate: '2026-03-01',
+    nextAuditDate: '2026-06-01'
   },
   {
     id: 'AST-0022',
@@ -675,7 +678,10 @@ const DEFAULT_ASSETS = [
     purchaseDate: '2025-11-05',
     checkoutDate: '2025-11-10',
     assignedTo: 'Emily Davis',
-    assignedEmail: 'e.davis@company.com'
+    assignedEmail: 'e.davis@company.com',
+    auditFrequency: 'Half-Yearly',
+    lastAuditDate: '2026-01-15',
+    nextAuditDate: '2026-07-15'
   },
   {
     id: 'AST-0023',
@@ -803,7 +809,25 @@ function loadAssets() {
     const raw = localStorage.getItem('hd_assets_v1');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Migration: Ensure some assets have default audits if none do
+        const hasAnyAudit = parsed.some(a => a.auditFrequency);
+        if (!hasAnyAudit) {
+          parsed.forEach(a => {
+            if (a.id === 'AST-0021') {
+              a.auditFrequency = 'Quarterly';
+              a.lastAuditDate = '2026-03-01';
+              a.nextAuditDate = '2026-06-01';
+            } else if (a.id === 'AST-0022') {
+              a.auditFrequency = 'Half-Yearly';
+              a.lastAuditDate = '2026-01-15';
+              a.nextAuditDate = '2026-07-15';
+            }
+          });
+          localStorage.setItem('hd_assets_v1', JSON.stringify(parsed));
+        }
+        return parsed;
+      }
     }
   } catch (e) {
     console.error('Failed to load assets', e);
@@ -814,8 +838,8 @@ function loadAssets() {
     saveAssets(DEFAULT_ASSETS);
     return [...DEFAULT_ASSETS];
   }
-  saveAssets([]);
-  return [];
+  saveAssets(DEFAULT_ASSETS);
+  return [...DEFAULT_ASSETS];
 }
 
 function saveAssets(assets) {
