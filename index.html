@@ -1049,37 +1049,42 @@ support@company.com | +1 (800) 555-0199</textarea>
       <!-- ── SNIPE-IT INTEGRATION CONFIGURATION TAB ── -->
       <div class="stab-panel" id="stab-snipe-it">
         <div class="settings-grid">
-          <div class="settings-card" style="max-width: 600px;">
-            <h3>🖥️ Snipe-IT Asset Sync Integration</h3>
-            <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:2px;margin-bottom:20px;">
-              Configure Snipe-IT connection details to dynamically fetch asset check-out lists, license information, and link hardware directly to support tickets.
-            </p>
-            
-            <div class="form-group" style="margin-bottom:20px;">
-              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;">
-                <input type="checkbox" id="snipe-enabled" style="width:auto;margin:0;" checked/> Enable Snipe-IT Asset Integration
-              </label>
+          <div class="settings-card email-card" style="max-width: 600px;">
+            <div class="email-card-header">
+              <div class="email-card-icon smtp-icon" style="background: rgba(88,166,255,0.15);">🖥️</div>
+              <div>
+                <h3>Snipe-IT Asset Sync Integration</h3>
+                <p class="email-card-sub">Configure Snipe-IT connection details to dynamically fetch asset lists and link hardware to tickets.</p>
+              </div>
             </div>
             
-            <div id="snipe-config-fields" style="display:flex; flex-direction:column; gap:16px;">
-              <div class="form-group">
-                <label for="snipe-url" style="display:block;margin-bottom:6px;font-weight:600;">Snipe-IT API Endpoint URL *</label>
-                <input type="text" id="snipe-url" class="form-input" style="width:100%" placeholder="e.g. https://demo.snipeitapp.com/api/v1" value="https://demo.snipeitapp.com/api/v1" autocomplete="off"/>
-                <span style="font-size:0.75rem;color:var(--text-secondary)">The root API URL of your Snipe-IT instance (usually ends in /api/v1).</span>
+            <div style="padding: 20px;">
+              <div class="form-group" style="margin-bottom:20px;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;">
+                  <input type="checkbox" id="snipe-enabled" style="width:auto;margin:0;" checked/> Enable Snipe-IT Asset Integration
+                </label>
               </div>
               
-              <div class="form-group">
-                <label for="snipe-token" style="display:block;margin-bottom:6px;font-weight:600;">API Token / Personal Access Token *</label>
-                <input type="password" id="snipe-token" class="form-input" style="width:100%" placeholder="Enter your Snipe-IT Personal Access Token" value="••••••••••••••••••••••••••••" autocomplete="off"/>
-                <span style="font-size:0.75rem;color:var(--text-secondary)">Generate this token in your Snipe-IT user profile > API Tokens.</span>
+              <div id="snipe-config-fields" style="display:flex; flex-direction:column; gap:16px;">
+                <div class="form-group">
+                  <label for="snipe-url" style="display:block;margin-bottom:6px;font-weight:600;">Snipe-IT API Endpoint URL *</label>
+                  <input type="text" id="snipe-url" class="form-input" style="width:100%" placeholder="e.g. https://demo.snipeitapp.com/api/v1" value="https://demo.snipeitapp.com/api/v1" autocomplete="off"/>
+                  <span style="font-size:0.75rem;color:var(--text-secondary)">The root API URL of your Snipe-IT instance (usually ends in /api/v1).</span>
+                </div>
+                
+                <div class="form-group">
+                  <label for="snipe-token" style="display:block;margin-bottom:6px;font-weight:600;">API Token / Personal Access Token *</label>
+                  <input type="password" id="snipe-token" class="form-input" style="width:100%" placeholder="Enter your Snipe-IT Personal Access Token" value="••••••••••••••••••••••••••••" autocomplete="off"/>
+                  <span style="font-size:0.75rem;color:var(--text-secondary)">Generate this token in your Snipe-IT user profile > API Tokens.</span>
+                </div>
+                
+                <div style="display:flex; gap:12px; margin-top:8px;">
+                  <button class="btn btn-ghost" id="btn-test-snipe" style="flex:1;">🔌 Test Connection</button>
+                  <button class="btn btn-primary" id="btn-sync-snipe" style="flex:1;">🔄 Sync Assets Now</button>
+                </div>
+                
+                <div id="snipe-connection-status" style="margin-top:12px; padding:10px 14px; border-radius:6px; font-size:0.85rem; display:none;"></div>
               </div>
-              
-              <div style="display:flex; gap:12px; margin-top:8px;">
-                <button class="btn btn-ghost" id="btn-test-snipe" style="flex:1;">🔌 Test Connection</button>
-                <button class="btn btn-primary" id="btn-sync-snipe" style="flex:1;">🔄 Sync Assets Now</button>
-              </div>
-              
-              <div id="snipe-connection-status" style="margin-top:12px; padding:10px 14px; border-radius:6px; font-size:0.85rem; display:none;"></div>
             </div>
           </div>
         </div>
