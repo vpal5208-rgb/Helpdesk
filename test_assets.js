@@ -678,6 +678,78 @@ const server = app.listen(3000, async () => {
                 console.log('SUCCESS: Asset AST-0030 is no longer in the Due Audits view!');
             }
 
+            // --- TEST INLINE ROW QUICK AUDIT BUTTON ---
+            console.log('\nTesting inline Row "📋 Audit" button...');
+            console.log('Restoring "All Assets" status tab to edit asset back to overdue...');
+            await page.evaluate(() => {
+                const tabs = Array.from(document.querySelectorAll('#asset-status-tabs .settings-tab'));
+                const allTab = tabs.find(t => t.innerText.includes('All Assets'));
+                if (allTab) allTab.click();
+            });
+            await delay(1000);
+
+            console.log('Opening edit modal for AST-0030 to set back to overdue...');
+            await page.evaluate(() => {
+                const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+                const testRow = rows.find(r => r.innerText.includes('AST-0030'));
+                if (testRow) {
+                    const editBtn = testRow.querySelector('button[title="Edit Asset"]');
+                    if (editBtn) editBtn.click();
+                }
+            });
+            await delay(1000);
+
+            console.log('Resetting audit dates to overdue in modal...');
+            await page.evaluate(() => {
+                document.getElementById('assetm-last-audit-date').value = '2026-03-01';
+                // Trigger change to auto-calculate next audit date
+                const event = new Event('change');
+                document.getElementById('assetm-last-audit-date').dispatchEvent(event);
+            });
+            await delay(500);
+
+            console.log('Saving asset to persist overdue status...');
+            await page.evaluate(() => {
+                document.getElementById('asset-modal-save').click();
+            });
+            await delay(1500);
+
+            console.log('Clicking the "Due Audits" status tab...');
+            await page.evaluate(() => {
+                const tabs = Array.from(document.querySelectorAll('#asset-status-tabs .settings-tab'));
+                const dueTab = tabs.find(t => t.dataset.status === 'due-audits');
+                if (dueTab) dueTab.click();
+            });
+            await delay(1000);
+
+            // Mock window.confirm to auto-approve
+            console.log('Mocking window.confirm and clicking inline row "📋 Audit" button...');
+            await page.evaluate(() => {
+                window.confirm = () => true;
+                const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+                const testRow = rows.find(r => r.innerText.includes('AST-0030'));
+                if (testRow) {
+                    const auditBtn = testRow.querySelector('button.btn-quick-audit');
+                    if (auditBtn) auditBtn.click();
+                }
+            });
+            await delay(1500);
+
+            // Verify AST-0030 is no longer shown in the "Due Audits" tab filter
+            const inlineAuditGridState = await page.evaluate(() => {
+                const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+                const text = rows.map(r => r.innerText).join('\n');
+                const hasAST30 = text.includes('AST-0030');
+                return { hasAST30, count: rows.length };
+            });
+            console.log('Due Audits tab grid state post inline audit:', inlineAuditGridState);
+            if (inlineAuditGridState.hasAST30) {
+                console.error('FAIL: Asset AST-0030 is still displayed in Due Audits view after inline row audit.');
+                hasError = true;
+            } else {
+                console.log('SUCCESS: Asset AST-0030 is no longer in the Due Audits view after inline row audit!');
+            }
+
             // Restore "All Assets" tab filter
             console.log('Restoring "All Assets" status tab...');
             await page.evaluate(() => {

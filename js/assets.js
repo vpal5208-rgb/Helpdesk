@@ -678,6 +678,10 @@ function renderAdminAssets() {
         ${asset.checkoutDate && asset.status === 'Deployed' ? `<div style="font-size:0.72rem; color:var(--text-secondary); margin-top:2px;">Checked Out: ${asset.checkoutDate}</div>` : ''}
       </td>
       <td style="padding: 12px; text-align: right; white-space: nowrap;">
+        ${asset.auditFrequency 
+          ? `<button class="btn btn-ghost btn-sm btn-quick-audit" onclick="quickAuditAsset('${asset.id}')" title="Mark Asset Audited" style="margin-right:8px; font-size:0.75rem; color:#d29922; font-weight:600; border:1px solid rgba(210,153,34,0.15); padding:2px 6px;">📋 Audit</button>`
+          : ''
+        }
         ${asset.status === 'Deployed' 
           ? `<button class="btn btn-ghost btn-sm" onclick="checkInAsset('${asset.id}')" title="Check In Asset" style="margin-right:8px; font-size:0.75rem; color:#58a6ff; font-weight:600; border:1px solid rgba(88,166,255,0.15); padding:2px 6px;">↩️ Check In</button>`
           : asset.status === 'Ready to Deploy'
@@ -1177,6 +1181,32 @@ function checkInAsset(id) {
   }
 }
 
+function quickAuditAsset(id) {
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const asset = assets.find(a => a.id === id);
+  if (!asset) return;
+
+  if (!confirm(`Are you sure you want to mark asset "${asset.id}" (${asset.name}) as audited today?`)) return;
+
+  const today = new Date().toISOString().split('T')[0];
+  asset.lastAuditDate = today;
+  const calculated = calculateNextAuditDate(today, asset.auditFrequency);
+  if (calculated) {
+    asset.nextAuditDate = calculated;
+  }
+
+  if (typeof saveAssets === 'function') saveAssets(assets);
+  renderAdminAssets();
+
+  if (typeof showToast === 'function') {
+    showToast(`IT Asset Audit completed for "${id}"!`, 'success');
+  }
+
+  if (typeof addAuditLog === 'function') {
+    addAuditLog(`📋 Completed quick audit for asset ${id}.`, 'System', id, 'asset');
+  }
+}
+
 function openCheckoutModal(id) {
   const overlay = document.getElementById('checkout-modal-overlay');
   const tagEl = document.getElementById('checkout-info-tag');
@@ -1566,6 +1596,7 @@ window.checkInAsset = checkInAsset;
 window.openCheckoutModal = openCheckoutModal;
 window.closeCheckoutModal = closeCheckoutModal;
 window.saveCheckout = saveCheckout;
+window.quickAuditAsset = quickAuditAsset;
 
 // Load event binder
 if (document.readyState === 'loading') {
