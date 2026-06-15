@@ -56,6 +56,160 @@ document.addEventListener('DOMContentLoaded', () => {
       updateKPIs();
     }
   }, 30000);
+
+  // Initialize escape key modal close (A11y)
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (typeof closeLightbox === 'function') {
+        const lightbox = document.getElementById('lightbox-overlay');
+        if (lightbox && lightbox.style.display === 'flex') {
+          closeLightbox();
+        }
+      }
+      if (typeof closeAssetModal === 'function') {
+        const assetModal = document.getElementById('asset-modal');
+        if (assetModal && assetModal.style.display === 'flex') {
+          closeAssetModal();
+        }
+      }
+      if (typeof closeTicketModal === 'function') {
+        const ticketModal = document.getElementById('ticket-modal-overlay');
+        if (ticketModal && ticketModal.classList.contains('open')) {
+          closeTicketModal();
+        }
+      }
+      if (typeof closeCheckoutModal === 'function') {
+        const checkoutModal = document.getElementById('checkout-modal');
+        if (checkoutModal && checkoutModal.style.display === 'flex') {
+          closeCheckoutModal();
+        }
+      }
+    }
+  });
+
+  // Bind Data Management Panel controls
+  const btnExport = document.getElementById('btn-export-db');
+  const btnImport = document.getElementById('btn-import-db');
+  const fileImport = document.getElementById('import-db-file');
+  const labelImport = document.getElementById('import-db-filename');
+  const btnReset = document.getElementById('btn-reset-db');
+  const btnRefreshDiag = document.getElementById('btn-refresh-diag');
+
+  const updateDiagnosticsUI = () => {
+    if (typeof db !== 'undefined' && db.getDiagnostics) {
+      const stats = db.getDiagnostics();
+      const setDiag = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+      setDiag('diag-tickets-count', stats.ticketsCount);
+      setDiag('diag-assets-count', stats.assetsCount);
+      setDiag('diag-users-count', stats.usersCount);
+      setDiag('diag-audits-count', stats.auditsCount);
+      setDiag('diag-storage-size', stats.storageSizeKB);
+    }
+  };
+
+  if (btnExport) {
+    btnExport.addEventListener('click', () => {
+      if (typeof db !== 'undefined') {
+        try {
+          const dataStr = db.exportData();
+          const blob = new Blob([dataStr], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `helpdesk_db_backup_${new Date().toISOString().split('T')[0]}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          if (typeof showToast === 'function') {
+            showToast('Database backup exported successfully!', 'success');
+          }
+        } catch(e) {
+          console.error('Export failed:', e);
+          if (typeof showToast === 'function') {
+            showToast('Failed to export database.', 'error');
+          }
+        }
+      }
+    });
+  }
+
+  if (fileImport) {
+    fileImport.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) {
+        if (labelImport) labelImport.textContent = file.name;
+        if (btnImport) btnImport.disabled = false;
+      } else {
+        if (labelImport) labelImport.textContent = '';
+        if (btnImport) btnImport.disabled = true;
+      }
+    });
+  }
+
+  if (btnImport) {
+    btnImport.addEventListener('click', () => {
+      const file = fileImport?.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          if (typeof db !== 'undefined' && db.importData) {
+            const res = db.importData(evt.target.result);
+            if (res.success) {
+              if (typeof showToast === 'function') {
+                showToast('Database restored successfully! Reloading page...', 'success');
+              }
+              setTimeout(() => {
+                window.location.reload();
+              }, 1500);
+            } else {
+              if (typeof showToast === 'function') {
+                showToast(`Restore failed: ${res.error}`, 'error');
+              }
+            }
+          }
+        };
+        reader.readAsText(file);
+      }
+    });
+  }
+
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      if (confirm('🚨 WARNING: This will delete ALL tickets, assets, users, audit logs, and settings, and restore default seed data. This cannot be undone. Are you sure you want to proceed?')) {
+        if (typeof db !== 'undefined' && db.hardReset) {
+          const ok = db.hardReset();
+          if (ok) {
+            if (typeof showToast === 'function') {
+              showToast('Database wiped and re-seeded! Reloading page...', 'success');
+            }
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
+          } else {
+            if (typeof showToast === 'function') {
+              showToast('Failed to reset database.', 'error');
+            }
+          }
+        }
+      }
+    });
+  }
+
+  if (btnRefreshDiag) {
+    btnRefreshDiag.addEventListener('click', () => {
+      updateDiagnosticsUI();
+      if (typeof showToast === 'function') {
+        showToast('Database statistics updated!', 'success');
+      }
+    });
+  }
+
+  // Initial diagnostics load
+  updateDiagnosticsUI();
 });
 
 function navigateTo(view) {

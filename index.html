@@ -540,6 +540,7 @@ Type 'help' for commands.</div>
         <button class="settings-tab" data-stab="roles">👥 User Roles</button>
         <button class="settings-tab" data-stab="auth">🔐 Authentication</button>
         <button class="settings-tab" data-stab="snipe-it">🖥 Snipe-IT Integration</button>
+        <button class="settings-tab" data-stab="data-mgmt">💾 Data Management</button>
       </div>
 
       <!-- ── EMAIL CONFIGURATION TAB ── -->
@@ -1087,6 +1088,77 @@ support@company.com | +1 (800) 555-0199</textarea>
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- ── DATA MANAGEMENT TAB ── -->
+      <div class="stab-panel" id="stab-data-mgmt">
+        <div class="settings-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:20px;">
+          
+          <!-- Export/Import Card -->
+          <div class="settings-card email-card">
+            <div class="email-card-header">
+              <div class="email-card-icon smtp-icon" style="background: rgba(56, 139, 253, 0.15); color: #58a6ff;">💾</div>
+              <div>
+                <h3>Database Backup & Restore</h3>
+                <p class="email-card-sub">Export or import the full local storage database as a JSON file.</p>
+              </div>
+            </div>
+            <div style="padding: 20px; display:flex; flex-direction:column; gap:16px;">
+              <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5;">
+                Save your tickets, assets, users, audit logs, and settings to a local file, which can be restored on this or another browser later.
+              </p>
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                <button class="btn btn-primary" id="btn-export-db" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%;">
+                  📥 Export Database (JSON)
+                </button>
+                <div style="border-top: 1px solid var(--border); margin: 8px 0;"></div>
+                <div class="form-group">
+                  <label style="display:block; margin-bottom:6px; font-weight:600; font-size:0.85rem;">Import Database File</label>
+                  <input type="file" id="import-db-file" accept=".json" style="display:none;"/>
+                  <button class="btn btn-ghost" onclick="document.getElementById('import-db-file').click()" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%;">
+                    📤 Select JSON File to Import
+                  </button>
+                  <span id="import-db-filename" style="font-size:0.75rem; color:var(--text-secondary); margin-top:6px; display:block; text-align:center;"></span>
+                </div>
+                <button class="btn btn-ghost" id="btn-import-db" disabled style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; color:var(--accent-blue);">
+                  ⚡ Run Import & Restore
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reset / Diagnostics Card -->
+          <div class="settings-card email-card">
+            <div class="email-card-header">
+              <div class="email-card-icon smtp-icon" style="background: rgba(248, 81, 73, 0.15); color: #f85149;">🛠️</div>
+              <div>
+                <h3>Diagnostics & Reset</h3>
+                <p class="email-card-sub">Check database stats and reset system data to defaults.</p>
+              </div>
+            </div>
+            <div style="padding: 20px; display:flex; flex-direction:column; gap:16px;">
+              <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:12px;">
+                <h4 style="margin-top:0; margin-bottom:8px; font-size:0.85rem;">Database Statistics</h4>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; font-size:0.8rem; color:var(--text-secondary);">
+                  <div>Tickets Count:</div><div id="diag-tickets-count" style="font-weight:600; text-align:right;">-</div>
+                  <div>Assets Count:</div><div id="diag-assets-count" style="font-weight:600; text-align:right;">-</div>
+                  <div>Users Count:</div><div id="diag-users-count" style="font-weight:600; text-align:right;">-</div>
+                  <div>Audit Logs:</div><div id="diag-audits-count" style="font-weight:600; text-align:right;">-</div>
+                  <div>Storage Size:</div><div id="diag-storage-size" style="font-weight:600; text-align:right;">-</div>
+                </div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:12px; margin-top:auto;">
+                <button class="btn btn-ghost" id="btn-refresh-diag" style="display:flex; align-items:center; justify-content:center; gap:8px;">
+                  🔄 Refresh Diagnostics
+                </button>
+                <button class="btn btn-ghost" id="btn-reset-db" style="display:flex; align-items:center; justify-content:center; gap:8px; color:var(--accent-red); border-color:rgba(248, 81, 73, 0.2);">
+                  🚨 Hard Reset Database
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 

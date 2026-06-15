@@ -883,3 +883,142 @@ window.loadVendors = loadVendors;
 window.saveVendors = saveVendors;
 window.DEFAULT_VENDORS = DEFAULT_VENDORS;
 
+// Global HTML Escaper (XSS Mitigation)
+function escapeHTML(str) {
+  if (str === null || str === undefined) return '';
+  if (typeof str !== 'string') str = String(str);
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+window.escapeHTML = escapeHTML;
+
+// Centralized Data Layer / Database Wrapper
+const db = {
+  KEYS: {
+    TICKETS: 'hd_tickets_v1',
+    USERS: 'hd_users_v1',
+    ASSETS: 'hd_assets_v1',
+    AUDIT_LOGS: 'hd_system_audit_logs_v1',
+    SLA: 'hd_sla_v1',
+    TKT_ID: 'hd_ticket_id_config_v1',
+    EMAIL_CONFIG: 'hd_email_config_v1',
+    EMAIL_TEMPLATES: 'hd_email_templates_custom_v1',
+    ROLES: 'hd_roles_v1',
+    VENDORS: 'hd_vendors_v1',
+    SNIPE: 'hd_snipe_it_settings_v1',
+    THEME: 'hd_theme'
+  },
+
+  getData(key, defaultValue = []) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {
+      console.error(`db.getData failed for key ${key}:`, e);
+    }
+    return defaultValue;
+  },
+
+  setData(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (e) {
+      console.error(`db.setData failed for key ${key}:`, e);
+      return false;
+    }
+  },
+
+  getDiagnostics() {
+    let storageBytes = 0;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const val = localStorage.getItem(key) || '';
+        storageBytes += (key.length + val.length) * 2;
+      }
+    } catch (e) {
+      console.error('Failed to compute storage size:', e);
+    }
+    
+    const tickets = typeof loadTickets === 'function' ? loadTickets() : this.getData(this.KEYS.TICKETS);
+    const assets = typeof loadAssets === 'function' ? loadAssets() : this.getData(this.KEYS.ASSETS);
+    const users = this.getData(this.KEYS.USERS);
+    const auditLogs = this.getData(this.KEYS.AUDIT_LOGS);
+
+    return {
+      ticketsCount: Array.isArray(tickets) ? tickets.length : 0,
+      assetsCount: Array.isArray(assets) ? assets.length : 0,
+      usersCount: Array.isArray(users) ? users.length : 0,
+      auditsCount: Array.isArray(auditLogs) ? auditLogs.length : 0,
+      storageSizeKB: (storageBytes / 1024).toFixed(2) + ' KB'
+    };
+  },
+
+  exportData() {
+    const data = {};
+    Object.values(this.KEYS).forEach(k => {
+      const raw = localStorage.getItem(k);
+      if (raw !== null) {
+        try {
+          data[k] = JSON.parse(raw);
+        } catch(e) {
+          data[k] = raw;
+        }
+      }
+    });
+    return JSON.stringify(data, null, 2);
+  },
+
+  importData(jsonString) {
+    try {
+      const data = JSON.parse(jsonString);
+      if (typeof data !== 'object' || data === null) {
+        throw new Error('Invalid JSON data structure: Root must be an object.');
+      }
+      
+      const keys = Object.keys(data);
+      const hasHelpdeskKey = keys.some(k => k.startsWith('hd_'));
+      if (!hasHelpdeskKey) {
+        throw new Error('Invalid backup file. No HelpDeskPro database keys found.');
+      }
+
+      keys.forEach(k => {
+        if (typeof data[k] === 'object') {
+          localStorage.setItem(k, JSON.stringify(data[k]));
+        } else {
+          localStorage.setItem(k, String(data[k]));
+        }
+      });
+      return { success: true };
+    } catch (e) {
+      console.error('db.importData failed:', e);
+      return { success: false, error: e.message };
+    }
+  },
+
+  hardReset() {
+    try {
+      Object.values(this.KEYS).forEach(k => {
+        localStorage.removeItem(k);
+      });
+      sessionStorage.clear();
+      
+      if (typeof loadTickets === 'function') loadTickets();
+      if (typeof loadAssets === 'function') loadAssets();
+      if (typeof loadKBArticles === 'function') loadKBArticles();
+      if (typeof loadVendors === 'function') loadVendors();
+      return true;
+    } catch(e) {
+      console.error('db.hardReset failed:', e);
+      return false;
+    }
+  }
+};
+window.db = db;
+
+

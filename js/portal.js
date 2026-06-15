@@ -4,6 +4,33 @@ let portalUser = null;
 
 /* ===== AUTH ===== */
 function initPortal() {
+  // Theme Manager
+  const initPortalTheme = () => {
+    const savedTheme = localStorage.getItem('hd_theme') || 'dark';
+    document.documentElement.dataset.theme = savedTheme;
+    const toggleBtn = document.getElementById('portal-theme-toggle');
+    if (toggleBtn) {
+      toggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+    }
+  };
+
+  const togglePortalTheme = () => {
+    const currentTheme = document.documentElement.dataset.theme || 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = newTheme;
+    localStorage.setItem('hd_theme', newTheme);
+    const toggleBtn = document.getElementById('portal-theme-toggle');
+    if (toggleBtn) {
+      toggleBtn.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    }
+  };
+
+  initPortalTheme();
+  const portalThemeToggle = document.getElementById('portal-theme-toggle');
+  if (portalThemeToggle) {
+    portalThemeToggle.addEventListener('click', togglePortalTheme);
+  }
+
   try {
     const saved = localStorage.getItem(LS_USER);
     if (saved) { 

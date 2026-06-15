@@ -392,9 +392,9 @@ function initEmailConfig() {
   });
 
   // Settings Tabs
-  document.querySelectorAll('.settings-tab').forEach(tab => {
+  document.querySelectorAll('.settings-tab[data-stab]').forEach(tab => {
     tab.addEventListener('click', () => {
-      document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.settings-tab[data-stab]').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.stab-panel').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       const panel = document.getElementById('stab-' + tab.dataset.stab);
