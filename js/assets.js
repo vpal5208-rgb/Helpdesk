@@ -133,6 +133,24 @@ function checkAssetAuditsNotifications() {
 let activeAssetStatusTab = '';
 
 function initAssets() {
+  // Bind Lightbox close listeners
+  const lightboxClose = document.getElementById('lightbox-close');
+  const lightboxOverlay = document.getElementById('lightbox-overlay');
+  
+  if (lightboxClose && !lightboxClose.dataset.initialized) {
+    lightboxClose.addEventListener('click', closeLightbox);
+    lightboxClose.dataset.initialized = 'true';
+  }
+  
+  if (lightboxOverlay && !lightboxOverlay.dataset.initialized) {
+    lightboxOverlay.addEventListener('click', e => {
+      if (e.target === lightboxOverlay) {
+        closeLightbox();
+      }
+    });
+    lightboxOverlay.dataset.initialized = 'true';
+  }
+
   // 1. Check if we are on the Admin Dashboard page
   const isAdminPage = !!document.getElementById('view-assets');
   
@@ -408,6 +426,21 @@ function initAssets() {
       });
     }
 
+    if (picPreview) {
+      picPreview.style.cursor = 'pointer';
+      picPreview.style.transition = 'transform 0.15s ease';
+      picPreview.title = 'Click to view full image';
+      picPreview.addEventListener('mouseenter', () => picPreview.style.transform = 'scale(1.1)');
+      picPreview.addEventListener('mouseleave', () => picPreview.style.transform = 'scale(1)');
+      picPreview.addEventListener('click', () => {
+        const dataUrl = picDataInput?.value;
+        const name = document.getElementById('assetm-name')?.value || 'asset_image.png';
+        if (dataUrl) {
+          openLightbox(dataUrl, name);
+        }
+      });
+    }
+
     const invoiceFileInput = document.getElementById('assetm-invoice-file');
     const invoiceDataInput = document.getElementById('assetm-invoice-data');
     const invoiceFilenameInput = document.getElementById('assetm-invoice-filename');
@@ -444,7 +477,7 @@ function initAssets() {
         const dataUrl = invoiceDataInput?.value;
         const filename = invoiceFilenameInput?.value || 'invoice.pdf';
         if (dataUrl) {
-          viewBase64Document(dataUrl, filename);
+          openLightbox(dataUrl, filename);
         }
       });
     }
@@ -485,7 +518,7 @@ function initAssets() {
         const dataUrl = poDataInput?.value;
         const filename = poFilenameInput?.value || 'po_copy.pdf';
         if (dataUrl) {
-          viewBase64Document(dataUrl, filename);
+          openLightbox(dataUrl, filename);
         }
       });
     }
@@ -647,7 +680,7 @@ function renderAdminAssets() {
       <td style="padding: 12px;">
         <div style="display:flex; align-items:center; gap:10px;">
           ${asset.picture 
-            ? `<img src="${asset.picture}" style="width:32px; height:32px; border-radius:6px; object-fit:cover; border:1px solid var(--border); flex-shrink:0;" />` 
+            ? `<img src="${asset.picture}" onclick="openLightbox('${asset.picture}', '${asset.name || 'asset_image.png'}')" title="Click to view attachment" style="width:32px; height:32px; border-radius:6px; object-fit:cover; border:1px solid var(--border); flex-shrink:0; cursor:pointer; transition:transform 0.15s ease;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'" />` 
             : `<div class="email-card-icon ${asset.category === 'Software' ? 'test-icon' : 'smtp-icon'}" style="width:32px; height:32px; border-radius:6px; font-size:1.1rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; background: ${asset.category === 'Software' ? 'rgba(188,140,255,0.15)' : 'rgba(88,166,255,0.15)'};">${asset.category === 'Software' ? '🔑' : '🖥️'}</div>`}
           <div>
             <div style="font-weight: 600; color: var(--text-primary);">${asset.name}</div>
@@ -665,8 +698,8 @@ function renderAdminAssets() {
                   : ''}
                 ${asset.invoiceCopy || asset.poCopy ? `
                   <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                    ${asset.invoiceCopy ? `<span class="badge" onclick="viewBase64Document('${asset.invoiceCopy}', '${asset.invoiceCopyName || 'invoice.pdf'}')" style="cursor:pointer; font-size:0.65rem; padding:1px 5px; border-radius:3px; background:rgba(88,166,255,0.1); color:#58a6ff; border:1px solid rgba(88,166,255,0.15); display:inline-flex; align-items:center; gap:2px;">📄 Invoice</span>` : ''}
-                    ${asset.poCopy ? `<span class="badge" onclick="viewBase64Document('${asset.poCopy}', '${asset.poCopyName || 'po_copy.pdf'}')" style="cursor:pointer; font-size:0.65rem; padding:1px 5px; border-radius:3px; background:rgba(63,185,80,0.1); color:#3fb950; border:1px solid rgba(63,185,80,0.15); display:inline-flex; align-items:center; gap:2px;">📄 PO Copy</span>` : ''}
+                    ${asset.invoiceCopy ? `<span class="badge" onclick="openLightbox('${asset.invoiceCopy}', '${asset.invoiceCopyName || 'invoice.pdf'}')" style="cursor:pointer; font-size:0.65rem; padding:1px 5px; border-radius:3px; background:rgba(88,166,255,0.1); color:#58a6ff; border:1px solid rgba(88,166,255,0.15); display:inline-flex; align-items:center; gap:2px; transition:opacity 0.15s ease;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">📄 Invoice</span>` : ''}
+                    ${asset.poCopy ? `<span class="badge" onclick="openLightbox('${asset.poCopy}', '${asset.poCopyName || 'po_copy.pdf'}')" style="cursor:pointer; font-size:0.65rem; padding:1px 5px; border-radius:3px; background:rgba(63,185,80,0.1); color:#3fb950; border:1px solid rgba(63,185,80,0.15); display:inline-flex; align-items:center; gap:2px; transition:opacity 0.15s ease;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">📄 PO Copy</span>` : ''}
                   </div>
                 ` : ''}
               </div>
@@ -1667,7 +1700,7 @@ function renderPortalAssets() {
       <div style="width: 100%;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; width: 100%;">
           ${asset.picture 
-            ? `<img src="${asset.picture}" style="width:100%; height:120px; object-fit:cover; border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:12px;" />` 
+            ? `<img src="${asset.picture}" onclick="openLightbox('${asset.picture}', '${asset.name || 'asset_image.png'}')" title="Click to view attachment" style="width:100%; height:120px; object-fit:cover; border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:12px; cursor:pointer; transition:transform 0.15s ease;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'" />` 
             : `<span style="font-size:2rem; margin-bottom:8px;">${icon}</span>`}
           <span style="font-size:0.68rem; font-weight:700; background:rgba(88, 166, 255, 0.15); color:#58a6ff; padding:2px 8px; border-radius:12px; margin-left:auto;">${asset.category}</span>
         </div>
@@ -1990,6 +2023,29 @@ function renderAssetHistory(id) {
   }).join('');
 }
 
+function openLightbox(dataUrl, filename) {
+  const overlay = document.getElementById('lightbox-overlay');
+  const container = document.getElementById('lightbox-content-container');
+  const titleEl = document.getElementById('lightbox-title');
+  if (!overlay || !container || !titleEl) return;
+
+  container.innerHTML = '';
+  titleEl.textContent = filename || 'Attachment Preview';
+
+  if (dataUrl.startsWith('data:application/pdf')) {
+    container.innerHTML = `<iframe src="${dataUrl}" style="border:0; width:800px; height:600px; max-width:100%; max-height:70vh;" allowfullscreen></iframe>`;
+  } else {
+    container.innerHTML = `<img src="${dataUrl}" style="max-width:100%; max-height:70vh; object-fit:contain; border-radius:var(--radius-sm);" />`;
+  }
+
+  overlay.style.display = 'flex';
+}
+
+function closeLightbox() {
+  const overlay = document.getElementById('lightbox-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
 // Global exposure
 window.initAssets = initAssets;
 window.renderAdminAssets = renderAdminAssets;
@@ -2009,6 +2065,8 @@ window.quickAuditAsset = quickAuditAsset;
 window.bulkAuditAllAssets = bulkAuditAllAssets;
 window.initAssetModalTabs = initAssetModalTabs;
 window.renderAssetHistory = renderAssetHistory;
+window.openLightbox = openLightbox;
+window.closeLightbox = closeLightbox;
 
 // Load event binder
 if (document.readyState === 'loading') {
