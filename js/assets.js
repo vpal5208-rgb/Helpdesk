@@ -705,8 +705,8 @@ function renderAdminAssets() {
                 ${asset.poNumber || asset.poValue || asset.assetValue 
                   ? `<div style="font-size:0.72rem; color:var(--text-secondary); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; display:inline-flex; flex-wrap:wrap; gap:8px; border:1px solid var(--border); width:fit-content;">
                       ${asset.poNumber ? `<span>PO: <strong>${asset.poNumber}</strong></span>` : ''}
-                      ${asset.poValue ? `<span>PO Val: <strong>$${parseFloat(asset.poValue).toLocaleString()}</strong></span>` : ''}
-                      ${asset.assetValue ? `<span>Asset Val: <strong>$${parseFloat(asset.assetValue).toLocaleString()}</strong></span>` : ''}
+                      ${asset.poValue ? `<span>PO Val: <strong>₹${parseFloat(asset.poValue).toLocaleString()}</strong></span>` : ''}
+                      ${asset.assetValue ? `<span>Asset Val: <strong>₹${parseFloat(asset.assetValue).toLocaleString()}</strong></span>` : ''}
                      </div>` 
                   : ''}
                 ${asset.invoiceCopy || asset.poCopy ? `
@@ -1917,7 +1917,7 @@ function initAssetModalTabs() {
 
       // Log to system audit log
       if (typeof addAuditLog === 'function') {
-        addAuditLog(`🔧 Logged maintenance: ${maintType} (Cost: $${maintCost.toFixed(2)}). Notes: ${maintNotes}`, getCurrentActorName(), id, 'asset');
+        addAuditLog(`🔧 Logged maintenance: ${maintType} (Cost: ₹${maintCost.toFixed(2)}). Notes: ${maintNotes}`, getCurrentActorName(), id, 'asset');
       }
 
       if (typeof showToast === 'function') {
@@ -1938,7 +1938,7 @@ function renderAssetHistory(id) {
   if (!timelineEl) return;
 
   if (!id) {
-    if (costEl) costEl.textContent = '$0.00';
+    if (costEl) costEl.textContent = '₹0.00';
     timelineEl.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:0.85rem;">Save this asset first to start recording history and maintenance logs.</div>`;
     return;
   }
@@ -1946,7 +1946,7 @@ function renderAssetHistory(id) {
   const assets = typeof loadAssets === 'function' ? loadAssets() : [];
   const asset = assets.find(a => a.id === id);
   if (!asset) {
-    if (costEl) costEl.textContent = '$0.00';
+    if (costEl) costEl.textContent = '₹0.00';
     timelineEl.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:0.85rem;">Asset not found.</div>`;
     return;
   }
@@ -1955,7 +1955,7 @@ function renderAssetHistory(id) {
   const maintenanceLogs = asset.maintenance || [];
   const totalCost = maintenanceLogs.reduce((sum, log) => sum + (log.cost || 0), 0);
   if (costEl) {
-    costEl.textContent = `$${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    costEl.textContent = `₹${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   // Compile lifecycle events from system logs
@@ -2002,7 +2002,7 @@ function renderAssetHistory(id) {
       time: `${log.date}T12:00:00.000Z`,
       type: 'maintenance',
       emoji: '🔧',
-      title: `Logged maintenance: ${log.type} (Cost: $${(log.cost || 0).toFixed(2)})`,
+      title: `Logged maintenance: ${log.type} (Cost: ₹${(log.cost || 0).toFixed(2)})`,
       notes: log.notes || '',
       by: log.by || 'System'
     });

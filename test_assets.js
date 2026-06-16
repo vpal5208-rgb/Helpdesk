@@ -370,8 +370,8 @@ const server = app.listen(3000, async () => {
 
         console.log('Verifying financial fields render in admin grid...');
         const hasPOText = financialRowHTML.includes('PO: <strong>PO-E2E-12345</strong>');
-        const hasPOValue = financialRowHTML.includes('PO Val: <strong>$4,500.5</strong>');
-        const hasAssetValue = financialRowHTML.includes('Asset Val: <strong>$4,200.75</strong>');
+        const hasPOValue = financialRowHTML.includes('PO Val: <strong>₹4,500.5</strong>');
+        const hasAssetValue = financialRowHTML.includes('Asset Val: <strong>₹4,200.75</strong>');
         const hasPicThumbnail = financialRowHTML.includes('<img src="data:image/png;base64');
         const hasInvoiceBadge = financialRowHTML.includes('📄 Invoice');
         const hasPOCopyBadge = financialRowHTML.includes('📄 PO Copy');
@@ -868,7 +868,7 @@ const server = app.listen(3000, async () => {
             if (!maintenanceState.costText.includes('120.00')) {
                 console.error('FAIL: Total maintenance cost not updated correctly.');
                 hasError = true;
-            } else if (!maintenanceState.timelineText.includes('Battery replacement') || !maintenanceState.timelineText.includes('Cost: $120.00')) {
+            } else if (!maintenanceState.timelineText.includes('Battery replacement') || !maintenanceState.timelineText.includes('Cost: ₹120.00')) {
                 console.error('FAIL: Maintenance event not listed in history timeline.');
                 hasError = true;
             } else {
