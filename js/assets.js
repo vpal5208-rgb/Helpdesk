@@ -808,6 +808,7 @@ function openAssetModal(id = '') {
   const tabsContainer = document.getElementById('asset-modal-tabs');
   const detailsContent = document.getElementById('asset-modal-tab-details-content');
   const historyContent = document.getElementById('asset-modal-tab-history-content');
+  const maintenanceContent = document.getElementById('asset-modal-tab-maintenance-content');
   
   if (tabsContainer) {
     const tabButtons = tabsContainer.querySelectorAll('.modal-tab-btn');
@@ -826,6 +827,7 @@ function openAssetModal(id = '') {
   }
   if (detailsContent) detailsContent.style.display = 'block';
   if (historyContent) historyContent.style.display = 'none';
+  if (maintenanceContent) maintenanceContent.style.display = 'none';
 
   // Hide maintenance form
   const maintForm = document.getElementById('assetm-maintenance-form');
@@ -1814,6 +1816,7 @@ function initAssetModalTabs() {
   const tabButtons = tabsContainer.querySelectorAll('.modal-tab-btn');
   const detailsContent = document.getElementById('asset-modal-tab-details-content');
   const historyContent = document.getElementById('asset-modal-tab-history-content');
+  const maintenanceContent = document.getElementById('asset-modal-tab-maintenance-content');
 
   // Tab switching click handler
   tabButtons.forEach(btn => {
@@ -1831,10 +1834,19 @@ function initAssetModalTabs() {
       if (tab === 'details') {
         if (detailsContent) detailsContent.style.display = 'block';
         if (historyContent) historyContent.style.display = 'none';
-      } else {
+        if (maintenanceContent) maintenanceContent.style.display = 'none';
+      } else if (tab === 'history') {
         if (detailsContent) detailsContent.style.display = 'none';
         if (historyContent) historyContent.style.display = 'block';
+        if (maintenanceContent) maintenanceContent.style.display = 'none';
         // Render history
+        const id = document.getElementById('assetm-id').value;
+        renderAssetHistory(id);
+      } else if (tab === 'maintenance') {
+        if (detailsContent) detailsContent.style.display = 'none';
+        if (historyContent) historyContent.style.display = 'none';
+        if (maintenanceContent) maintenanceContent.style.display = 'block';
+        // Render maintenance
         const id = document.getElementById('assetm-id').value;
         renderAssetHistory(id);
       }
@@ -1934,12 +1946,16 @@ function initAssetModalTabs() {
 
 function renderAssetHistory(id) {
   const timelineEl = document.getElementById('assetm-history-timeline');
+  const maintTimelineEl = document.getElementById('assetm-maintenance-timeline');
   const costEl = document.getElementById('assetm-total-maintenance-cost');
   if (!timelineEl) return;
 
   if (!id) {
     if (costEl) costEl.textContent = '₹0.00';
     timelineEl.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:0.85rem;">Save this asset first to start recording history and maintenance logs.</div>`;
+    if (maintTimelineEl) {
+      maintTimelineEl.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:0.85rem;">Save this asset first to start recording history and maintenance logs.</div>`;
+    }
     return;
   }
 
@@ -1948,6 +1964,9 @@ function renderAssetHistory(id) {
   if (!asset) {
     if (costEl) costEl.textContent = '₹0.00';
     timelineEl.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:0.85rem;">Asset not found.</div>`;
+    if (maintTimelineEl) {
+      maintTimelineEl.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:0.85rem;">Asset not found.</div>`;
+    }
     return;
   }
 
@@ -1958,11 +1977,11 @@ function renderAssetHistory(id) {
     costEl.textContent = `₹${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
-  // Compile lifecycle events from system logs
+  // 1. Compile lifecycle events from system logs
   const systemLogs = typeof loadSystemAuditLogs === 'function' ? loadSystemAuditLogs() : [];
   const assetLogs = systemLogs.filter(log => log.refId === id);
 
-  let events = [];
+  let lifecycleEvents = [];
 
   // Parse system logs
   assetLogs.forEach(log => {
@@ -1985,22 +2004,44 @@ function renderAssetHistory(id) {
       return;
     }
 
-    events.push({
+    lifecycleEvents.push({
       date: new Date(log.time).toISOString().split('T')[0],
       time: log.time,
-      type: 'system',
       emoji,
       title,
       by: log.by || 'System'
     });
   });
 
-  // Add maintenance logs from asset object
+  // Sort lifecycle events descending
+  lifecycleEvents.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+  if (lifecycleEvents.length === 0) {
+    timelineEl.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:0.85rem;">No history entries found.</div>`;
+  } else {
+    timelineEl.innerHTML = lifecycleEvents.map(evt => {
+      const dateStr = new Date(evt.time).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      return `
+        <div style="display:flex; gap:12px; margin-bottom:14px; position:relative;">
+          <div style="font-size:1.1rem; width:24px; text-align:center;">${evt.emoji}</div>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;">
+              <span style="font-size:0.8rem; font-weight:600; color:var(--text-primary);">${evt.title}</span>
+              <span style="font-size:0.7rem; color:var(--text-muted); white-space:nowrap;">${dateStr}</span>
+            </div>
+            <div style="font-size:0.72rem; color:var(--text-muted);">by ${evt.by}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 2. Compile maintenance events
+  let maintEvents = [];
   maintenanceLogs.forEach(log => {
-    events.push({
+    maintEvents.push({
       date: log.date,
       time: `${log.date}T12:00:00.000Z`,
-      type: 'maintenance',
       emoji: '🔧',
       title: `Logged maintenance: ${log.type} (Cost: ₹${(log.cost || 0).toFixed(2)})`,
       notes: log.notes || '',
@@ -2008,32 +2049,32 @@ function renderAssetHistory(id) {
     });
   });
 
-  // Sort events descending
-  events.sort((a, b) => new Date(b.time) - new Date(a.time));
+  // Sort maintenance events descending
+  maintEvents.sort((a, b) => new Date(b.time) - new Date(a.time));
 
-  if (events.length === 0) {
-    timelineEl.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:0.85rem;">No history entries found.</div>`;
-    return;
-  }
-
-  timelineEl.innerHTML = events.map(evt => {
-    const dateStr = new Date(evt.time).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-    const notesHtml = evt.notes ? `<div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px; padding-left:8px; border-left:2px solid var(--border);">${evt.notes}</div>` : '';
-    
-    return `
-      <div style="display:flex; gap:12px; margin-bottom:14px; position:relative;">
-        <div style="font-size:1.1rem; width:24px; text-align:center;">${evt.emoji}</div>
-        <div style="flex:1;">
-          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;">
-            <span style="font-size:0.8rem; font-weight:600; color:var(--text-primary);">${evt.title}</span>
-            <span style="font-size:0.7rem; color:var(--text-muted); white-space:nowrap;">${dateStr}</span>
+  if (maintTimelineEl) {
+    if (maintEvents.length === 0) {
+      maintTimelineEl.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:0.85rem;">No maintenance logs found.</div>`;
+    } else {
+      maintTimelineEl.innerHTML = maintEvents.map(evt => {
+        const dateStr = new Date(evt.time).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        const notesHtml = evt.notes ? `<div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px; padding-left:8px; border-left:2px solid var(--border);">${evt.notes}</div>` : '';
+        return `
+          <div style="display:flex; gap:12px; margin-bottom:14px; position:relative;">
+            <div style="font-size:1.1rem; width:24px; text-align:center;">${evt.emoji}</div>
+            <div style="flex:1;">
+              <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;">
+                <span style="font-size:0.8rem; font-weight:600; color:var(--text-primary);">${evt.title}</span>
+                <span style="font-size:0.7rem; color:var(--text-muted); white-space:nowrap;">${dateStr}</span>
+              </div>
+              <div style="font-size:0.72rem; color:var(--text-muted);">by ${evt.by}</div>
+              ${notesHtml}
+            </div>
           </div>
-          <div style="font-size:0.72rem; color:var(--text-muted);">by ${evt.by}</div>
-          ${notesHtml}
-        </div>
-      </div>
-    `;
-  }).join('');
+        `;
+      }).join('');
+    }
+  }
 }
 
 function openLightbox(dataUrl, filename) {

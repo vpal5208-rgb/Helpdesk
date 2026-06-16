@@ -824,7 +824,7 @@ const server = app.listen(3000, async () => {
             });
             await delay(1000);
 
-            console.log('Clicking the "History & Maintenance" tab...');
+            console.log('Clicking the "History" tab...');
             await page.evaluate(() => {
                 const btn = Array.from(document.querySelectorAll('.modal-tab-btn')).find(b => b.innerText.includes('History'));
                 if (btn) btn.click();
@@ -841,6 +841,13 @@ const server = app.listen(3000, async () => {
             } else {
                 console.log('SUCCESS: Asset history timeline loaded with initial logs!');
             }
+
+            console.log('Clicking the "Maintenance" tab...');
+            await page.evaluate(() => {
+                const btn = Array.from(document.querySelectorAll('.modal-tab-btn')).find(b => b.innerText.includes('Maintenance'));
+                if (btn) btn.click();
+            });
+            await delay(500);
 
             console.log('Clicking "Log Maintenance" button to open form...');
             await page.evaluate(() => {
@@ -861,7 +868,7 @@ const server = app.listen(3000, async () => {
             console.log('Verifying maintenance cost and history updates...');
             const maintenanceState = await page.evaluate(() => {
                 const costText = document.getElementById('assetm-total-maintenance-cost').innerText;
-                const timelineText = document.getElementById('assetm-history-timeline').innerText;
+                const timelineText = document.getElementById('assetm-maintenance-timeline').innerText;
                 return { costText, timelineText };
             });
             console.log('Maintenance state post-save:', maintenanceState);
@@ -869,10 +876,10 @@ const server = app.listen(3000, async () => {
                 console.error('FAIL: Total maintenance cost not updated correctly.');
                 hasError = true;
             } else if (!maintenanceState.timelineText.includes('Battery replacement') || !maintenanceState.timelineText.includes('Cost: ₹120.00')) {
-                console.error('FAIL: Maintenance event not listed in history timeline.');
+                console.error('FAIL: Maintenance event not listed in maintenance timeline.');
                 hasError = true;
             } else {
-                console.log('SUCCESS: Maintenance logged and rendered correctly in history tab!');
+                console.log('SUCCESS: Maintenance logged and rendered correctly in maintenance tab!');
             }
 
             console.log('Closing the asset modal...');

@@ -1643,7 +1643,8 @@ support@company.com | +1 (800) 555-0199</textarea>
       <!-- Tab Navigation Headers -->
       <div id="asset-modal-tabs" class="modal-tabs" style="display:flex; border-bottom:1px solid var(--border); margin-bottom:16px;">
         <button type="button" class="modal-tab-btn active" data-tab="details" style="flex:1; padding:10px; background:none; border:none; border-bottom:2px solid var(--accent-blue); color:var(--text-primary); font-weight:600; cursor:pointer;">📋 Asset Details</button>
-        <button type="button" class="modal-tab-btn" data-tab="history" style="flex:1; padding:10px; background:none; border:none; border-bottom:2px solid transparent; color:var(--text-secondary); font-weight:600; cursor:pointer;">🕰️ History & Maintenance</button>
+        <button type="button" class="modal-tab-btn" data-tab="history" style="flex:1; padding:10px; background:none; border:none; border-bottom:2px solid transparent; color:var(--text-secondary); font-weight:600; cursor:pointer;">🕰️ History</button>
+        <button type="button" class="modal-tab-btn" data-tab="maintenance" style="flex:1; padding:10px; background:none; border:none; border-bottom:2px solid transparent; color:var(--text-secondary); font-weight:600; cursor:pointer;">🔧 Maintenance</button>
       </div>
 
       <!-- Tab Content: Details -->
@@ -1853,8 +1854,16 @@ support@company.com | +1 (800) 555-0199</textarea>
 
       </div> <!-- End of Details Tab Content -->
 
-      <!-- Tab Content: History & Maintenance -->
+      <!-- Tab Content: History -->
       <div id="asset-modal-tab-history-content" style="display:none;">
+        <h4 style="margin:0 0 10px 0; font-size:0.9rem; font-weight:700;">🕰️ Asset Lifecycle & Audit History</h4>
+        <div id="assetm-history-timeline" style="margin-top:10px; max-height:280px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px; background:var(--bg-canvas);">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Tab Content: Maintenance -->
+      <div id="asset-modal-tab-maintenance-content" style="display:none;">
         <!-- Total Maintenance Cost card -->
         <div style="background:var(--bg-elevated); border:1px solid var(--border); padding:16px; border-radius:var(--radius-sm); margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
           <div>
@@ -1891,9 +1900,8 @@ support@company.com | +1 (800) 555-0199</textarea>
           </div>
         </div>
 
-        <!-- Unified Lifecycle History timeline -->
-        <h4 style="margin:16px 0 10px 0; font-size:0.9rem; font-weight:700;">🕰️ Asset Lifecycle & Maintenance History</h4>
-        <div id="assetm-history-timeline" style="margin-top:10px; max-height:280px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px; background:var(--bg-canvas);">
+        <h4 style="margin:16px 0 10px 0; font-size:0.9rem; font-weight:700;">🔧 Maintenance History</h4>
+        <div id="assetm-maintenance-timeline" style="margin-top:10px; max-height:280px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px; background:var(--bg-canvas);">
           <!-- Populated dynamically -->
         </div>
       </div>
@@ -2013,18 +2021,18 @@ support@company.com | +1 (800) 555-0199</textarea>
 <!-- Toast container -->
 <div class="toast-container" id="toast-container"></div>
 
-<script src="js/data.js?v=32"></script>
-<script src="js/tickets.js?v=32"></script>
-<script src="js/dashboard.js?v=32"></script>
-<script src="js/ui.js?v=32"></script>
-<script src="js/email.js?v=32"></script>
-<script src="js/roles.js?v=32"></script>
-<script src="js/users.js?v=32"></script>
-<script src="js/audit.js?v=32"></script>
-<script src="js/chat.js?v=32"></script>
-<script src="js/sso.js?v=32"></script>
-<script src="js/kb.js?v=32"></script>
-<script src="js/assets.js?v=32"></script>
-<script src="js/app.js?v=32"></script>
+<script src="js/data.js?v=33"></script>
+<script src="js/tickets.js?v=33"></script>
+<script src="js/dashboard.js?v=33"></script>
+<script src="js/ui.js?v=33"></script>
+<script src="js/email.js?v=33"></script>
+<script src="js/roles.js?v=33"></script>
+<script src="js/users.js?v=33"></script>
+<script src="js/audit.js?v=33"></script>
+<script src="js/chat.js?v=33"></script>
+<script src="js/sso.js?v=33"></script>
+<script src="js/kb.js?v=33"></script>
+<script src="js/assets.js?v=33"></script>
+<script src="js/app.js?v=33"></script>
 </body>
 </html>
