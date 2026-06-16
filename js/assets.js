@@ -636,8 +636,21 @@ function renderAdminAssets() {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '1px solid var(--border)';
     tr.style.transition = 'background var(--transition)';
+    tr.style.cursor = 'pointer';
     tr.addEventListener('mouseenter', () => tr.style.background = 'var(--bg-hover)');
     tr.addEventListener('mouseleave', () => tr.style.background = '');
+    tr.addEventListener('click', e => {
+      const target = e.target;
+      if (
+        target.closest('button') || 
+        target.closest('.badge') || 
+        target.closest('img') || 
+        target.closest('a')
+      ) {
+        return;
+      }
+      openAssetModal(asset.id);
+    });
 
     // Status Badge Color styling
     let badgeBg = 'rgba(139, 148, 158, 0.15)';
