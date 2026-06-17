@@ -43,9 +43,6 @@
     .al-field{margin-bottom:14px}
     .al-field label{display:block;font-size:.78rem;font-weight:600;color:rgba(255,255,255,0.55);margin-bottom:6px}
     .al-divider{border:none;border-top:1px solid rgba(255,255,255,0.1);margin:18px 0}
-    .al-demo-hint{font-size:.78rem;color:rgba(255,255,255,0.35);text-align:center;margin-top:14px;line-height:1.6}
-    .al-demo-cred{display:inline-block;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:2px 8px;font-family:monospace;font-size:.8rem;color:rgba(255,255,255,0.6);cursor:pointer}
-    .al-demo-cred:hover{background:rgba(255,255,255,0.12)}
   </style>
 
   <div style="position:relative;z-index:1;background:rgba(255,255,255,0.06);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:40px;width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
@@ -99,13 +96,7 @@
       </button>
     </div>
 
-    <hr class="al-divider"/>
 
-    <div class="al-demo-hint">
-      Demo credentials &nbsp;·&nbsp;
-      Email: <span class="al-demo-cred" onclick="document.getElementById('al-email').value='admin@helpdesk.com'">admin@helpdesk.com</span>
-      &nbsp; Password: <span class="al-demo-cred" onclick="document.getElementById('al-password').value='Admin@123'">Admin@123</span>
-    </div>
     <div style="text-align:center;margin-top:18px">
       <a href="portal.html" style="color:rgba(255,255,255,0.3);font-size:.78rem;text-decoration:none">👤 Go to User Portal</a>
     </div>
@@ -150,7 +141,7 @@ function doAdminLogin() {
     }
     
     if (!match) {
-      err.textContent = '❌ Invalid email or password. Try the demo credentials below.';
+      err.textContent = '❌ Invalid email or password.';
       return;
     }
 
@@ -2021,18 +2012,18 @@ support@company.com | +1 (800) 555-0199</textarea>
 <!-- Toast container -->
 <div class="toast-container" id="toast-container"></div>
 
-<script src="js/data.js?v=33"></script>
-<script src="js/tickets.js?v=33"></script>
-<script src="js/dashboard.js?v=33"></script>
-<script src="js/ui.js?v=33"></script>
-<script src="js/email.js?v=33"></script>
-<script src="js/roles.js?v=33"></script>
-<script src="js/users.js?v=33"></script>
-<script src="js/audit.js?v=33"></script>
-<script src="js/chat.js?v=33"></script>
-<script src="js/sso.js?v=33"></script>
-<script src="js/kb.js?v=33"></script>
-<script src="js/assets.js?v=33"></script>
-<script src="js/app.js?v=33"></script>
+<script src="js/data.js?v=34"></script>
+<script src="js/tickets.js?v=34"></script>
+<script src="js/dashboard.js?v=34"></script>
+<script src="js/ui.js?v=34"></script>
+<script src="js/email.js?v=34"></script>
+<script src="js/roles.js?v=34"></script>
+<script src="js/users.js?v=34"></script>
+<script src="js/audit.js?v=34"></script>
+<script src="js/chat.js?v=34"></script>
+<script src="js/sso.js?v=34"></script>
+<script src="js/kb.js?v=34"></script>
+<script src="js/assets.js?v=34"></script>
+<script src="js/app.js?v=34"></script>
 </body>
 </html>
