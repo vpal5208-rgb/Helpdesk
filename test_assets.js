@@ -858,6 +858,9 @@ const server = app.listen(3000, async () => {
 
             console.log('Filling maintenance form and saving...');
             await page.evaluate(() => {
+                document.getElementById('assetm-maint-start-date').value = '2026-06-17';
+                document.getElementById('assetm-maint-end-date').value = '2026-06-17';
+                document.getElementById('assetm-maint-vendor').value = 'Dell Direct';
                 document.getElementById('assetm-maint-type').value = 'Battery replacement';
                 document.getElementById('assetm-maint-cost').value = '120.00';
                 document.getElementById('assetm-maint-notes').value = 'Replaced swelling battery with OEM battery.';
@@ -877,6 +880,9 @@ const server = app.listen(3000, async () => {
                 hasError = true;
             } else if (!maintenanceState.timelineText.includes('Battery replacement') || !maintenanceState.timelineText.includes('Cost: ₹120.00')) {
                 console.error('FAIL: Maintenance event not listed in maintenance timeline.');
+                hasError = true;
+            } else if (!maintenanceState.timelineText.includes('Vendor: Dell Direct') || !maintenanceState.timelineText.includes('Date: 2026-06-17')) {
+                console.error('FAIL: Maintenance start date/end date or vendor name not displayed in timeline.');
                 hasError = true;
             } else {
                 console.log('SUCCESS: Maintenance logged and rendered correctly in maintenance tab!');

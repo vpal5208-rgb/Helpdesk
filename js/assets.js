@@ -767,14 +767,23 @@ function populateAssigneeDropdown() {
 
 function populateVendorDropdown() {
   const select = document.getElementById('assetm-vendor');
-  if (!select) return;
-
-  select.innerHTML = '<option value="">No Vendor</option>';
+  const maintSelect = document.getElementById('assetm-maint-vendor');
   const vendors = typeof loadVendors === 'function' ? loadVendors() : [];
-  vendors.forEach(v => {
-    select.innerHTML += `<option value="${v.name}">${v.name}</option>`;
-  });
-  select.innerHTML += '<option value="__custom__">+ Add Custom Vendor...</option>';
+
+  if (select) {
+    select.innerHTML = '<option value="">No Vendor</option>';
+    vendors.forEach(v => {
+      select.innerHTML += `<option value="${v.name}">${v.name}</option>`;
+    });
+    select.innerHTML += '<option value="__custom__">+ Add Custom Vendor...</option>';
+  }
+
+  if (maintSelect) {
+    maintSelect.innerHTML = '<option value="">No Vendor</option>';
+    vendors.forEach(v => {
+      maintSelect.innerHTML += `<option value="${v.name}">${v.name}</option>`;
+    });
+  }
 }
 
 function openAssetModal(id = '') {
@@ -1860,7 +1869,9 @@ function initAssetModalTabs() {
     btnAddMaint.addEventListener('click', () => {
       maintForm.style.display = maintForm.style.display === 'none' ? 'block' : 'none';
       // Reset form fields
-      document.getElementById('assetm-maint-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('assetm-maint-start-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('assetm-maint-end-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('assetm-maint-vendor').value = '';
       document.getElementById('assetm-maint-type').value = '';
       document.getElementById('assetm-maint-cost').value = '';
       document.getElementById('assetm-maint-notes').value = '';
@@ -1887,7 +1898,9 @@ function initAssetModalTabs() {
         return;
       }
 
-      const maintDate = document.getElementById('assetm-maint-date').value || new Date().toISOString().split('T')[0];
+      const maintStartDate = document.getElementById('assetm-maint-start-date').value || new Date().toISOString().split('T')[0];
+      const maintEndDate = document.getElementById('assetm-maint-end-date').value || new Date().toISOString().split('T')[0];
+      const maintVendor = document.getElementById('assetm-maint-vendor').value;
       const maintType = document.getElementById('assetm-maint-type').value.trim();
       const maintCostVal = document.getElementById('assetm-maint-cost').value;
       const maintCost = maintCostVal ? parseFloat(maintCostVal) : 0;
@@ -1916,7 +1929,9 @@ function initAssetModalTabs() {
       }
 
       const newLog = {
-        date: maintDate,
+        startDate: maintStartDate,
+        endDate: maintEndDate,
+        vendor: maintVendor,
         type: maintType,
         cost: maintCost,
         notes: maintNotes,
@@ -1929,7 +1944,15 @@ function initAssetModalTabs() {
 
       // Log to system audit log
       if (typeof addAuditLog === 'function') {
-        addAuditLog(`🔧 Logged maintenance: ${maintType} (Cost: ₹${maintCost.toFixed(2)}). Notes: ${maintNotes}`, getCurrentActorName(), id, 'asset');
+        let auditMsg = `🔧 Logged maintenance: ${maintType} (Cost: ₹${maintCost.toFixed(2)})`;
+        if (maintVendor) {
+          auditMsg += ` by ${maintVendor}`;
+        }
+        if (maintStartDate && maintEndDate) {
+          auditMsg += ` for period ${maintStartDate} to ${maintEndDate}`;
+        }
+        auditMsg += `. Notes: ${maintNotes}`;
+        addAuditLog(auditMsg, getCurrentActorName(), id, 'asset');
       }
 
       if (typeof showToast === 'function') {
@@ -2039,11 +2062,27 @@ function renderAssetHistory(id) {
   // 2. Compile maintenance events
   let maintEvents = [];
   maintenanceLogs.forEach(log => {
+    let detailsText = '';
+    if (log.startDate || log.endDate || log.vendor) {
+      let parts = [];
+      if (log.vendor) parts.push(`Vendor: <strong>${escapeHTML(log.vendor)}</strong>`);
+      if (log.startDate && log.endDate && log.startDate !== log.endDate) {
+        parts.push(`Period: <strong>${log.startDate}</strong> to <strong>${log.endDate}</strong>`);
+      } else if (log.startDate) {
+        parts.push(`Date: <strong>${log.startDate}</strong>`);
+      } else if (log.endDate) {
+        parts.push(`Date: <strong>${log.endDate}</strong>`);
+      }
+      detailsText = `<div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:4px;">${parts.join(' | ')}</div>`;
+    }
+
+    const eventDate = log.startDate || log.date;
     maintEvents.push({
-      date: log.date,
-      time: `${log.date}T12:00:00.000Z`,
+      date: eventDate,
+      time: `${eventDate}T12:00:00.000Z`,
       emoji: '🔧',
       title: `Logged maintenance: ${log.type} (Cost: ₹${(log.cost || 0).toFixed(2)})`,
+      detailsHtml: detailsText,
       notes: log.notes || '',
       by: log.by || 'System'
     });
@@ -2058,6 +2097,7 @@ function renderAssetHistory(id) {
     } else {
       maintTimelineEl.innerHTML = maintEvents.map(evt => {
         const dateStr = new Date(evt.time).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        const detailsHtml = evt.detailsHtml || '';
         const notesHtml = evt.notes ? `<div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px; padding-left:8px; border-left:2px solid var(--border);">${evt.notes}</div>` : '';
         return `
           <div style="display:flex; gap:12px; margin-bottom:14px; position:relative;">
@@ -2067,7 +2107,8 @@ function renderAssetHistory(id) {
                 <span style="font-size:0.8rem; font-weight:600; color:var(--text-primary);">${evt.title}</span>
                 <span style="font-size:0.7rem; color:var(--text-muted); white-space:nowrap;">${dateStr}</span>
               </div>
-              <div style="font-size:0.72rem; color:var(--text-muted);">by ${evt.by}</div>
+              <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:4px;">by ${evt.by}</div>
+              ${detailsHtml}
               ${notesHtml}
             </div>
           </div>
