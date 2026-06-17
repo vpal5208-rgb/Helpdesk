@@ -433,13 +433,99 @@ function renderAgentsView() {
   });
 }
 
-/* ====== REPORTS EXPORT ====== */
+/* ====== REPORTS EXPORT & CUSTOM REPORTS ====== */
+const TICKET_COLUMNS = [
+  { key: 'id', name: 'ID' },
+  { key: 'subject', name: 'Subject' },
+  { key: 'requester', name: 'Requester' },
+  { key: 'email', name: 'Email' },
+  { key: 'category', name: 'Category' },
+  { key: 'priority', name: 'Priority' },
+  { key: 'status', name: 'Status' },
+  { key: 'agent', name: 'Assigned To' },
+  { key: 'created', name: 'Created Date' },
+  { key: 'sla', name: 'SLA Status' }
+];
+
+const ASSET_COLUMNS = [
+  { key: 'id', name: 'Asset Tag' },
+  { key: 'name', name: 'Asset Name' },
+  { key: 'model', name: 'Model' },
+  { key: 'category', name: 'Category' },
+  { key: 'status', name: 'Status' },
+  { key: 'serial', name: 'Serial Number' },
+  { key: 'vendor', name: 'Vendor' },
+  { key: 'assignedTo', name: 'Assigned To' },
+  { key: 'purchaseDate', name: 'Purchase Date' },
+  { key: 'warranty', name: 'Warranty' }
+];
+
+const AUDIT_COLUMNS = [
+  { key: 'time', name: 'Date & Time' },
+  { key: 'id', name: 'Ref ID' },
+  { key: 'by', name: 'Actor' },
+  { key: 'action', name: 'Action Details' },
+  { key: 'subject', name: 'Subject/Context' },
+  { key: 'type', name: 'Type' }
+];
+
+const USER_COLUMNS = [
+  { key: 'name', name: 'Full Name' },
+  { key: 'email', name: 'Email' },
+  { key: 'dept', name: 'Department' },
+  { key: 'role', name: 'Role' },
+  { key: 'status', name: 'Status' },
+  { key: 'ticketsCount', name: 'Tickets Count' },
+  { key: 'lastActive', name: 'Last Active' },
+  { key: 'created', name: 'Created Date' }
+];
+
+let activeReportTab = 'standard';
+let currentGeneratedReportData = null;
+
 function initReports() {
   const csvBtn = document.getElementById('export-reports-csv-btn');
   const pdfBtn = document.getElementById('export-reports-pdf-btn');
   const reportsToggle = document.getElementById('reports-orientation-toggle');
   
-  if (csvBtn) csvBtn.addEventListener('click', exportReportsToCSV);
+  // Custom Reports Tab Navigation
+  const viewTabs = document.getElementById('reports-view-tabs');
+  if (viewTabs) {
+    viewTabs.addEventListener('click', e => {
+      const btn = e.target.closest('.settings-tab');
+      if (!btn) return;
+      viewTabs.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      toggleReportViews(btn.dataset.reportView);
+    });
+  }
+
+  // Custom Reports event bindings
+  const sourceSel = document.getElementById('custom-report-source');
+  if (sourceSel) {
+    sourceSel.addEventListener('change', rebuildCustomReportBuilder);
+  }
+  
+  const generateBtn = document.getElementById('btn-custom-report-generate');
+  if (generateBtn) {
+    generateBtn.addEventListener('click', generateCustomReport);
+  }
+  
+  const resetBtn = document.getElementById('btn-custom-report-reset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', resetCustomReportFilters);
+  }
+
+  if (csvBtn) {
+    csvBtn.addEventListener('click', () => {
+      if (activeReportTab === 'standard') {
+        exportReportsToCSV();
+      } else {
+        exportCustomReportToCSV();
+      }
+    });
+  }
+  
   if (pdfBtn) {
     pdfBtn.addEventListener('click', () => {
       window.print();
@@ -471,6 +557,559 @@ function initReports() {
         } catch (err) {}
       }, 150);
     });
+  }
+}
+
+function toggleReportViews(view) {
+  activeReportTab = view;
+  const standardContainer = document.getElementById('reports-standard-container');
+  const customContainer = document.getElementById('reports-custom-container');
+  const orientationToggle = document.getElementById('reports-orientation-toggle');
+  
+  if (view === 'standard') {
+    if (standardContainer) standardContainer.style.display = 'block';
+    if (customContainer) customContainer.style.display = 'none';
+    if (orientationToggle) orientationToggle.style.display = 'flex';
+  } else {
+    if (standardContainer) standardContainer.style.display = 'none';
+    if (customContainer) customContainer.style.display = 'block';
+    if (orientationToggle) orientationToggle.style.display = 'none';
+    
+    rebuildCustomReportBuilder();
+  }
+}
+
+function renderCustomColumnsChecklist(columns) {
+  const container = document.getElementById('custom-report-columns');
+  if (!container) return;
+  container.innerHTML = columns.map(c => `
+    <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-size:0.85rem">
+      <input type="checkbox" name="custom-col" value="${c.key}" checked style="width:auto;margin:0;"/>
+      <span>${c.name}</span>
+    </label>
+  `).join('');
+}
+
+function rebuildCustomReportBuilder() {
+  const source = document.getElementById('custom-report-source').value;
+  const filtersContainer = document.getElementById('custom-report-filters');
+  
+  // Rebuild columns
+  let cols = [];
+  if (source === 'tickets') cols = TICKET_COLUMNS;
+  else if (source === 'assets') cols = ASSET_COLUMNS;
+  else if (source === 'audit') cols = AUDIT_COLUMNS;
+  else if (source === 'users') cols = USER_COLUMNS;
+  renderCustomColumnsChecklist(cols);
+  
+  // Rebuild filters
+  if (!filtersContainer) return;
+  filtersContainer.innerHTML = '';
+  
+  if (source === 'tickets') {
+    // Status
+    const statusDiv = document.createElement('div');
+    statusDiv.className = 'form-group';
+    statusDiv.innerHTML = `
+      <label>Status</label>
+      <select id="cr-filter-status" class="form-input">
+        <option value="">All Statuses</option>
+        <option>Open</option>
+        <option>In Progress</option>
+        <option>Resolved</option>
+        <option>Closed</option>
+      </select>
+    `;
+    filtersContainer.appendChild(statusDiv);
+    
+    // Priority
+    const priDiv = document.createElement('div');
+    priDiv.className = 'form-group';
+    priDiv.innerHTML = `
+      <label>Priority</label>
+      <select id="cr-filter-priority" class="form-input">
+        <option value="">All Priorities</option>
+        <option>Critical</option>
+        <option>High</option>
+        <option>Medium</option>
+        <option>Low</option>
+      </select>
+    `;
+    filtersContainer.appendChild(priDiv);
+    
+    // Category
+    const catDiv = document.createElement('div');
+    catDiv.className = 'form-group';
+    catDiv.innerHTML = `
+      <label>Category</label>
+      <select id="cr-filter-category" class="form-input">
+        <option value="">All Categories</option>
+        ${(typeof CATEGORIES !== 'undefined' ? CATEGORIES : []).map(c => `<option>${c}</option>`).join('')}
+      </select>
+    `;
+    filtersContainer.appendChild(catDiv);
+    
+    // Agent
+    const agentDiv = document.createElement('div');
+    agentDiv.className = 'form-group';
+    agentDiv.innerHTML = `
+      <label>Agent</label>
+      <select id="cr-filter-agent" class="form-input">
+        <option value="">All Agents</option>
+        ${(typeof AGENTS !== 'undefined' ? AGENTS : []).map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
+      </select>
+    `;
+    filtersContainer.appendChild(agentDiv);
+    
+  } else if (source === 'assets') {
+    // Status
+    const statusDiv = document.createElement('div');
+    statusDiv.className = 'form-group';
+    statusDiv.innerHTML = `
+      <label>Status</label>
+      <select id="cr-filter-status" class="form-input">
+        <option value="">All Statuses</option>
+        <option>Ready to Deploy</option>
+        <option>Deployed</option>
+        <option>Archived</option>
+      </select>
+    `;
+    filtersContainer.appendChild(statusDiv);
+    
+    // Category
+    const catDiv = document.createElement('div');
+    catDiv.className = 'form-group';
+    catDiv.innerHTML = `
+      <label>Category</label>
+      <select id="cr-filter-category" class="form-input">
+        <option value="">All Categories</option>
+        <option>Hardware</option>
+        <option>Software</option>
+      </select>
+    `;
+    filtersContainer.appendChild(catDiv);
+    
+    // Vendor
+    const vendors = (typeof loadVendors === 'function') ? loadVendors() : [];
+    const vendorNames = [...new Set(vendors.map(v => v.name))];
+    const vendDiv = document.createElement('div');
+    vendDiv.className = 'form-group';
+    vendDiv.innerHTML = `
+      <label>Vendor</label>
+      <select id="cr-filter-vendor" class="form-input">
+        <option value="">All Vendors</option>
+        ${vendorNames.map(v => `<option>${v}</option>`).join('')}
+      </select>
+    `;
+    filtersContainer.appendChild(vendDiv);
+    
+  } else if (source === 'audit') {
+    // Action Type
+    const actionDiv = document.createElement('div');
+    actionDiv.className = 'form-group';
+    actionDiv.innerHTML = `
+      <label>Action Type</label>
+      <select id="cr-filter-action" class="form-input">
+        <option value="">All Action Types</option>
+        <option value="created">Created</option>
+        <option value="status">Status Changes</option>
+        <option value="assigned">Assignments</option>
+        <option value="comment">Comments / Notes</option>
+        <option value="escalated">Escalated</option>
+        <option value="closed">Closed</option>
+        <option value="asset">Asset Operations</option>
+      </select>
+    `;
+    filtersContainer.appendChild(actionDiv);
+    
+    // Actor Search
+    const actorDiv = document.createElement('div');
+    actorDiv.className = 'form-group';
+    actorDiv.innerHTML = `
+      <label>Actor Name</label>
+      <input type="text" id="cr-filter-actor" class="form-input" placeholder="e.g. Sarah Chen"/>
+    `;
+    filtersContainer.appendChild(actorDiv);
+    
+  } else if (source === 'users') {
+    // Status
+    const statusDiv = document.createElement('div');
+    statusDiv.className = 'form-group';
+    statusDiv.innerHTML = `
+      <label>Status</label>
+      <select id="cr-filter-status" class="form-input">
+        <option value="">All Statuses</option>
+        <option value="active">Active</option>
+        <option value="suspended">Suspended</option>
+        <option value="pending">Pending</option>
+      </select>
+    `;
+    filtersContainer.appendChild(statusDiv);
+    
+    // Department
+    const deptsList = typeof DEPTS !== 'undefined' ? DEPTS : ['Engineering','Marketing','Finance','HR','Sales','Operations','Design','Legal'];
+    const deptDiv = document.createElement('div');
+    deptDiv.className = 'form-group';
+    deptDiv.innerHTML = `
+      <label>Department</label>
+      <select id="cr-filter-dept" class="form-input">
+        <option value="">All Departments</option>
+        ${deptsList.map(d => `<option>${d}</option>`).join('')}
+      </select>
+    `;
+    filtersContainer.appendChild(deptDiv);
+    
+    // Role
+    const roles = (typeof loadRoles === 'function') ? loadRoles() : [];
+    const roleDiv = document.createElement('div');
+    roleDiv.className = 'form-group';
+    roleDiv.innerHTML = `
+      <label>Role</label>
+      <select id="cr-filter-role" class="form-input">
+        <option value="">All Roles</option>
+        ${roles.map(r => `<option value="${r.key}">${r.name}</option>`).join('')}
+      </select>
+    `;
+    filtersContainer.appendChild(roleDiv);
+  }
+}
+
+function generateCustomReport() {
+  const source = document.getElementById('custom-report-source').value;
+  const startDateVal = document.getElementById('custom-report-start-date').value;
+  const endDateVal = document.getElementById('custom-report-end-date').value;
+  
+  const startDate = startDateVal ? new Date(startDateVal) : null;
+  const endDate = endDateVal ? new Date(endDateVal) : null;
+  if (endDate) endDate.setHours(23, 59, 59, 999);
+  
+  const checkedCheckboxes = document.querySelectorAll('input[name="custom-col"]:checked');
+  const activeColumns = Array.from(checkedCheckboxes).map(cb => cb.value);
+  
+  if (activeColumns.length === 0) {
+    if (typeof showToast === 'function') {
+      showToast('Please select at least one column to display.', 'error');
+    } else {
+      alert('Please select at least one column to display.');
+    }
+    return;
+  }
+  
+  let rawData = [];
+  if (source === 'tickets') {
+    rawData = loadTickets();
+  } else if (source === 'assets') {
+    rawData = (typeof loadAssets === 'function') ? loadAssets() : [];
+  } else if (source === 'audit') {
+    const tickets = loadTickets();
+    const ticketsAudits = [];
+    tickets.forEach(t => {
+      if (Array.isArray(t.auditLog)) {
+        t.auditLog.forEach(log => {
+          ticketsAudits.push({
+            id: t.id,
+            subject: t.subject,
+            time: log.time,
+            by: log.by || 'System',
+            action: log.action,
+            type: 'ticket'
+          });
+        });
+      }
+    });
+    const systemLogs = (typeof loadSystemAuditLogs === 'function') ? loadSystemAuditLogs() : [];
+    const systemAudits = systemLogs.map(log => ({
+      id: log.refId || 'System',
+      subject: log.type === 'asset' ? 'Asset Action' : 'System Action',
+      time: log.time,
+      by: log.by || 'System',
+      action: log.action,
+      type: log.type || 'asset'
+    }));
+    rawData = [...ticketsAudits, ...systemAudits];
+    rawData.sort((a, b) => new Date(b.time) - new Date(a.time));
+  } else if (source === 'users') {
+    rawData = (typeof loadUsers === 'function') ? loadUsers() : [];
+  }
+  
+  const filtered = rawData.filter(item => {
+    // 1. Date filter
+    let itemDate = null;
+    if (source === 'tickets') itemDate = new Date(item.created);
+    else if (source === 'assets') itemDate = item.purchaseDate ? new Date(item.purchaseDate) : null;
+    else if (source === 'audit') itemDate = new Date(item.time);
+    else if (source === 'users') itemDate = item.created ? new Date(item.created) : null;
+    
+    if (itemDate) {
+      if (startDate && itemDate < startDate) return false;
+      if (endDate && itemDate > endDate) return false;
+    } else if (startDate || endDate) {
+      return false;
+    }
+    
+    // 2. Source-specific filters
+    if (source === 'tickets') {
+      const fStatus = document.getElementById('cr-filter-status').value;
+      const fPriority = document.getElementById('cr-filter-priority').value;
+      const fCategory = document.getElementById('cr-filter-category').value;
+      const fAgent = document.getElementById('cr-filter-agent').value;
+      
+      if (fStatus && item.status !== fStatus) return false;
+      if (fPriority && item.priority !== fPriority) return false;
+      if (fCategory && item.category !== fCategory) return false;
+      if (fAgent && item.agentId !== fAgent) return false;
+      
+    } else if (source === 'assets') {
+      const fStatus = document.getElementById('cr-filter-status').value;
+      const fCategory = document.getElementById('cr-filter-category').value;
+      const fVendor = document.getElementById('cr-filter-vendor').value;
+      
+      if (fStatus && item.status !== fStatus) return false;
+      if (fCategory && item.category !== fCategory) return false;
+      if (fVendor && item.vendor !== fVendor) return false;
+      
+    } else if (source === 'audit') {
+      const fAction = document.getElementById('cr-filter-action').value;
+      const fActor = document.getElementById('cr-filter-actor').value.trim().toLowerCase();
+      
+      if (fAction) {
+        if (fAction === 'asset') {
+          if (item.type !== 'asset') return false;
+        } else {
+          if (item.type !== 'ticket') return false;
+          const act = item.action.toLowerCase();
+          if (fAction === 'created' && !act.includes('created') && !act.includes('submitted')) return false;
+          if (fAction === 'status' && !act.includes('status changed')) return false;
+          if (fAction === 'assigned' && !act.includes('assigned')) return false;
+          if (fAction === 'comment' && !act.includes('comment') && !act.includes('note')) return false;
+          if (fAction === 'escalated' && !act.includes('escalated')) return false;
+          if (fAction === 'closed' && !act.includes('closed')) return false;
+        }
+      }
+      if (fActor && !item.by.toLowerCase().includes(fActor)) return false;
+      
+    } else if (source === 'users') {
+      const fStatus = document.getElementById('cr-filter-status').value;
+      const fDept = document.getElementById('cr-filter-dept').value;
+      const fRole = document.getElementById('cr-filter-role').value;
+      
+      if (fStatus && item.status !== fStatus) return false;
+      if (fDept && item.dept !== fDept) return false;
+      if (fRole && item.role !== fRole) return false;
+    }
+    
+    return true;
+  });
+  
+  currentGeneratedReportData = {
+    source,
+    columns: activeColumns,
+    records: filtered
+  };
+  
+  renderCustomReportPreview();
+}
+
+function renderCustomReportPreview() {
+  const panel = document.getElementById('custom-report-preview-panel');
+  const label = document.getElementById('custom-report-preview-label');
+  const thead = document.getElementById('custom-report-preview-thead');
+  const tbody = document.getElementById('custom-report-preview-tbody');
+  
+  if (!panel || !label || !thead || !tbody || !currentGeneratedReportData) return;
+  
+  const { source, columns, records } = currentGeneratedReportData;
+  
+  label.textContent = `${records.length} record${records.length === 1 ? '' : 's'} matching criteria`;
+  panel.style.display = 'block';
+  
+  let allCols = [];
+  if (source === 'tickets') allCols = TICKET_COLUMNS;
+  else if (source === 'assets') allCols = ASSET_COLUMNS;
+  else if (source === 'audit') allCols = AUDIT_COLUMNS;
+  else if (source === 'users') allCols = USER_COLUMNS;
+  
+  const activeColObjs = columns.map(k => allCols.find(c => c.key === k)).filter(Boolean);
+  
+  thead.innerHTML = `<tr>${activeColObjs.map(c => `<th>${c.name}</th>`).join('')}</tr>`;
+  
+  if (records.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${activeColObjs.length}" style="text-align:center;color:var(--text-muted);padding:30px">No matching records found.</td></tr>`;
+    return;
+  }
+  
+  tbody.innerHTML = records.map(item => {
+    const cells = activeColObjs.map(col => {
+      let val = '';
+      
+      if (source === 'tickets') {
+        if (col.key === 'id') val = `<span class="ticket-id">${item.id}</span>`;
+        else if (col.key === 'subject') val = `<span class="ticket-subject" title="${item.subject}">${item.subject}</span>`;
+        else if (col.key === 'agent') val = item.agentId ? getAgentName(item.agentId) : '<span style="color:var(--text-muted)">Unassigned</span>';
+        else if (col.key === 'created') val = new Date(item.created).toLocaleDateString();
+        else if (col.key === 'sla') {
+          const sla = loadSLA();
+          const slaRem = calcSLARemaining(item, sla);
+          if (slaRem === null) val = '<span class="sla-ok">—</span>';
+          else if (slaRem < 0) val = `<span class="sla-breach">⚠ Breached</span>`;
+          else if (slaRem < 2) val = `<span class="sla-warn">${slaRem.toFixed(1)}h left</span>`;
+          else val = `<span class="sla-ok">${slaRem.toFixed(0)}h left</span>`;
+        }
+        else if (col.key === 'status') {
+          const cls = { 'Open':'badge-open','In Progress':'badge-inprogress','Resolved':'badge-resolved','Closed':'badge-closed' }[item.status];
+          val = `<span class="badge ${cls||''}">${item.status}</span>`;
+        }
+        else if (col.key === 'priority') {
+          const cls = { 'Critical':'badge-critical','High':'badge-high','Medium':'badge-medium','Low':'badge-low' }[item.priority];
+          val = `<span class="badge ${cls||''}">${item.priority}</span>`;
+        }
+        else val = item[col.key] || '—';
+        
+      } else if (source === 'assets') {
+        if (col.key === 'id') val = `<span style="font-family:monospace;font-weight:700;">${item.id}</span>`;
+        else if (col.key === 'warranty') val = item.warrantyMonths ? `${item.warrantyMonths} months` : '—';
+        else if (col.key === 'purchaseDate') val = item.purchaseDate ? new Date(item.purchaseDate).toLocaleDateString() : '—';
+        else if (col.key === 'assignedTo') val = item.assignedTo || '<span style="color:var(--text-muted)">Unassigned</span>';
+        else if (col.key === 'status') {
+          const dot = item.status === 'Ready to Deploy' ? 'online' : item.status === 'Deployed' ? 'busy' : 'offline';
+          val = `<span style="display:flex;align-items:center;gap:6px"><span class="status-dot dot-${dot}"></span>${item.status}</span>`;
+        }
+        else val = item[col.key] || '—';
+        
+      } else if (source === 'audit') {
+        if (col.key === 'time') val = new Date(item.time).toLocaleString();
+        else if (col.key === 'id') val = `<span style="font-family:monospace;font-weight:700;">${item.id}</span>`;
+        else if (col.key === 'action') val = `<div style="font-weight:600">${item.action}</div>`;
+        else val = item[col.key] || '—';
+        
+      } else if (source === 'users') {
+        if (col.key === 'name') val = `<strong>${item.fname} ${item.lname}</strong>`;
+        else if (col.key === 'ticketsCount') {
+          const count = (typeof userTicketCount === 'function') ? userTicketCount(item.email) : 0;
+          val = `<span style="font-weight:600">${count}</span>`;
+        }
+        else if (col.key === 'lastActive') {
+          const la = (typeof lastActiveLabel === 'function') ? lastActiveLabel(item.lastActive) : { label: item.lastActive || '—', cls: 'dot-offline' };
+          val = `<span style="display:inline-flex;align-items:center;gap:6px"><span class="activity-dot ${la.cls}"></span>${la.label}</span>`;
+        }
+        else if (col.key === 'created') val = item.created ? new Date(item.created).toLocaleDateString() : '—';
+        else if (col.key === 'status') {
+          const cls = { active:'badge-active', suspended:'badge-suspended', pending:'badge-pending' }[item.status]||'';
+          val = `<span class="badge ${cls}">${item.status.charAt(0).toUpperCase()+item.status.slice(1)}</span>`;
+        }
+        else if (col.key === 'role') {
+          const roles = (typeof loadRoles === 'function') ? loadRoles() : [];
+          const roleObj = roles.find(r => r.key === item.role) || { name: item.role, color: 'gray' };
+          let badgeStyle = '';
+          if (roleObj.color === 'red') badgeStyle = 'background:var(--red-glow);color:var(--accent-red);';
+          else if (roleObj.color === 'blue') badgeStyle = 'background:var(--blue-glow);color:var(--accent-blue);';
+          else if (roleObj.color === 'green') badgeStyle = 'background:var(--green-glow);color:var(--accent-green);';
+          else if (roleObj.color === 'orange') badgeStyle = 'background:var(--orange-glow);color:var(--accent-orange);';
+          else if (roleObj.color === 'purple') badgeStyle = 'background:var(--purple-glow);color:var(--accent-purple);';
+          else badgeStyle = 'background:var(--bg-elevated);color:var(--text-secondary);';
+          val = `<span class="role-pill" style="${badgeStyle}">${roleObj.name}</span>`;
+        }
+        else val = item[col.key] || '—';
+      }
+      
+      return `<td>${val}</td>`;
+    }).join('');
+    
+    return `<tr>${cells}</tr>`;
+  }).join('');
+}
+
+function resetCustomReportFilters() {
+  document.getElementById('custom-report-start-date').value = '';
+  document.getElementById('custom-report-end-date').value = '';
+  
+  const source = document.getElementById('custom-report-source').value;
+  if (source === 'tickets') {
+    document.getElementById('cr-filter-status').value = '';
+    document.getElementById('cr-filter-priority').value = '';
+    document.getElementById('cr-filter-category').value = '';
+    document.getElementById('cr-filter-agent').value = '';
+  } else if (source === 'assets') {
+    document.getElementById('cr-filter-status').value = '';
+    document.getElementById('cr-filter-category').value = '';
+    document.getElementById('cr-filter-vendor').value = '';
+  } else if (source === 'audit') {
+    document.getElementById('cr-filter-action').value = '';
+    document.getElementById('cr-filter-actor').value = '';
+  } else if (source === 'users') {
+    document.getElementById('cr-filter-status').value = '';
+    document.getElementById('cr-filter-dept').value = '';
+    document.getElementById('cr-filter-role').value = '';
+  }
+}
+
+function exportCustomReportToCSV() {
+  if (!currentGeneratedReportData || currentGeneratedReportData.records.length === 0) {
+    if (typeof showToast === 'function') {
+      showToast('No report data available to export. Please generate a report first.', 'warning');
+    } else {
+      alert('No report data available to export. Please generate a report first.');
+    }
+    return;
+  }
+  
+  const { source, columns, records } = currentGeneratedReportData;
+  
+  let allCols = [];
+  if (source === 'tickets') allCols = TICKET_COLUMNS;
+  else if (source === 'assets') allCols = ASSET_COLUMNS;
+  else if (source === 'audit') allCols = AUDIT_COLUMNS;
+  else if (source === 'users') allCols = USER_COLUMNS;
+  
+  const activeColObjs = columns.map(k => allCols.find(c => c.key === k)).filter(Boolean);
+  
+  let csvContent = activeColObjs.map(c => `"${c.name.replace(/"/g, '""')}"`).join(',') + '\r\n';
+  
+  records.forEach(item => {
+    const rowStr = activeColObjs.map(col => {
+      let val = '';
+      if (source === 'tickets') {
+        if (col.key === 'agent') val = item.agentId ? getAgentName(item.agentId) : 'Unassigned';
+        else if (col.key === 'created') val = new Date(item.created).toISOString();
+        else if (col.key === 'sla') {
+          const sla = loadSLA();
+          const slaRem = calcSLARemaining(item, sla);
+          if (slaRem === null) val = '—';
+          else if (slaRem < 0) val = 'Breached';
+          else val = `${slaRem.toFixed(1)}h left`;
+        }
+        else val = item[col.key] || '';
+      } else if (source === 'assets') {
+        if (col.key === 'warranty') val = item.warrantyMonths ? `${item.warrantyMonths} months` : '';
+        else if (col.key === 'purchaseDate') val = item.purchaseDate || '';
+        else val = item[col.key] || '';
+      } else if (source === 'audit') {
+        if (col.key === 'time') val = new Date(item.time).toISOString();
+        else val = item[col.key] || '';
+      } else if (source === 'users') {
+        if (col.key === 'name') val = `${item.fname} ${item.lname}`;
+        else if (col.key === 'ticketsCount') val = (typeof userTicketCount === 'function') ? userTicketCount(item.email) : 0;
+        else if (col.key === 'lastActive') val = item.lastActive || 'Never';
+        else val = item[col.key] || '';
+      }
+      
+      const escaped = String(val).replace(/"/g, '""');
+      return `"${escaped}"`;
+    }).join(',');
+    
+    csvContent += rowStr + '\r\n';
+  });
+  
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `HelpDesk_Custom_Report_${source}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  if (typeof showToast === 'function') {
+    showToast("Custom Report CSV downloaded!", "success");
   }
 }
 

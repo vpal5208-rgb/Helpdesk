@@ -17,6 +17,33 @@
 <link rel="stylesheet" href="css/users.css?v=12"/>
 <link rel="stylesheet" href="css/portal.css?v=3"/>
 <link rel="stylesheet" href="css/chat.css?v=4"/>
+<style>
+@media print {
+  body, html { background: #fff !important; color: #000 !important; }
+  aside.sidebar, header.topbar, .toggle-group, .settings-tabs, .settings-card, .btn, .table-toolbar, .filter-bar, .pagination, .table-footer, .modal-overlay { display: none !important; }
+  .main-content { margin-left: 0 !important; padding: 0 !important; width: 100% !important; }
+  .views-container { padding: 0 !important; }
+  .view { display: none !important; }
+  .view.active { display: block !important; }
+  .view.active .view-header { display: block !important; margin-bottom: 20px !important; }
+  .view.active .view-header div, .view.active .view-header h1, .view.active .view-header p { display: block !important; }
+  .view.active .view-header .btn, .view.active .view-header .toggle-group { display: none !important; }
+  
+  .table-card { border: none !important; background: transparent !important; }
+  .tickets-table { border: 1px solid #ddd !important; width: 100% !important; border-collapse: collapse !important; }
+  .tickets-table th, .tickets-table td { border: 1px solid #ddd !important; color: #000 !important; background: #fff !important; padding: 8px !important; font-size: 10pt !important; }
+  .tickets-table td a { color: #000 !important; text-decoration: none !important; }
+}
+#custom-report-preview-table td {
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#custom-report-preview-table th {
+  white-space: nowrap;
+}
+</style>
 </head>
 <body>
 
@@ -363,10 +390,82 @@ function adminLogout() {
           <button class="btn btn-primary" id="export-reports-pdf-btn">🖨 Print / Save PDF</button>
         </div>
       </div>
-      <div class="reports-grid">
-        <div class="chart-card wide"><div class="chart-header"><h3>Monthly Ticket Trend</h3></div><canvas id="chart-monthly" height="220"></canvas></div>
-        <div class="chart-card"><div class="chart-header"><h3>Resolution Rate</h3></div><canvas id="chart-resolution" height="220"></canvas></div>
-        <div class="chart-card wide"><div class="chart-header"><h3>Agent Performance</h3></div><canvas id="chart-agent-perf" height="220"></canvas></div>
+
+      <!-- Reports View Navigation Tabs -->
+      <div class="settings-tabs" id="reports-view-tabs" style="margin-bottom: 20px; display: flex; width: 100%;">
+        <button class="settings-tab active" data-report-view="standard">📈 Standard Reports</button>
+        <button class="settings-tab" data-report-view="custom">🛠️ Custom Report Builder</button>
+      </div>
+
+      <!-- Standard Reports Container -->
+      <div id="reports-standard-container">
+        <div class="reports-grid">
+          <div class="chart-card wide"><div class="chart-header"><h3>Monthly Ticket Trend</h3></div><canvas id="chart-monthly" height="220"></canvas></div>
+          <div class="chart-card"><div class="chart-header"><h3>Resolution Rate</h3></div><canvas id="chart-resolution" height="220"></canvas></div>
+          <div class="chart-card wide"><div class="chart-header"><h3>Agent Performance</h3></div><canvas id="chart-agent-perf" height="220"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Custom Report Builder Container -->
+      <div id="reports-custom-container" style="display: none;">
+        <div class="settings-card" style="margin-bottom: 20px; max-width: 100%;">
+          <h3 style="margin-top: 0;">Custom Report Builder</h3>
+          <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:16px;">Configure the data source, filters, and fields to generate a custom table report.</p>
+          
+          <div class="email-form-grid" style="padding: 0; margin-bottom: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+            <div class="form-group">
+              <label for="custom-report-source">Data Source *</label>
+              <select id="custom-report-source" class="form-input">
+                <option value="tickets" selected>Tickets</option>
+                <option value="assets">Assets</option>
+                <option value="audit">Audit Logs</option>
+                <option value="users">Users</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Date Range (Created / Purchase / Timestamp)</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="date" id="custom-report-start-date" class="form-input" style="padding: 8px 10px;"/>
+                <input type="date" id="custom-report-end-date" class="form-input" style="padding: 8px 10px;"/>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Dynamic Filters Grid -->
+          <div id="custom-report-filters" class="email-form-grid" style="padding: 0; margin-bottom: 16px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
+            <!-- Will be populated dynamically based on source -->
+          </div>
+          
+          <!-- Columns Selection Checklist -->
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label>Columns to Include *</label>
+            <div id="custom-report-columns" style="display: flex; flex-wrap: wrap; gap: 10px 18px; padding: 12px 16px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);">
+              <!-- Will be populated dynamically -->
+            </div>
+          </div>
+          
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary" id="btn-custom-report-generate">⚡ Generate Report</button>
+            <button class="btn btn-ghost" id="btn-custom-report-reset">Clear Filters</button>
+          </div>
+        </div>
+        
+        <!-- Preview Panel -->
+        <div class="table-card" id="custom-report-preview-panel" style="display: none;">
+          <div class="table-toolbar">
+            <span id="custom-report-preview-label" style="font-weight:600">0 records matching criteria</span>
+          </div>
+          <div class="table-wrapper" style="overflow-x: auto;">
+            <table class="tickets-table" id="custom-report-preview-table" style="width: 100%; min-width: 600px; border-collapse: collapse;">
+              <thead id="custom-report-preview-thead">
+                <!-- Dynamically populated -->
+              </thead>
+              <tbody id="custom-report-preview-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -2107,18 +2206,18 @@ support@company.com | +1 (800) 555-0199</textarea>
 <!-- Toast container -->
 <div class="toast-container" id="toast-container"></div>
 
-<script src="js/data.js?v=37"></script>
-<script src="js/tickets.js?v=37"></script>
-<script src="js/dashboard.js?v=37"></script>
-<script src="js/ui.js?v=37"></script>
-<script src="js/email.js?v=37"></script>
-<script src="js/roles.js?v=37"></script>
-<script src="js/users.js?v=37"></script>
-<script src="js/audit.js?v=37"></script>
-<script src="js/chat.js?v=37"></script>
-<script src="js/sso.js?v=37"></script>
-<script src="js/kb.js?v=37"></script>
-<script src="js/assets.js?v=37"></script>
-<script src="js/app.js?v=37"></script>
+<script src="js/data.js?v=38"></script>
+<script src="js/tickets.js?v=38"></script>
+<script src="js/dashboard.js?v=38"></script>
+<script src="js/ui.js?v=38"></script>
+<script src="js/email.js?v=38"></script>
+<script src="js/roles.js?v=38"></script>
+<script src="js/users.js?v=38"></script>
+<script src="js/audit.js?v=38"></script>
+<script src="js/chat.js?v=38"></script>
+<script src="js/sso.js?v=38"></script>
+<script src="js/kb.js?v=38"></script>
+<script src="js/assets.js?v=38"></script>
+<script src="js/app.js?v=38"></script>
 </body>
 </html>
