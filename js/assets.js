@@ -1156,7 +1156,7 @@ function saveAssetFromModal() {
     const vendors = typeof loadVendors === 'function' ? loadVendors() : [];
     const exists = vendors.some(v => v.name.toLowerCase() === customVendorName.toLowerCase());
     if (!exists) {
-      vendors.push({ name: customVendorName, details: vendorDetails });
+      vendors.push({ name: customVendorName, email: '', contact: '', gst: '', address: '', details: vendorDetails });
       if (typeof saveVendors === 'function') saveVendors(vendors);
     }
   }
@@ -1538,7 +1538,10 @@ function openVendorsModal() {
   // Reset form
   document.getElementById('vendorm-id').value = '';
   document.getElementById('vendorm-name').value = '';
-  document.getElementById('vendorm-details').value = '';
+  document.getElementById('vendorm-email').value = '';
+  document.getElementById('vendorm-contact').value = '';
+  document.getElementById('vendorm-gst').value = '';
+  document.getElementById('vendorm-address').value = '';
   document.getElementById('vendor-form-title').textContent = '➕ Add New Vendor';
   const saveBtn = document.getElementById('btn-save-vendor');
   if (saveBtn) saveBtn.textContent = 'Add Vendor';
@@ -1562,7 +1565,7 @@ function renderVendorsList() {
   if (vendors.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="3" style="padding: 12px; text-align: center; color: var(--text-secondary);">
+        <td colspan="4" style="padding: 12px; text-align: center; color: var(--text-secondary);">
           No vendors configured.
         </td>
       </tr>
@@ -1573,10 +1576,31 @@ function renderVendorsList() {
   vendors.forEach((v, index) => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '1px solid var(--border)';
+    
+    // Display GST nicely
+    const gstHtml = v.gst ? `<div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">GST: ${escapeHTML(v.gst)}</div>` : '';
+    
+    // Display Contact details
+    let contactParts = [];
+    if (v.email) contactParts.push(`<div style="font-size: 0.8rem; color: var(--text-primary);">${escapeHTML(v.email)}</div>`);
+    if (v.contact) contactParts.push(`<div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 1px;">${escapeHTML(v.contact)}</div>`);
+    const contactHtml = contactParts.length > 0 ? contactParts.join('') : '<span style="color: var(--text-muted);">-</span>';
+
+    // Display Address / details
+    const addressHtml = v.address ? escapeHTML(v.address) : (v.details && !v.email && !v.contact && !v.gst ? escapeHTML(v.details) : '-');
+
     tr.innerHTML = `
-      <td style="padding: 8px 12px; font-weight: 600; color: var(--text-primary);">${v.name}</td>
-      <td style="padding: 8px 12px; color: var(--text-secondary); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${v.details || '-'}</td>
-      <td style="padding: 8px 12px; text-align: right; white-space: nowrap;">
+      <td style="padding: 8px 12px; font-weight: 600; color: var(--text-primary); vertical-align: middle;">
+        <div>${escapeHTML(v.name)}</div>
+        ${gstHtml}
+      </td>
+      <td style="padding: 8px 12px; vertical-align: middle;">
+        ${contactHtml}
+      </td>
+      <td style="padding: 8px 12px; color: var(--text-secondary); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;" title="${addressHtml}">
+        ${addressHtml}
+      </td>
+      <td style="padding: 8px 12px; text-align: right; white-space: nowrap; vertical-align: middle;">
         <button class="btn btn-ghost btn-sm" onclick="editVendorRecord(${index})" title="Edit" style="padding: 2px 6px; margin-right: 4px;">✏️</button>
         <button class="btn btn-ghost btn-sm" onclick="deleteVendorRecord(${index})" title="Delete" style="padding: 2px 6px; color: var(--btn-danger-bg);">🗑️</button>
       </td>
@@ -1588,7 +1612,10 @@ function renderVendorsList() {
 function saveVendor() {
   const indexStr = document.getElementById('vendorm-id').value;
   const name = document.getElementById('vendorm-name').value.trim();
-  const details = document.getElementById('vendorm-details').value.trim();
+  const email = document.getElementById('vendorm-email').value.trim();
+  const contact = document.getElementById('vendorm-contact').value.trim();
+  const gst = document.getElementById('vendorm-gst').value.trim();
+  const address = document.getElementById('vendorm-address').value.trim();
 
   if (!name) {
     if (typeof showToast === 'function') {
@@ -1598,13 +1625,23 @@ function saveVendor() {
   }
 
   const vendors = typeof loadVendors === 'function' ? loadVendors() : [];
+  const vendorObj = { name, email, contact, gst, address };
+
+  // Calculate formatted details for backward compatibility/cascading updates
+  let detailsParts = [];
+  if (email) detailsParts.push(`Email: ${email}`);
+  if (contact) detailsParts.push(`Contact: ${contact}`);
+  if (gst) detailsParts.push(`GST: ${gst}`);
+  if (address) detailsParts.push(`Address: ${address}`);
+  const detailsStr = detailsParts.length > 0 ? detailsParts.join(' | ') : '';
+  vendorObj.details = detailsStr;
 
   if (indexStr !== '') {
     // Edit vendor
     const idx = parseInt(indexStr, 10);
     if (vendors[idx]) {
       const oldName = vendors[idx].name;
-      vendors[idx] = { name, details };
+      vendors[idx] = vendorObj;
       
       // Cascading update to assets that use this vendor
       const assets = typeof loadAssets === 'function' ? loadAssets() : [];
@@ -1612,7 +1649,7 @@ function saveVendor() {
       assets.forEach(asset => {
         if (asset.vendor === oldName) {
           asset.vendor = name;
-          asset.vendorDetails = details;
+          asset.vendorDetails = detailsStr;
           updatedAssets = true;
         }
       });
@@ -1629,7 +1666,7 @@ function saveVendor() {
       }
       return;
     }
-    vendors.push({ name, details });
+    vendors.push(vendorObj);
   }
 
   if (typeof saveVendors === 'function') saveVendors(vendors);
@@ -1637,7 +1674,10 @@ function saveVendor() {
   // Clear form
   document.getElementById('vendorm-id').value = '';
   document.getElementById('vendorm-name').value = '';
-  document.getElementById('vendorm-details').value = '';
+  document.getElementById('vendorm-email').value = '';
+  document.getElementById('vendorm-contact').value = '';
+  document.getElementById('vendorm-gst').value = '';
+  document.getElementById('vendorm-address').value = '';
   document.getElementById('vendor-form-title').textContent = '➕ Add New Vendor';
   const saveBtn = document.getElementById('btn-save-vendor');
   if (saveBtn) saveBtn.textContent = 'Add Vendor';
@@ -1654,8 +1694,11 @@ function editVendorRecord(index) {
   if (!v) return;
 
   document.getElementById('vendorm-id').value = index;
-  document.getElementById('vendorm-name').value = v.name;
-  document.getElementById('vendorm-details').value = v.details || '';
+  document.getElementById('vendorm-name').value = v.name || '';
+  document.getElementById('vendorm-email').value = v.email || '';
+  document.getElementById('vendorm-contact').value = v.contact || '';
+  document.getElementById('vendorm-gst').value = v.gst || '';
+  document.getElementById('vendorm-address').value = v.address || '';
   document.getElementById('vendor-form-title').textContent = '✏️ Edit Vendor';
   
   const saveBtn = document.getElementById('btn-save-vendor');

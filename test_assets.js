@@ -896,6 +896,122 @@ const server = app.listen(3000, async () => {
             await delay(1000);
         }
 
+        // --- PART 2.11: Manage Vendors Registry E2E tests ---
+        console.log('\n--- PART 2.11: Manage Vendors Registry E2E tests ---');
+        console.log('Opening Manage Vendors modal...');
+        await page.click('#btn-manage-vendors');
+        await delay(1000);
+
+        const isVendorsModalOpen = await page.evaluate(() => {
+            const modal = document.getElementById('vendors-modal-overlay');
+            return modal && modal.style.display === 'flex';
+        });
+        if (!isVendorsModalOpen) {
+            console.error('FAIL: Manage Vendors modal did not open.');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Manage Vendors modal opened successfully!');
+        }
+
+        console.log('Adding new vendor details...');
+        await page.evaluate(() => {
+            document.getElementById('vendorm-name').value = 'Tech Vijay';
+            document.getElementById('vendorm-email').value = 'vijay@tech.com';
+            document.getElementById('vendorm-contact').value = '+91-9876543210';
+            document.getElementById('vendorm-gst').value = '22VIJAY1234A1Z5';
+            document.getElementById('vendorm-address').value = 'Vijay Towers, Sector 62, Noida';
+            document.getElementById('btn-save-vendor').click();
+        });
+        await delay(1000);
+
+        const vendorListText = await page.evaluate(() => {
+            return document.getElementById('vendors-list-tbody').innerText;
+        });
+        console.log('Vendor List Text:', vendorListText);
+        if (!vendorListText.includes('Tech Vijay') || !vendorListText.includes('GST: 22VIJAY1234A1Z5') || !vendorListText.includes('vijay@tech.com')) {
+            console.error('FAIL: New vendor with detailed fields not added/rendered in registry list.');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: New vendor added to registry successfully!');
+        }
+
+        console.log('Editing the new vendor...');
+        await page.evaluate(() => {
+            const tbody = document.getElementById('vendors-list-tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const row = rows.find(r => r.innerText.includes('Tech Vijay'));
+            if (row) {
+                const editBtn = row.querySelector('button[title="Edit"]');
+                if (editBtn) editBtn.click();
+            }
+        });
+        await delay(1000);
+
+        const formState = await page.evaluate(() => {
+            return {
+                name: document.getElementById('vendorm-name').value,
+                email: document.getElementById('vendorm-email').value,
+                contact: document.getElementById('vendorm-contact').value,
+                gst: document.getElementById('vendorm-gst').value,
+                address: document.getElementById('vendorm-address').value
+            };
+        });
+        console.log('Form State during Edit:', formState);
+        if (formState.name !== 'Tech Vijay' || formState.email !== 'vijay@tech.com' || formState.address !== 'Vijay Towers, Sector 62, Noida') {
+            console.error('FAIL: Edit form not populated correctly with vendor details.');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Edit form populated correctly!');
+        }
+
+        console.log('Updating vendor details...');
+        await page.evaluate(() => {
+            document.getElementById('vendorm-address').value = 'Noida Phase II';
+            document.getElementById('btn-save-vendor').click();
+        });
+        await delay(1000);
+
+        const updatedVendorListText = await page.evaluate(() => {
+            return document.getElementById('vendors-list-tbody').innerText;
+        });
+        if (!updatedVendorListText.includes('Noida Phase II')) {
+            console.error('FAIL: Vendor address not updated in the registry list.');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Vendor address updated successfully!');
+        }
+
+        console.log('Deleting vendor...');
+        await page.evaluate(() => {
+            // Override window.confirm to always return true for deletion
+            window.confirm = () => true;
+            const tbody = document.getElementById('vendors-list-tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const row = rows.find(r => r.innerText.includes('Tech Vijay'));
+            if (row) {
+                const deleteBtn = row.querySelector('button[title="Delete"]');
+                if (deleteBtn) deleteBtn.click();
+            }
+        });
+        await delay(1000);
+
+        const finalVendorListText = await page.evaluate(() => {
+            return document.getElementById('vendors-list-tbody').innerText;
+        });
+        if (finalVendorListText.includes('Tech Vijay')) {
+            console.error('FAIL: Vendor not deleted from registry.');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Vendor deleted from registry successfully!');
+        }
+
+        console.log('Closing Manage Vendors modal...');
+        await page.evaluate(() => {
+            const closeBtn = document.getElementById('vendors-modal-cancel');
+            if (closeBtn) closeBtn.click();
+        });
+        await delay(1000);
+
         // Navigate to Settings
         console.log('Navigating to Settings > Snipe-IT Integration tab...');
         await page.click('button[data-view="settings"]');

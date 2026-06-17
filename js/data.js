@@ -607,11 +607,11 @@ function saveKBArticles(articles) {
 }
 
 const DEFAULT_VENDORS = [
-  { name: 'Dell Direct', details: 'Enterprise hardware vendor. Support: dell-enterprise@company.com' },
-  { name: 'Apple Business', details: 'Apple device deployment. Contact: apple-business@company.com' },
-  { name: 'CDW', details: 'IT infrastructure and volume licensing. Support: sales@cdw.com' },
-  { name: 'Softchoice', details: 'Software licensing & SaaS provider. Contact: support@softchoice.com' },
-  { name: 'Amazon Business', details: 'General peripherals & electronics. Contact: business@amazon.com' }
+  { name: 'Dell Direct', email: 'dell-enterprise@company.com', contact: '+1-800-555-0199', gst: '22DELLD1234A1Z5', address: 'Dell Way, Round Rock, TX', details: 'Email: dell-enterprise@company.com | Contact: +1-800-555-0199 | GST: 22DELLD1234A1Z5 | Address: Dell Way, Round Rock, TX' },
+  { name: 'Apple Business', email: 'apple-business@company.com', contact: '+1-800-MY-APPLE', gst: '22APPLE1234A1Z6', address: 'Infinite Loop, Cupertino, CA', details: 'Email: apple-business@company.com | Contact: +1-800-MY-APPLE | GST: 22APPLE1234A1Z6 | Address: Infinite Loop, Cupertino, CA' },
+  { name: 'CDW', email: 'sales@cdw.com', contact: '+1-800-800-4239', gst: '22CDWGO1234A1Z7', address: 'Milwaukee Ave, Vernon Hills, IL', details: 'Email: sales@cdw.com | Contact: +1-800-800-4239 | GST: 22CDWGO1234A1Z7 | Address: Milwaukee Ave, Vernon Hills, IL' },
+  { name: 'Softchoice', email: 'support@softchoice.com', contact: '+1-800-268-7638', gst: '22SOFTC1234A1Z8', address: 'Yonge St, Toronto, ON', details: 'Email: support@softchoice.com | Contact: +1-800-268-7638 | GST: 22SOFTC1234A1Z8 | Address: Yonge St, Toronto, ON' },
+  { name: 'Amazon Business', email: 'business@amazon.com', contact: '+1-888-281-3847', gst: '22AMAZN1234A1Z9', address: 'Terry Ave N, Seattle, WA', details: 'Email: business@amazon.com | Contact: +1-888-281-3847 | GST: 22AMAZN1234A1Z9 | Address: Terry Ave N, Seattle, WA' }
 ];
 
 function loadVendors() {
