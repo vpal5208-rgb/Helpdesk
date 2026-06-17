@@ -1636,6 +1636,7 @@ support@company.com | +1 (800) 555-0199</textarea>
         <button type="button" class="modal-tab-btn active" data-tab="details" style="flex:1; padding:10px; background:none; border:none; border-bottom:2px solid var(--accent-blue); color:var(--text-primary); font-weight:600; cursor:pointer;">📋 Asset Details</button>
         <button type="button" class="modal-tab-btn" data-tab="history" style="flex:1; padding:10px; background:none; border:none; border-bottom:2px solid transparent; color:var(--text-secondary); font-weight:600; cursor:pointer;">🕰️ History</button>
         <button type="button" class="modal-tab-btn" data-tab="maintenance" style="flex:1; padding:10px; background:none; border:none; border-bottom:2px solid transparent; color:var(--text-secondary); font-weight:600; cursor:pointer;">🔧 Maintenance</button>
+        <button type="button" class="modal-tab-btn" data-tab="depreciation" style="flex:1; padding:10px; background:none; border:none; border-bottom:2px solid transparent; color:var(--text-secondary); font-weight:600; cursor:pointer;">💸 Depreciation</button>
       </div>
 
       <!-- Tab Content: Details -->
@@ -1907,6 +1908,73 @@ support@company.com | +1 (800) 555-0199</textarea>
         </div>
       </div>
 
+      <!-- Tab Content: Depreciation -->
+      <div id="asset-modal-tab-depreciation-content" style="display:none;">
+        <!-- Summary Cards -->
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-bottom:16px;">
+          <div style="background:var(--bg-elevated); border:1px solid var(--border); padding:12px; border-radius:var(--radius-sm); text-align:center;">
+            <span style="font-size:0.75rem; color:var(--text-secondary); display:block; margin-bottom:4px;">Original Cost</span>
+            <span id="assetm-dep-base-cost" style="font-size:1.1rem; font-weight:700; color:var(--text-primary)">₹0.00</span>
+          </div>
+          <div style="background:var(--bg-elevated); border:1px solid var(--border); padding:12px; border-radius:var(--radius-sm); text-align:center;">
+            <span style="font-size:0.75rem; color:var(--text-secondary); display:block; margin-bottom:4px;">Total Depreciation</span>
+            <span id="assetm-dep-total-claimed" style="font-size:1.1rem; font-weight:700; color:var(--accent-red)">₹0.00</span>
+          </div>
+          <div style="background:var(--bg-elevated); border:1px solid var(--border); padding:12px; border-radius:var(--radius-sm); text-align:center;">
+            <span style="font-size:0.75rem; color:var(--text-secondary); display:block; margin-bottom:4px;">Current Book Value (WDV)</span>
+            <span id="assetm-dep-current-wdv" style="font-size:1.1rem; font-weight:700; color:var(--accent-green)">₹0.00</span>
+          </div>
+        </div>
+
+        <!-- Calculator Settings Form -->
+        <div style="background:var(--bg-elevated); border:1px solid var(--border); padding:14px; border-radius:var(--radius); margin-bottom:16px;">
+          <h4 style="margin-top:0; margin-bottom:12px; font-size:0.85rem; color:var(--text-primary); font-weight:700;">⚙️ Income Tax Depreciation Settings</h4>
+          <div class="form-row" style="display:flex; gap:12px; margin-bottom:10px;">
+            <div class="form-group" style="flex:1;">
+              <label style="display:block; margin-bottom:4px; font-size:0.75rem; font-weight:600; color:var(--text-secondary)">Method</label>
+              <select id="assetm-dep-method" class="form-input" style="width:100%; font-size:0.8rem; padding:6px; height:32px;">
+                <option value="WDV">Written Down Value (WDV)</option>
+                <option value="SLM">Straight Line Method (SLM)</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label style="display:block; margin-bottom:4px; font-size:0.75rem; font-weight:600; color:var(--text-secondary)">Rate (%) *</label>
+              <input type="number" id="assetm-dep-rate" class="form-input" style="width:100%; font-size:0.8rem; padding:6px;" value="40" min="0" max="100" step="1"/>
+            </div>
+          </div>
+          <div class="form-row" style="display:flex; gap:12px;">
+            <div class="form-group" style="flex:1;">
+              <label style="display:block; margin-bottom:4px; font-size:0.75rem; font-weight:600; color:var(--text-secondary)">Date Put to Use</label>
+              <input type="date" id="assetm-dep-put-to-use" class="form-input" style="width:100%; font-size:0.8rem; padding:6px;"/>
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label style="display:block; margin-bottom:4px; font-size:0.75rem; font-weight:600; color:var(--text-secondary)">Salvage Value (₹)</label>
+              <input type="number" id="assetm-dep-salvage" class="form-input" style="width:100%; font-size:0.8rem; padding:6px;" min="0" placeholder="Default 10% for SLM" step="0.01"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Schedule Table -->
+        <h4 style="margin:16px 0 10px 0; font-size:0.9rem; font-weight:700;">📊 Projected Depreciation Schedule</h4>
+        <div style="max-height:200px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-sm);">
+          <table style="width:100%; border-collapse:collapse; font-size:0.8rem; text-align:left;">
+            <thead>
+              <tr style="background:var(--bg-elevated); border-bottom:1px solid var(--border);">
+                <th style="padding:8px 12px; color:var(--text-secondary); font-weight:600;">Financial Year</th>
+                <th style="padding:8px 12px; color:var(--text-secondary); font-weight:600;">Opening Cost</th>
+                <th style="padding:8px 12px; color:var(--text-secondary); font-weight:600;">Days Status</th>
+                <th style="padding:8px 12px; color:var(--text-secondary); font-weight:600;">Rate</th>
+                <th style="padding:8px 12px; color:var(--text-secondary); font-weight:600;">Depreciation</th>
+                <th style="padding:8px 12px; color:var(--text-secondary); font-weight:600;">Closing Value</th>
+              </tr>
+            </thead>
+            <tbody id="assetm-dep-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" id="asset-modal-cancel">Cancel</button>
@@ -2039,18 +2107,18 @@ support@company.com | +1 (800) 555-0199</textarea>
 <!-- Toast container -->
 <div class="toast-container" id="toast-container"></div>
 
-<script src="js/data.js?v=36"></script>
-<script src="js/tickets.js?v=36"></script>
-<script src="js/dashboard.js?v=36"></script>
-<script src="js/ui.js?v=36"></script>
-<script src="js/email.js?v=36"></script>
-<script src="js/roles.js?v=36"></script>
-<script src="js/users.js?v=36"></script>
-<script src="js/audit.js?v=36"></script>
-<script src="js/chat.js?v=36"></script>
-<script src="js/sso.js?v=36"></script>
-<script src="js/kb.js?v=36"></script>
-<script src="js/assets.js?v=36"></script>
-<script src="js/app.js?v=36"></script>
+<script src="js/data.js?v=37"></script>
+<script src="js/tickets.js?v=37"></script>
+<script src="js/dashboard.js?v=37"></script>
+<script src="js/ui.js?v=37"></script>
+<script src="js/email.js?v=37"></script>
+<script src="js/roles.js?v=37"></script>
+<script src="js/users.js?v=37"></script>
+<script src="js/audit.js?v=37"></script>
+<script src="js/chat.js?v=37"></script>
+<script src="js/sso.js?v=37"></script>
+<script src="js/kb.js?v=37"></script>
+<script src="js/assets.js?v=37"></script>
+<script src="js/app.js?v=37"></script>
 </body>
 </html>

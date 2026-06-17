@@ -952,6 +952,17 @@ function openAssetModal(id = '') {
     if (btnMarkAudited) {
       btnMarkAudited.style.display = asset.auditFrequency ? 'inline-block' : 'none';
     }
+
+    // Populate depreciation settings
+    const depMethodInput = document.getElementById('assetm-dep-method');
+    const depRateInput = document.getElementById('assetm-dep-rate');
+    const depPutToUseInput = document.getElementById('assetm-dep-put-to-use');
+    const depSalvageInput = document.getElementById('assetm-dep-salvage');
+
+    if (depMethodInput) depMethodInput.value = asset.depreciationMethod || 'WDV';
+    if (depRateInput) depRateInput.value = asset.depreciationRate !== undefined ? asset.depreciationRate : 40;
+    if (depPutToUseInput) depPutToUseInput.value = asset.depreciationPutToUse || asset.purchaseDate || '';
+    if (depSalvageInput) depSalvageInput.value = asset.depreciationSalvage !== undefined ? asset.depreciationSalvage : '';
   } else {
     // Add mode
     titleEl.textContent = '🖥️ Add New Asset';
@@ -1037,6 +1048,19 @@ function openAssetModal(id = '') {
     if (lastAuditDateInput) lastAuditDateInput.value = '';
     if (nextAuditDateInput) nextAuditDateInput.value = '';
     if (btnMarkAudited) btnMarkAudited.style.display = 'none';
+
+    // Initialize depreciation settings in add mode
+    const depMethodInput = document.getElementById('assetm-dep-method');
+    const depRateInput = document.getElementById('assetm-dep-rate');
+    const depPutToUseInput = document.getElementById('assetm-dep-put-to-use');
+    const depSalvageInput = document.getElementById('assetm-dep-salvage');
+
+    if (depMethodInput) depMethodInput.value = 'WDV';
+    if (depRateInput) depRateInput.value = '40';
+    if (depPutToUseInput) {
+      depPutToUseInput.value = new Date().toISOString().split('T')[0];
+    }
+    if (depSalvageInput) depSalvageInput.value = '';
   }
 
   overlay.style.display = 'flex';
@@ -1083,6 +1107,14 @@ function saveAssetFromModal() {
   const auditFrequency = document.getElementById('assetm-audit-frequency')?.value || '';
   const lastAuditDate = document.getElementById('assetm-last-audit-date')?.value || '';
   const nextAuditDate = document.getElementById('assetm-next-audit-date')?.value || '';
+
+  // Retrieve depreciation settings
+  const depreciationMethod = document.getElementById('assetm-dep-method')?.value || 'WDV';
+  const depreciationRateVal = document.getElementById('assetm-dep-rate')?.value;
+  const depreciationRate = depreciationRateVal ? parseFloat(depreciationRateVal) : 40;
+  const depreciationPutToUse = document.getElementById('assetm-dep-put-to-use')?.value || '';
+  const depreciationSalvageVal = document.getElementById('assetm-dep-salvage')?.value;
+  const depreciationSalvage = depreciationSalvageVal ? parseFloat(depreciationSalvageVal) : '';
 
   if (!tag) {
     if (typeof showToast === 'function') {
@@ -1199,7 +1231,11 @@ function saveAssetFromModal() {
     poCopyName,
     auditFrequency,
     lastAuditDate,
-    nextAuditDate
+    nextAuditDate,
+    depreciationMethod,
+    depreciationRate,
+    depreciationPutToUse,
+    depreciationSalvage
   };
 
   let oldStatus = '';
@@ -1860,6 +1896,164 @@ function reportAssetIssue(assetId) {
   }
 }
 
+function calculateDepreciationSchedule(purchaseCost, purchaseDate, ratePct, method, salvageVal, putToUseDate) {
+  const schedule = [];
+  if (!purchaseCost || isNaN(purchaseCost) || purchaseCost <= 0) return schedule;
+  if (!purchaseDate) return schedule;
+
+  const rate = ratePct / 100;
+  const pDate = new Date(putToUseDate || purchaseDate);
+  if (isNaN(pDate.getTime())) return schedule;
+
+  // Find initial FY. Indian FY is April 1 to March 31.
+  let fyStartYear = pDate.getMonth() < 3 ? pDate.getFullYear() - 1 : pDate.getFullYear();
+  let currentCost = purchaseCost;
+  
+  // Project for up to 7 years or until book value is negligible
+  const limitYears = 7;
+  
+  for (let i = 0; i < limitYears; i++) {
+    const fyLabel = `FY ${fyStartYear}-${(fyStartYear + 1).toString().substring(2)}`;
+    let openingVal = currentCost;
+    
+    let appliedRate = rate;
+    let daysText = "Full Year";
+    
+    if (i === 0) {
+      // 180 days rule: cutoff is 180 days before March 31 (i.e. put to use for less than 180 days)
+      const fyEnd = new Date(fyStartYear + 1, 2, 31); // March 31 of next calendar year
+      const diffTime = Math.abs(fyEnd - pDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // inclusive
+      
+      if (diffDays < 180) {
+        appliedRate = rate / 2;
+        daysText = `< 180 Days (${diffDays} days)`;
+      } else {
+        daysText = `≥ 180 Days (${diffDays} days)`;
+      }
+    }
+    
+    let depAmount = 0;
+    if (method === 'SLM') {
+      const salvage = salvageVal !== undefined && salvageVal !== '' ? salvageVal : (purchaseCost * 0.1);
+      const depreciableAmt = purchaseCost - salvage;
+      depAmount = depreciableAmt * appliedRate;
+      if (currentCost - depAmount < salvage) {
+        depAmount = Math.max(0, currentCost - salvage);
+      }
+    } else {
+      // WDV
+      depAmount = currentCost * appliedRate;
+    }
+    
+    depAmount = Math.round(depAmount * 100) / 100;
+    let closingVal = Math.round((openingVal - depAmount) * 100) / 100;
+    
+    schedule.push({
+      fy: fyLabel,
+      opening: openingVal,
+      daysText: daysText,
+      rate: Math.round(appliedRate * 100 * 10) / 10,
+      depreciation: depAmount,
+      closing: closingVal
+    });
+    
+    currentCost = closingVal;
+    fyStartYear++;
+    if (currentCost <= 0.01) break;
+  }
+  
+  return schedule;
+}
+
+function calculateAndRenderDepreciation() {
+  const assetValueInput = document.getElementById('assetm-asset-value');
+  const purchaseDateInput = document.getElementById('assetm-purchase-date');
+  
+  const purchaseCost = assetValueInput ? parseFloat(assetValueInput.value) : 0;
+  const purchaseDate = purchaseDateInput ? purchaseDateInput.value : '';
+  
+  const method = document.getElementById('assetm-dep-method').value;
+  const rateVal = document.getElementById('assetm-dep-rate').value;
+  const ratePct = rateVal ? parseFloat(rateVal) : 40;
+  const putToUse = document.getElementById('assetm-dep-put-to-use').value || purchaseDate;
+  const salvageVal = document.getElementById('assetm-dep-salvage').value;
+  const salvage = salvageVal ? parseFloat(salvageVal) : 0;
+
+  const baseCostEl = document.getElementById('assetm-dep-base-cost');
+  if (baseCostEl) {
+    baseCostEl.textContent = purchaseCost ? `₹${purchaseCost.toFixed(2)}` : '₹0.00';
+  }
+
+  const tbody = document.getElementById('assetm-dep-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (!purchaseCost || purchaseCost <= 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="padding:12px; text-align:center; color:var(--text-secondary);">
+          Please specify a valid Asset Value in the Details tab.
+        </td>
+      </tr>
+    `;
+    document.getElementById('assetm-dep-total-claimed').textContent = '₹0.00';
+    document.getElementById('assetm-dep-current-wdv').textContent = '₹0.00';
+    return;
+  }
+
+  if (!purchaseDate) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="padding:12px; text-align:center; color:var(--text-secondary);">
+          Please specify a valid Purchase Date in the Details tab.
+        </td>
+      </tr>
+    `;
+    document.getElementById('assetm-dep-total-claimed').textContent = '₹0.00';
+    document.getElementById('assetm-dep-current-wdv').textContent = '₹0.00';
+    return;
+  }
+
+  const schedule = calculateDepreciationSchedule(purchaseCost, purchaseDate, ratePct, method, salvage, putToUse);
+  
+  if (schedule.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="padding:12px; text-align:center; color:var(--text-secondary);">
+          Unable to generate depreciation schedule.
+        </td>
+      </tr>
+    `;
+    document.getElementById('assetm-dep-total-claimed').textContent = '₹0.00';
+    document.getElementById('assetm-dep-current-wdv').textContent = '₹0.00';
+    return;
+  }
+
+  let totalClaimed = 0;
+  let currentWDV = purchaseCost;
+
+  schedule.forEach(row => {
+    totalClaimed += row.depreciation;
+    currentWDV = row.closing;
+
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--border)';
+    tr.innerHTML = `
+      <td style="padding:8px 12px; font-weight:600; color:var(--text-primary);">${row.fy}</td>
+      <td style="padding:8px 12px; color:var(--text-secondary);">₹${row.opening.toFixed(2)}</td>
+      <td style="padding:8px 12px; color:var(--text-muted); font-size:0.75rem;">${row.daysText}</td>
+      <td style="padding:8px 12px; color:var(--text-secondary);">${row.rate}%</td>
+      <td style="padding:8px 12px; font-weight:600; color:var(--accent-red);">₹${row.depreciation.toFixed(2)}</td>
+      <td style="padding:8px 12px; font-weight:600; color:var(--accent-green);">₹${row.closing.toFixed(2)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('assetm-dep-total-claimed').textContent = `₹${totalClaimed.toFixed(2)}`;
+  document.getElementById('assetm-dep-current-wdv').textContent = `₹${currentWDV.toFixed(2)}`;
+}
+
 function initAssetModalTabs() {
   const tabsContainer = document.getElementById('asset-modal-tabs');
   if (!tabsContainer || tabsContainer.dataset.initialized === 'true') return;
@@ -1869,6 +2063,7 @@ function initAssetModalTabs() {
   const detailsContent = document.getElementById('asset-modal-tab-details-content');
   const historyContent = document.getElementById('asset-modal-tab-history-content');
   const maintenanceContent = document.getElementById('asset-modal-tab-maintenance-content');
+  const depreciationContent = document.getElementById('asset-modal-tab-depreciation-content');
 
   // Tab switching click handler
   tabButtons.forEach(btn => {
@@ -1887,10 +2082,12 @@ function initAssetModalTabs() {
         if (detailsContent) detailsContent.style.display = 'block';
         if (historyContent) historyContent.style.display = 'none';
         if (maintenanceContent) maintenanceContent.style.display = 'none';
+        if (depreciationContent) depreciationContent.style.display = 'none';
       } else if (tab === 'history') {
         if (detailsContent) detailsContent.style.display = 'none';
         if (historyContent) historyContent.style.display = 'block';
         if (maintenanceContent) maintenanceContent.style.display = 'none';
+        if (depreciationContent) depreciationContent.style.display = 'none';
         // Render history
         const id = document.getElementById('assetm-id').value;
         renderAssetHistory(id);
@@ -1898,12 +2095,44 @@ function initAssetModalTabs() {
         if (detailsContent) detailsContent.style.display = 'none';
         if (historyContent) historyContent.style.display = 'none';
         if (maintenanceContent) maintenanceContent.style.display = 'block';
+        if (depreciationContent) depreciationContent.style.display = 'none';
         // Render maintenance
         const id = document.getElementById('assetm-id').value;
         renderAssetHistory(id);
+      } else if (tab === 'depreciation') {
+        if (detailsContent) detailsContent.style.display = 'none';
+        if (historyContent) historyContent.style.display = 'none';
+        if (maintenanceContent) maintenanceContent.style.display = 'none';
+        if (depreciationContent) depreciationContent.style.display = 'block';
+        calculateAndRenderDepreciation();
       }
     });
   });
+
+  // Bind change/input listeners to recalculate dynamically
+  const depMethod = document.getElementById('assetm-dep-method');
+  const depRate = document.getElementById('assetm-dep-rate');
+  const depPutToUse = document.getElementById('assetm-dep-put-to-use');
+  const depSalvage = document.getElementById('assetm-dep-salvage');
+
+  [depMethod, depRate, depPutToUse, depSalvage].forEach(el => {
+    if (el) {
+      el.addEventListener('change', calculateAndRenderDepreciation);
+      el.addEventListener('input', calculateAndRenderDepreciation);
+    }
+  });
+
+  // Sync Date Put to Use with Purchase Date on details tab changes
+  const purchaseDateInput = document.getElementById('assetm-purchase-date');
+  if (purchaseDateInput) {
+    purchaseDateInput.addEventListener('change', () => {
+      const depPutToUseInput = document.getElementById('assetm-dep-put-to-use');
+      if (depPutToUseInput && (!depPutToUseInput.value || depPutToUseInput.value === purchaseDateInput.defaultValue)) {
+        depPutToUseInput.value = purchaseDateInput.value;
+        calculateAndRenderDepreciation();
+      }
+    });
+  }
 
   // Log Maintenance button click
   const btnAddMaint = document.getElementById('btn-add-maintenance-modal');

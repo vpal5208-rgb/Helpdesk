@@ -1012,6 +1012,111 @@ const server = app.listen(3000, async () => {
         });
         await delay(1000);
 
+        // --- PART 2.12: IT Asset Depreciation Tab E2E tests ---
+        console.log('\n--- PART 2.12: IT Asset Depreciation Tab E2E tests ---');
+        console.log('Opening edit modal for MY-CUSTOM-TAG-88...');
+        await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+            const row = rows.find(r => r.innerText.includes('MY-CUSTOM-TAG-88'));
+            if (row) {
+                const editBtn = row.querySelector('button[title="Edit Asset"]');
+                if (editBtn) editBtn.click();
+            }
+        });
+        await delay(1000);
+
+        console.log('Clicking the "Depreciation" tab...');
+        await page.evaluate(() => {
+            const btn = Array.from(document.querySelectorAll('.modal-tab-btn')).find(b => b.innerText.includes('Depreciation'));
+            if (btn) btn.click();
+        });
+        await delay(500);
+
+        // Verify summary cards initial state (with default 40% rate and purchase date put-to-use >= 180 days)
+        const initialDepState = await page.evaluate(() => {
+            const baseCost = document.getElementById('assetm-dep-base-cost').innerText;
+            const totalDep = document.getElementById('assetm-dep-total-claimed').innerText;
+            const currentWdv = document.getElementById('assetm-dep-current-wdv').innerText;
+            const tbodyText = document.getElementById('assetm-dep-tbody').innerText;
+            return { baseCost, totalDep, currentWdv, tbodyText };
+        });
+        console.log('Initial Depreciation State:', initialDepState);
+        if (!initialDepState.baseCost.includes('4200.75') || !initialDepState.tbodyText.includes('Full Year') || !initialDepState.tbodyText.includes('40%')) {
+            console.error('FAIL: Initial depreciation schedule with full rate not rendered.');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Initial depreciation schedule rendered successfully!');
+        }
+
+        console.log('Setting put-to-use date to test the 180 days rule (less than 180 days)...');
+        await page.evaluate(() => {
+            const putToUseInput = document.getElementById('assetm-dep-put-to-use');
+            putToUseInput.value = '2026-11-15';
+            putToUseInput.dispatchEvent(new Event('change'));
+        });
+        await delay(500);
+
+        // Verify halved rate and halved depreciation amount
+        const rule180DepState = await page.evaluate(() => {
+            const totalDep = document.getElementById('assetm-dep-total-claimed').innerText;
+            const tbodyText = document.getElementById('assetm-dep-tbody').innerText;
+            return { totalDep, tbodyText };
+        });
+        console.log('Depreciation State with 180 Days rule:', rule180DepState);
+        if (!rule180DepState.tbodyText.includes('20%') || !rule180DepState.tbodyText.includes('137 days')) {
+            console.error('FAIL: 180 days rule not applied (rate should be halved to 20%).');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: 180 days rule applied and first-year rate halved successfully!');
+        }
+
+        console.log('Saving the asset with depreciation settings...');
+        await page.evaluate(() => {
+            document.getElementById('asset-modal-save').click();
+        });
+        await delay(1500);
+
+        console.log('Opening edit modal again to check persistence...');
+        await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('#assets-tbody tr'));
+            const row = rows.find(r => r.innerText.includes('MY-CUSTOM-TAG-88'));
+            if (row) {
+                const editBtn = row.querySelector('button[title="Edit Asset"]');
+                if (editBtn) editBtn.click();
+            }
+        });
+        await delay(1000);
+
+        console.log('Clicking the "Depreciation" tab to verify values...');
+        await page.evaluate(() => {
+            const btn = Array.from(document.querySelectorAll('.modal-tab-btn')).find(b => b.innerText.includes('Depreciation'));
+            if (btn) btn.click();
+        });
+        await delay(500);
+
+        const savedDepState = await page.evaluate(() => {
+            return {
+                method: document.getElementById('assetm-dep-method').value,
+                rate: document.getElementById('assetm-dep-rate').value,
+                putToUse: document.getElementById('assetm-dep-put-to-use').value,
+                tbodyText: document.getElementById('assetm-dep-tbody').innerText
+            };
+        });
+        console.log('Saved Depreciation State:', savedDepState);
+        if (savedDepState.method !== 'WDV' || savedDepState.rate !== '40' || savedDepState.putToUse !== '2026-11-15' || !savedDepState.tbodyText.includes('20%')) {
+            console.error('FAIL: Depreciation settings did not persist.');
+            hasError = true;
+        } else {
+            console.log('SUCCESS: Depreciation settings persisted correctly!');
+        }
+
+        console.log('Closing the asset details modal...');
+        await page.evaluate(() => {
+            const btn = document.getElementById('asset-modal-close');
+            if (btn) btn.click();
+        });
+        await delay(1000);
+
         // Navigate to Settings
         console.log('Navigating to Settings > Snipe-IT Integration tab...');
         await page.click('button[data-view="settings"]');
