@@ -530,6 +530,19 @@ function prefillAndGo(subject, category, priority) {
   document.getElementById('nt-priority').value = priority;
 }
 
+function openKBArticleOrPrefill(articleId, subject, category, priority) {
+  const articles = typeof loadKBArticles === 'function' ? loadKBArticles() : [];
+  const found = articles.find(a => a.id === articleId);
+  if (found) {
+    switchTab('kb');
+    if (typeof selectPortalKBArticle === 'function') {
+      selectPortalKBArticle(articleId);
+    }
+  } else {
+    prefillAndGo(subject, category, priority);
+  }
+}
+
 /* ===== TICKET DATA ===== */
 function getMyTickets() {
   const all = loadTickets();
@@ -1275,6 +1288,7 @@ function chatbotAutoReply(userText) {
 window.switchTab = switchTab;
 window.setCategory = setCategory;
 window.prefillAndGo = prefillAndGo;
+window.openKBArticleOrPrefill = openKBArticleOrPrefill;
 window.openEscalateModal = openEscalateModal;
 window.closeUserTicket = closeUserTicket;
 

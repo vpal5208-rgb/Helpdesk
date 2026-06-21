@@ -207,6 +207,12 @@ window.deleteKBArticle = deleteKBArticle;
    USER PORTAL KNOWLEDGE BASE FUNCTIONS
    ============================================= */
 function initPortalKB() {
+  const searchInput = document.getElementById('kb-portal-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      renderPortalKBArticles();
+    });
+  }
   renderPortalKBCategories();
   renderPortalKBArticles();
 }
@@ -232,13 +238,24 @@ function renderPortalKBArticles() {
   const container = document.getElementById('kb-article-list');
   if (!container) return;
 
+  const searchVal = (document.getElementById('kb-portal-search')?.value || '').trim().toLowerCase();
+
   const articles = loadKBArticles();
-  const filtered = currentSelectedCategory === 'All' 
+  let filtered = currentSelectedCategory === 'All' 
     ? articles 
     : articles.filter(a => a.category === currentSelectedCategory);
 
+  if (searchVal) {
+    filtered = filtered.filter(art => {
+      const matchTitle = art.title.toLowerCase().includes(searchVal);
+      const matchDesc = art.desc && art.desc.toLowerCase().includes(searchVal);
+      const matchSteps = Array.isArray(art.steps) && art.steps.some(step => step.toLowerCase().includes(searchVal));
+      return matchTitle || matchDesc || matchSteps;
+    });
+  }
+
   if (filtered.length === 0) {
-    container.innerHTML = `<p style="color:var(--text-3); font-size:0.8rem; text-align:center; padding:12px;">No guides available.</p>`;
+    container.innerHTML = `<p style="color:var(--text-secondary); font-size:0.8rem; text-align:center; padding:12px;">No guides available.</p>`;
     return;
   }
 
@@ -336,7 +353,7 @@ function finishWizard(success) {
       <div class="kb-wizard" style="background:rgba(22,163,74,0.05); border-color:rgba(22,163,74,0.15); text-align:center; padding:32px 20px;">
         <div style="font-size:2.5rem; margin-bottom:10px">🎉</div>
         <h3 style="color:var(--green); font-weight:700">Issue Solved!</h3>
-        <p style="font-size:0.85rem; color:var(--text-2); margin-top:6px; margin-bottom:20px">Awesome! We're glad this self-service troubleshooting guide resolved your hardware issue.</p>
+        <p style="font-size:0.85rem; color:var(--text-2); margin-top:6px; margin-bottom:20px">Awesome! We're glad this self-service troubleshooting guide resolved your issue.</p>
         <button class="portal-btn portal-btn-ghost" onclick="resetWizard()">Troubleshoot another issue</button>
       </div>
     `;
@@ -345,7 +362,7 @@ function finishWizard(success) {
       <div class="kb-wizard" style="background:rgba(220,38,38,0.05); border-color:rgba(220,38,38,0.15); text-align:center; padding:32px 20px;">
         <div style="font-size:2.5rem; margin-bottom:10px">⚠️</div>
         <h3 style="color:var(--red); font-weight:700">Issue Unresolved</h3>
-        <p style="font-size:0.85rem; color:var(--text-2); margin-top:6px; margin-bottom:20px">We've completed all recommended troubleshooting steps, but the hardware failure persists.</p>
+        <p style="font-size:0.85rem; color:var(--text-2); margin-top:6px; margin-bottom:20px">We've completed all recommended troubleshooting steps, but the issue persists.</p>
         <div style="display:flex; justify-content:center; gap:12px">
           <button class="portal-btn portal-btn-danger" onclick="prefillTicketFromKB()">🎫 Create Support Ticket</button>
           <button class="portal-btn portal-btn-ghost" onclick="resetWizard()">Restart Guide</button>
@@ -372,10 +389,11 @@ function prefillTicketFromKB() {
   // Prefill new ticket form
   switchTab('new-ticket');
   
-  document.getElementById('nt-subject').value = `[Hardware Troubleshooter] ${activeArticle.title}`;
+  const categoryPrefix = activeArticle.category || 'IT';
+  document.getElementById('nt-subject').value = `[${categoryPrefix} Troubleshooter] ${activeArticle.title}`;
   document.getElementById('nt-category').value = activeArticle.category;
   document.getElementById('nt-priority').value = 'Medium';
-  document.getElementById('nt-desc').value = `I followed the self-service troubleshooting guide for "${activeArticle.title}" but the failure persists.\n\nHere are the diagnostics attempted:\n${stepsTriedText}\nPlease help coordinate a hardware replacement or on-site support.`;
+  document.getElementById('nt-desc').value = `I followed the self-service troubleshooting guide for "${activeArticle.title}" but the issue persists.\n\nHere are the diagnostics attempted:\n${stepsTriedText}\nPlease assist with resolving this issue.`;
 
   if (typeof pToast === 'function') {
     pToast('Support ticket pre-filled with your troubleshooting diagnostics!', 'success');

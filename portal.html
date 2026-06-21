@@ -234,46 +234,46 @@
       <!-- FAQ / Help -->
       <h2 class="section-title" style="margin-top:32px">Common IT Issues</h2>
       <div class="faq-grid">
-        <div class="faq-card" onclick="prefillAndGo('Password reset or account locked out','Account','High')">
+        <div class="faq-card" onclick="openKBArticleOrPrefill('KB-0005', 'Password reset or account locked out','Account','High')">
           <span class="faq-icon">🔑</span>
           <div>
             <div class="faq-title">Password / Account</div>
             <div class="faq-sub">Reset, lockout, 2FA issues</div>
           </div>
         </div>
-        <div class="faq-card" onclick="prefillAndGo('Wi-Fi or VPN connection issue','Network','Medium')">
+        <div class="faq-card" onclick="openKBArticleOrPrefill('KB-0006', 'Wi-Fi or VPN connection issue','Network','Medium')">
           <span class="faq-icon">📶</span>
           <div>
             <div class="faq-title">Network / VPN</div>
             <div class="faq-sub">Connectivity and access problems</div>
           </div>
         </div>
-        <div class="faq-card" onclick="prefillAndGo('Software installation or license issue','Software','Medium')">
+        <div class="faq-card" onclick="openKBArticleOrPrefill('KB-0007', 'Software installation or license issue','Software','Medium')">
           <span class="faq-icon">💻</span>
           <div>
             <div class="faq-title">Software</div>
-            <div class="faq-sub">Install, crash, license issues</div>
+            <div class="faq-sub">Install, crash, cache issues</div>
           </div>
         </div>
-        <div class="faq-card" onclick="prefillAndGo('Hardware issue - device not working','Hardware','Medium')">
+        <div class="faq-card" onclick="switchTab('kb')">
           <span class="faq-icon">🖥</span>
           <div>
             <div class="faq-title">Hardware</div>
             <div class="faq-sub">Device, printer, monitor issues</div>
           </div>
         </div>
-        <div class="faq-card" onclick="prefillAndGo('Email not working or syncing','Software','High')">
+        <div class="faq-card" onclick="openKBArticleOrPrefill('KB-0008', 'Email not working or syncing','Software','High')">
           <span class="faq-icon">📧</span>
           <div>
             <div class="faq-title">Email</div>
             <div class="faq-sub">Outlook, Teams, email sync</div>
           </div>
         </div>
-        <div class="faq-card" onclick="prefillAndGo('New employee account setup request','Account','Medium')">
+        <div class="faq-card" onclick="openKBArticleOrPrefill('KB-0009', 'New employee account setup request','Account','Medium')">
           <span class="faq-icon">👤</span>
           <div>
             <div class="faq-title">New Setup</div>
-            <div class="faq-sub">Onboarding, new device, access</div>
+            <div class="faq-sub">Onboarding, new device, MFA</div>
           </div>
         </div>
       </div>
@@ -427,6 +427,9 @@
       <div class="kb-layout">
         <!-- Categories/Articles Sidebar -->
         <div class="kb-sidebar-card" style="background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow);">
+          <div class="kb-search-container" style="margin-bottom: 16px;">
+            <input type="text" id="kb-portal-search" class="portal-input" style="width: 100%; box-sizing: border-box; background: var(--bg); border: 1.5px solid var(--border); color: var(--text-primary);" placeholder="🔍 Search guides..."/>
+          </div>
           <div style="font-weight:700; font-size:.8rem; margin-bottom:12px; text-transform:uppercase; color:var(--text-2); letter-spacing:.5px;">Categories</div>
           <div class="kb-cat-list" id="kb-cat-list" style="display:flex; flex-direction:column; gap:4px;">
             <!-- Categories populated dynamically -->

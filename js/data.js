@@ -575,6 +575,81 @@ const DEFAULT_KB_ARTICLES = [
     ],
     author: 'Marcus Rivera',
     created: '2026-06-13T12:45:00Z'
+  },
+  {
+    id: 'KB-0005',
+    title: 'Password Reset & Account Lockout Help',
+    category: 'Account',
+    desc: 'Self-service instructions to reset your expired password or unlock your locked AD account.',
+    steps: [
+      'Navigate to the corporate self-service password reset portal (SSPR) at https://sspr.company.com.',
+      'Enter your work email address and complete the captcha verification characters on-screen.',
+      'Verify your identity by responding to the Microsoft Authenticator notification sent to your registered smartphone.',
+      'Choose a new password that is at least 12 characters long and contains uppercase, lowercase, numbers, and symbols.',
+      'Wait 2 minutes for password synchronization across systems, then attempt to sign in to your work accounts.'
+    ],
+    author: 'Sarah Chen',
+    created: '2026-06-15T09:00:00Z'
+  },
+  {
+    id: 'KB-0006',
+    title: 'Corporate Wi-Fi & VPN Connectivity Guide',
+    category: 'Network',
+    desc: 'Troubleshoot connecting to the corporate Wi-Fi network and accessing systems remotely via VPN.',
+    steps: [
+      'Ensure your physical Wi-Fi switch is turned ON and Airplane Mode is disabled on your device.',
+      'If in the office, select "Corp-Secure-Wi-Fi" from the Wi-Fi list and log in using your standard Windows credentials.',
+      'If working remotely, verify your local internet connection works, then launch the GlobalProtect/Cisco AnyConnect VPN client.',
+      'Select portal address "vpn.company.com" and click "Connect".',
+      'Enter your corporate email address and approve the Authenticator app verification prompt on your mobile phone.'
+    ],
+    author: 'Alex Dubois',
+    created: '2026-06-15T09:30:00Z'
+  },
+  {
+    id: 'KB-0007',
+    title: 'Clearing Browser Cache & Cookies',
+    category: 'Software',
+    desc: 'Clear cached files and cookies to resolve login loops, display glitches, or outdated website errors.',
+    steps: [
+      'Open your web browser (Google Chrome or Microsoft Edge) and press Ctrl + Shift + Delete on your keyboard.',
+      'In the "Clear browsing data" window, select "All Time" as the time range.',
+      'Check the checkboxes next to "Cookies and other site data" and "Cached images and files".',
+      'Click the "Clear data" (Chrome) or "Clear now" (Edge) button.',
+      'Restart the browser completely and try accessing the website again.'
+    ],
+    author: 'Marcus Rivera',
+    created: '2026-06-15T10:00:00Z'
+  },
+  {
+    id: 'KB-0008',
+    title: 'Microsoft Outlook & Teams Sync Issues',
+    category: 'Software',
+    desc: 'Resolve synchronization delays, offline indicators, and missing email/messages in Outlook and Teams.',
+    steps: [
+      'Close Microsoft Outlook and Teams applications entirely.',
+      'Press Ctrl + Shift + Esc to open Task Manager, select any remaining "Outlook" or "Teams" processes, and click "End Task".',
+      'Open Microsoft Teams first, sign in, and confirm that your status indicator is green/available.',
+      'Launch Microsoft Outlook and verify the status bar in the bottom right reads "Connected to: Microsoft Exchange".',
+      'If still not syncing, go to File > Account Settings > Repair in Outlook and follow the prompts.'
+    ],
+    author: 'Lisa Okonkwo',
+    created: '2026-06-15T10:30:00Z'
+  },
+  {
+    id: 'KB-0009',
+    title: 'Multi-Factor Authentication (MFA) Setup',
+    category: 'Security',
+    desc: 'Step-by-step setup to register your mobile phone with Microsoft Authenticator for MFA prompts.',
+    steps: [
+      'Download and install the "Microsoft Authenticator" app from your mobile device\'s iOS App Store or Google Play Store.',
+      'On your computer, open a web browser and navigate to https://aka.ms/mfasetup.',
+      'Sign in with your corporate email, click "+ Add method", and select "Authenticator app".',
+      'Open the Authenticator app on your phone, tap "+", select "Work or school account", and choose "Scan QR code".',
+      'Scan the QR code displayed on your PC screen with your phone\'s camera, then approve the test notification to verify.'
+    ],
+    author: 'Sarah Chen',
+    created: '2026-06-15T11:00:00Z'
   }
 ];
 
