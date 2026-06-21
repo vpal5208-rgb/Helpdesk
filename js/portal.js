@@ -200,6 +200,15 @@ function initPortal() {
       msContainer.style.display = authSettings.msO365Enabled ? 'flex' : 'none';
     }
   } catch(e) {}
+
+  // User Profile Events
+  setupListener('portal-user-badge', 'click', openProfileModal);
+  setupListener('profile-modal-close', 'click', closeProfileModal);
+  setupListener('profile-modal-cancel', 'click', closeProfileModal);
+  setupListener('profile-picture-input', 'change', handleProfilePictureUpload);
+
+  // Apply custom company logo
+  try { applyPortalCompanyLogo(); } catch(e) {}
 }
 
 function getPortalUsers() {
@@ -461,8 +470,14 @@ function showPortal() {
       // Logged in mode
       const initials = portalUser.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
       if (userBadge) {
-        userBadge.textContent = initials + ' ' + portalUser.name.split(' ')[0];
-        userBadge.style.display = 'block';
+        if (portalUser.avatar) {
+          userBadge.innerHTML = `<img src="${portalUser.avatar}" style="width:24px; height:24px; border-radius:50%; object-fit:cover; display:inline-block; vertical-align:middle; border:1px solid rgba(255,255,255,0.15);"/> <span style="vertical-align:middle;">${portalUser.name.split(' ')[0]}</span>`;
+        } else {
+          userBadge.innerHTML = `<div style="width:24px; height:24px; border-radius:50%; background:var(--blue-light); color:var(--blue); display:inline-flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:700; vertical-align:middle; border:1px solid rgba(255,255,255,0.1);">${initials}</div> <span style="vertical-align:middle;">${portalUser.name.split(' ')[0]}</span>`;
+        }
+        userBadge.style.display = 'flex';
+        userBadge.style.alignItems = 'center';
+        userBadge.style.gap = '8px';
       }
       if (logoutBtn) logoutBtn.textContent = 'Sign Out';
       
@@ -1284,6 +1299,108 @@ function chatbotAutoReply(userText) {
   renderPortalChatMessages();
 }
 
+function applyPortalCompanyLogo() {
+  const logoData = localStorage.getItem('hd_company_logo');
+  const navIcon = document.getElementById('portal-nav-logo-icon');
+  const loginIcon = document.getElementById('portal-login-logo-icon');
+
+  if (logoData) {
+    const imgHtml = `<img src="${logoData}" style="max-height:100%; max-width:100%; object-fit:contain; border-radius:4px;"/>`;
+    if (navIcon) {
+      navIcon.innerHTML = imgHtml;
+      navIcon.style.background = 'none';
+    }
+    if (loginIcon) {
+      loginIcon.innerHTML = imgHtml;
+      loginIcon.style.background = 'none';
+    }
+  } else {
+    if (navIcon) {
+      navIcon.textContent = '⚡';
+      navIcon.style.background = '';
+    }
+    if (loginIcon) {
+      loginIcon.textContent = '⚡';
+      loginIcon.style.background = '';
+    }
+  }
+}
+
+function openProfileModal() {
+  if (!portalUser) return;
+
+  const overlay = document.getElementById('profile-modal-overlay');
+  const nameEl = document.getElementById('profile-info-name');
+  const emailEl = document.getElementById('profile-info-email');
+  const deptEl = document.getElementById('profile-info-dept');
+  const roleEl = document.getElementById('profile-info-role');
+  const picContainer = document.getElementById('profile-picture-container');
+
+  if (nameEl) nameEl.textContent = portalUser.name;
+  if (emailEl) emailEl.textContent = portalUser.email;
+  if (deptEl) deptEl.textContent = portalUser.dept || '—';
+  
+  const users = getPortalUsers();
+  const dbUser = users.find(u => u.email.toLowerCase() === portalUser.email.toLowerCase()) || {};
+  if (roleEl) roleEl.textContent = dbUser.role || 'User';
+
+  if (picContainer) {
+    if (portalUser.avatar) {
+      picContainer.innerHTML = `<img src="${portalUser.avatar}" style="width:100%; height:100%; object-fit:cover;"/>`;
+    } else {
+      const initials = portalUser.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      picContainer.innerHTML = `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">${initials}</div>`;
+    }
+  }
+
+  if (overlay) overlay.style.display = 'flex';
+}
+
+function closeProfileModal() {
+  const overlay = document.getElementById('profile-modal-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function handleProfilePictureUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    if (typeof pToast === 'function') pToast('Please select an image file.', 'error');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    const base64Data = evt.target.result;
+    
+    portalUser.avatar = base64Data;
+    localStorage.setItem('hd_portal_user', JSON.stringify(portalUser));
+
+    const users = getPortalUsers();
+    const idx = users.findIndex(u => u.email.toLowerCase() === portalUser.email.toLowerCase());
+    if (idx !== -1) {
+      users[idx].avatar = base64Data;
+      try {
+        localStorage.setItem('hd_users_v1', JSON.stringify(users));
+      } catch (err) {
+        console.error("Failed to save user avatar:", err);
+      }
+    }
+
+    const picContainer = document.getElementById('profile-picture-container');
+    if (picContainer) {
+      picContainer.innerHTML = `<img src="${base64Data}" style="width:100%; height:100%; object-fit:cover;"/>`;
+    }
+    
+    showPortal();
+
+    if (typeof pToast === 'function') {
+      pToast('Profile picture updated successfully!', 'success');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
 // Expose functions to global window scope for inline HTML onclick attributes
 window.switchTab = switchTab;
 window.setCategory = setCategory;
@@ -1291,6 +1408,10 @@ window.prefillAndGo = prefillAndGo;
 window.openKBArticleOrPrefill = openKBArticleOrPrefill;
 window.openEscalateModal = openEscalateModal;
 window.closeUserTicket = closeUserTicket;
+window.openProfileModal = openProfileModal;
+window.closeProfileModal = closeProfileModal;
+window.handleProfilePictureUpload = handleProfilePictureUpload;
+window.applyPortalCompanyLogo = applyPortalCompanyLogo;
 
 /* ===== INIT ===== */
 document.addEventListener('DOMContentLoaded', initPortal);

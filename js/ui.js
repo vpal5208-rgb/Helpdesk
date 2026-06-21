@@ -6,6 +6,7 @@
 function initTheme() {
   const saved = localStorage.getItem('hd_theme') || 'dark';
   setTheme(saved);
+  try { applyCompanyLogo(); } catch(e) {}
 }
 
 function setTheme(theme) {
@@ -188,6 +189,39 @@ function initSettings() {
 
   // Load and render user roles table
   renderSettingsRolesTable();
+
+  // Company Logo settings
+  const logoInput = document.getElementById('company-logo-input');
+  const resetLogoBtn = document.getElementById('btn-reset-company-logo');
+
+  if (logoInput) {
+    logoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        if (!file.type.startsWith('image/')) {
+          showToast('Please upload an image file.', 'error');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          localStorage.setItem('hd_company_logo', evt.target.result);
+          applyCompanyLogo();
+          showToast('Company logo updated successfully!', 'success');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  if (resetLogoBtn) {
+    resetLogoBtn.addEventListener('click', () => {
+      localStorage.removeItem('hd_company_logo');
+      applyCompanyLogo();
+      showToast('Company logo reset to default.', 'info');
+    });
+  }
+
+  applyCompanyLogo();
 
   // Add Custom Role button click
   const addCustomRoleBtn = document.getElementById('btn-add-custom-role');
@@ -406,4 +440,36 @@ function renderSettingsRolesTable() {
     tbody.appendChild(tr);
   });
 }
+
+function applyCompanyLogo() {
+  const logoData = localStorage.getItem('hd_company_logo');
+  const preview = document.getElementById('company-logo-preview');
+  const sidebarIcon = document.getElementById('sidebar-brand-icon');
+  const loginIcon = document.getElementById('login-brand-icon');
+
+  if (logoData) {
+    const imgHtml = `<img src="${logoData}" style="max-height:100%; max-width:100%; object-fit:contain; border-radius:4px;"/>`;
+    if (preview) preview.innerHTML = imgHtml;
+    if (sidebarIcon) {
+      sidebarIcon.innerHTML = imgHtml;
+      sidebarIcon.style.background = 'none';
+    }
+    if (loginIcon) {
+      loginIcon.innerHTML = imgHtml;
+      loginIcon.style.background = 'none';
+    }
+  } else {
+    if (preview) preview.textContent = '⚡';
+    if (sidebarIcon) {
+      sidebarIcon.textContent = '⚡';
+      sidebarIcon.style.background = '';
+    }
+    if (loginIcon) {
+      loginIcon.textContent = '⚡';
+      loginIcon.style.background = '';
+    }
+  }
+}
+
 window.renderSettingsRolesTable = renderSettingsRolesTable;
+window.applyCompanyLogo = applyCompanyLogo;

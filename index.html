@@ -76,7 +76,7 @@
 
     <!-- Brand -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">
-      <div style="width:44px;height:44px;background:linear-gradient(135deg,#58a6ff,#bc8cff);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">⚡</div>
+      <div id="login-brand-icon" style="width:44px;height:44px;background:linear-gradient(135deg,#58a6ff,#bc8cff);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">⚡</div>
       <div>
         <div style="font-size:1.15rem;font-weight:800;color:#fff">HelpDesk<span style="color:#58a6ff">Pro</span></div>
         <div style="font-size:.75rem;color:rgba(255,255,255,0.45);margin-top:2px">Admin Portal</div>
@@ -259,7 +259,7 @@ function adminLogout() {
 
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
-    <div class="brand-icon">⚡</div>
+    <div class="brand-icon" id="sidebar-brand-icon">⚡</div>
     <span class="brand-name">HelpDesk<span class="brand-accent">Pro</span></span>
   </div>
   <nav class="sidebar-nav">
@@ -995,6 +995,18 @@ support@company.com | +1 (800) 555-0199</textarea>
         <div class="settings-grid">
           <div class="settings-card"><h3>Appearance</h3>
             <div class="setting-item"><label>Theme</label><div class="toggle-group"><button class="toggle-btn active" id="theme-light-btn">☀ Light</button><button class="toggle-btn" id="theme-dark-btn">🌙 Dark</button></div></div>
+            <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;"/>
+            <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
+              <label style="font-weight:600;">Company Logo</label>
+              <div style="display:flex; align-items:center; gap:16px; width:100%;">
+                <div id="company-logo-preview" style="width:50px; height:50px; border-radius:8px; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; background:var(--bg-elevated); font-size:1.5rem; overflow:hidden;">⚡</div>
+                <div style="flex:1; display:flex; gap:8px;">
+                  <input type="file" id="company-logo-input" accept="image/*" style="display:none;"/>
+                  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('company-logo-input').click()">Upload Logo</button>
+                  <button class="btn btn-ghost btn-sm" id="btn-reset-company-logo" style="color:var(--red); border-color:rgba(248,81,73,0.15)">Reset</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

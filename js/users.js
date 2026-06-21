@@ -152,7 +152,9 @@ function renderUsersTable() {
     tr.innerHTML = `
       <td><input type="checkbox" class="user-check" data-uid="${u.id}"/></td>
       <td><div class="user-avatar-cell">
-        <div class="user-avatar-sm" style="background:${color}">${initials}</div>
+        <div class="user-avatar-sm" style="background:${color}; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+          ${u.avatar ? `<img src="${u.avatar}" style="width:100%; height:100%; object-fit:cover;"/>` : initials}
+        </div>
         <div><div class="user-full-name">${userFullName(u)}</div><div class="user-location">${u.location||'—'}</div></div>
       </div></td>
       <td>${u.email}</td>
