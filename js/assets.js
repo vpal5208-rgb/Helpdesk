@@ -555,6 +555,33 @@ function initAssets() {
       btnBulkPrint.addEventListener('click', bulkPrintLabels);
     }
 
+    // Bulk check-in/out button listeners
+    const btnBulkCheckin = document.getElementById('btn-bulk-checkin');
+    if (btnBulkCheckin) {
+      btnBulkCheckin.addEventListener('click', bulkCheckInAssets);
+    }
+
+    const btnBulkCheckout = document.getElementById('btn-bulk-checkout');
+    if (btnBulkCheckout) {
+      btnBulkCheckout.addEventListener('click', openBulkCheckoutModal);
+    }
+
+    // Bulk checkout modal bindings
+    const btnBulkCheckoutClose = document.getElementById('bulk-checkout-modal-close');
+    if (btnBulkCheckoutClose) {
+      btnBulkCheckoutClose.addEventListener('click', closeBulkCheckoutModal);
+    }
+
+    const btnBulkCheckoutCancel = document.getElementById('bulk-checkout-modal-cancel');
+    if (btnBulkCheckoutCancel) {
+      btnBulkCheckoutCancel.addEventListener('click', closeBulkCheckoutModal);
+    }
+
+    const btnBulkCheckoutSubmit = document.getElementById('bulk-checkout-modal-submit');
+    if (btnBulkCheckoutSubmit) {
+      btnBulkCheckoutSubmit.addEventListener('click', saveBulkCheckout);
+    }
+
     // Custom Label Creator design bindings
     const btnCustomLabel = document.getElementById('btn-custom-label');
     if (btnCustomLabel) {
@@ -836,7 +863,7 @@ function renderAdminAssets() {
   });
 
   updateSelectAllCheckboxState();
-  updateBulkPrintButton();
+  updateBulkActions();
 }
 
 function populateAssigneeDropdown() {
@@ -3313,7 +3340,7 @@ function handleRowCheckboxChange(e) {
     selectedAssetIds.delete(assetId);
   }
   updateSelectAllCheckboxState();
-  updateBulkPrintButton();
+  updateBulkActions();
 }
 
 function handleSelectAllChange(e) {
@@ -3328,7 +3355,7 @@ function handleSelectAllChange(e) {
       selectedAssetIds.delete(id);
     }
   });
-  updateBulkPrintButton();
+  updateBulkActions();
 }
 
 function updateSelectAllCheckboxState() {
@@ -3348,16 +3375,193 @@ function updateSelectAllCheckboxState() {
   selectAllChk.checked = allChecked;
 }
 
-function updateBulkPrintButton() {
-  const btn = document.getElementById('btn-bulk-print-labels');
-  const countSpan = document.getElementById('bulk-print-count');
-  if (btn) {
+function updateBulkActions() {
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const selectedAssets = assets.filter(a => selectedAssetIds.has(a.id));
+
+  // 1. Bulk Print Button
+  const btnPrint = document.getElementById('btn-bulk-print-labels');
+  const countSpanPrint = document.getElementById('bulk-print-count');
+  if (btnPrint) {
     if (selectedAssetIds.size > 0) {
-      btn.style.display = 'flex';
-      if (countSpan) countSpan.textContent = selectedAssetIds.size;
+      btnPrint.style.display = 'flex';
+      if (countSpanPrint) countSpanPrint.textContent = selectedAssetIds.size;
     } else {
-      btn.style.display = 'none';
+      btnPrint.style.display = 'none';
     }
+  }
+
+  // 2. Bulk Check-in Button
+  const deployedCount = selectedAssets.filter(a => a.status === 'Deployed').length;
+  const btnCheckin = document.getElementById('btn-bulk-checkin');
+  const countSpanCheckin = document.getElementById('bulk-checkin-count');
+  if (btnCheckin) {
+    if (deployedCount > 0) {
+      btnCheckin.style.display = 'flex';
+      if (countSpanCheckin) countSpanCheckin.textContent = deployedCount;
+    } else {
+      btnCheckin.style.display = 'none';
+    }
+  }
+
+  // 3. Bulk Check-out Button
+  const readyCount = selectedAssets.filter(a => a.status === 'Ready to Deploy').length;
+  const btnCheckout = document.getElementById('btn-bulk-checkout');
+  const countSpanCheckout = document.getElementById('bulk-checkout-count');
+  if (btnCheckout) {
+    if (readyCount > 0) {
+      btnCheckout.style.display = 'flex';
+      if (countSpanCheckout) countSpanCheckout.textContent = readyCount;
+    } else {
+      btnCheckout.style.display = 'none';
+    }
+  }
+}
+
+function bulkCheckInAssets() {
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const selectedAssets = assets.filter(a => selectedAssetIds.has(a.id) && a.status === 'Deployed');
+
+  if (selectedAssets.length === 0) {
+    if (typeof showToast === 'function') {
+      showToast('❌ No selected assets are currently Deployed.', 'error');
+    }
+    return;
+  }
+
+  if (!confirm(`Are you sure you want to bulk check in ${selectedAssets.length} selected asset(s)? This will return them to inventory.`)) return;
+
+  const comment = prompt(`Please enter a mandatory comment for bulk check-in of ${selectedAssets.length} asset(s):`);
+  if (comment === null) return; // User cancelled
+  const trimmedComment = comment.trim();
+  if (!trimmedComment) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Check-in comment is required.', 'error');
+    }
+    return;
+  }
+
+  selectedAssets.forEach(asset => {
+    const oldAssignee = asset.assignedTo || 'Unknown';
+    asset.status = 'Ready to Deploy';
+    asset.assignedTo = '';
+    asset.assignedEmail = '';
+    asset.checkoutDate = '';
+
+    if (typeof addAuditLog === 'function') {
+      addAuditLog(`↩️ Bulk Checked in asset ${asset.id} (previously assigned to ${oldAssignee}). Comment: ${trimmedComment}`, 'System', asset.id, 'asset');
+    }
+  });
+
+  if (typeof saveAssets === 'function') saveAssets(assets);
+  selectedAssetIds.clear();
+  renderAdminAssets();
+
+  if (typeof showToast === 'function') {
+    showToast(`Successfully checked in ${selectedAssets.length} asset(s)!`, 'success');
+  }
+}
+
+function openBulkCheckoutModal() {
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const selectedAssets = assets.filter(a => selectedAssetIds.has(a.id) && a.status === 'Ready to Deploy');
+
+  if (selectedAssets.length === 0) {
+    if (typeof showToast === 'function') {
+      showToast('❌ No selected assets are currently Ready to Deploy.', 'error');
+    }
+    return;
+  }
+
+  const overlay = document.getElementById('bulk-checkout-modal-overlay');
+  const countEl = document.getElementById('bulk-checkout-info-count');
+  const assigneeSelect = document.getElementById('bulk-checkout-assignee');
+  const dateInput = document.getElementById('bulk-checkout-date');
+  const commentsInput = document.getElementById('bulk-checkout-comments');
+
+  if (commentsInput) commentsInput.value = '';
+  if (!overlay) return;
+
+  if (countEl) countEl.textContent = `${selectedAssets.length} asset(s)`;
+
+  // Populate dynamic assignee options
+  if (assigneeSelect) {
+    assigneeSelect.innerHTML = '<option value="">-- Select Assignee --</option>';
+    const users = typeof loadUsers === 'function' ? loadUsers() : [];
+    users.forEach(u => {
+      const fullName = `${u.fname} ${u.lname || ''}`.trim();
+      assigneeSelect.innerHTML += `<option value="${fullName}|${u.email}">${fullName} (${u.email})</option>`;
+    });
+  }
+
+  // Set default date to today
+  if (dateInput) {
+    dateInput.value = new Date().toISOString().split('T')[0];
+  }
+
+  overlay.style.display = 'flex';
+}
+
+function closeBulkCheckoutModal() {
+  const overlay = document.getElementById('bulk-checkout-modal-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function saveBulkCheckout() {
+  const assigneeVal = document.getElementById('bulk-checkout-assignee').value;
+  const checkoutDate = document.getElementById('bulk-checkout-date').value;
+  const comments = (document.getElementById('bulk-checkout-comments')?.value || '').trim();
+
+  if (!assigneeVal) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Please select an Assignee User.', 'error');
+    }
+    return;
+  }
+
+  if (!comments) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Comments are required for check out.', 'error');
+    }
+    return;
+  }
+
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const selectedAssets = assets.filter(a => selectedAssetIds.has(a.id) && a.status === 'Ready to Deploy');
+
+  if (selectedAssets.length === 0) {
+    if (typeof showToast === 'function') {
+      showToast('❌ No selected assets are currently Ready to Deploy.', 'error');
+    }
+    return;
+  }
+
+  const parts = assigneeVal.split('|');
+  const assignedTo = parts[0];
+  const assignedEmail = parts[1];
+
+  selectedAssets.forEach(asset => {
+    asset.status = 'Deployed';
+    asset.assignedTo = assignedTo;
+    asset.assignedEmail = assignedEmail;
+    if (checkoutDate) {
+      asset.checkoutDate = checkoutDate;
+    } else {
+      asset.checkoutDate = new Date().toISOString().split('T')[0];
+    }
+
+    if (typeof addAuditLog === 'function') {
+      addAuditLog(`📤 Bulk Checked out asset ${asset.id} to ${assignedTo} (${assignedEmail}). Comment: ${comments}`, 'System', asset.id, 'asset');
+    }
+  });
+
+  if (typeof saveAssets === 'function') saveAssets(assets);
+  closeBulkCheckoutModal();
+  selectedAssetIds.clear();
+  renderAdminAssets();
+
+  if (typeof showToast === 'function') {
+    showToast(`Successfully checked out ${selectedAssets.length} asset(s) to ${assignedTo}!`, 'success');
   }
 }
 
@@ -3911,8 +4115,12 @@ window.bulkPrintLabels = bulkPrintLabels;
 window.handleRowCheckboxChange = handleRowCheckboxChange;
 window.handleSelectAllChange = handleSelectAllChange;
 window.updateSelectAllCheckboxState = updateSelectAllCheckboxState;
-window.updateBulkPrintButton = updateBulkPrintButton;
+window.updateBulkActions = updateBulkActions;
 window.generateQRCodeDataURL = generateQRCodeDataURL;
+window.bulkCheckInAssets = bulkCheckInAssets;
+window.openBulkCheckoutModal = openBulkCheckoutModal;
+window.closeBulkCheckoutModal = closeBulkCheckoutModal;
+window.saveBulkCheckout = saveBulkCheckout;
 window.renderAssetQRLabel = renderAssetQRLabel;
 window.updateLabelPreview = updateLabelPreview;
 window.printAssetLabel = printAssetLabel;
