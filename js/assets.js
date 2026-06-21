@@ -131,6 +131,7 @@ function checkAssetAuditsNotifications() {
 }
 
 let activeAssetStatusTab = '';
+let selectedAssetIds = new Set();
 
 function initAssets() {
   // Bind Lightbox close listeners
@@ -532,6 +533,81 @@ function initAssets() {
       initAssetModalTabs();
     }
 
+    // Select-all checkbox listener
+    const chkSelectAll = document.getElementById('chk-select-all-assets');
+    if (chkSelectAll) {
+      chkSelectAll.addEventListener('change', handleSelectAllChange);
+    }
+
+    // Row checkbox listener using delegation on tbody
+    const tbody = document.getElementById('assets-tbody');
+    if (tbody) {
+      tbody.addEventListener('change', e => {
+        if (e.target && e.target.classList.contains('asset-row-chk')) {
+          handleRowCheckboxChange(e);
+        }
+      });
+    }
+
+    // Bulk print button listener
+    const btnBulkPrint = document.getElementById('btn-bulk-print-labels');
+    if (btnBulkPrint) {
+      btnBulkPrint.addEventListener('click', bulkPrintLabels);
+    }
+
+    // Custom Label Creator design bindings
+    const btnCustomLabel = document.getElementById('btn-custom-label');
+    if (btnCustomLabel) {
+      btnCustomLabel.addEventListener('click', openCustomLabelModal);
+    }
+
+    const btnCustomLabelClose = document.getElementById('custom-label-modal-close');
+    if (btnCustomLabelClose) {
+      btnCustomLabelClose.addEventListener('click', closeCustomLabelModal);
+    }
+
+    const btnCustomLabelCancel = document.getElementById('custom-label-modal-cancel');
+    if (btnCustomLabelCancel) {
+      btnCustomLabelCancel.addEventListener('click', closeCustomLabelModal);
+    }
+
+    const btnPrintCustomLabel = document.getElementById('btn-print-custom-label');
+    if (btnPrintCustomLabel) {
+      btnPrintCustomLabel.addEventListener('click', printCustomLabel);
+    }
+
+    // Live update preview on inputs
+    ['cust-label-header', 'cust-label-name', 'cust-label-model', 'cust-label-serial'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', updateCustomLabelPreview);
+      }
+    });
+
+    // Update QR on ID change
+    const custLabelId = document.getElementById('cust-label-id');
+    if (custLabelId) {
+      custLabelId.addEventListener('input', () => {
+        updateCustomLabelQR();
+        updateCustomLabelPreview();
+      });
+    }
+
+    // Change listeners on dropdowns and checkboxes
+    ['cust-label-size', 'cust-label-theme'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('change', updateCustomLabelPreview);
+      }
+    });
+
+    ['cust-label-show-name', 'cust-label-show-model', 'cust-label-show-serial'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('change', updateCustomLabelPreview);
+      }
+    });
+
     // Initial render
     renderAdminAssets();
   } else {
@@ -628,7 +704,7 @@ function renderAdminAssets() {
   if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-secondary);">
+        <td colspan="9" style="padding: 24px; text-align: center; color: var(--text-secondary);">
           No assets found matching your criteria.
         </td>
       </tr>
@@ -649,7 +725,8 @@ function renderAdminAssets() {
         target.closest('button') || 
         target.closest('.badge') || 
         target.closest('img') || 
-        target.closest('a')
+        target.closest('a') ||
+        target.closest('input[type="checkbox"]')
       ) {
         return;
       }
@@ -693,6 +770,9 @@ function renderAdminAssets() {
     }
 
     tr.innerHTML = `
+      <td style="padding: 12px; text-align: center;">
+        <input type="checkbox" class="asset-row-chk" data-id="${asset.id}" style="cursor:pointer;" ${selectedAssetIds.has(asset.id) ? 'checked' : ''} />
+      </td>
       <td style="padding: 12px; font-family: monospace; font-weight: 600; color: var(--text-primary);">${asset.id}</td>
       <td style="padding: 12px;">
         <div style="display:flex; align-items:center; gap:10px;">
@@ -708,9 +788,9 @@ function renderAdminAssets() {
               <div style="margin-top:6px; display:flex; flex-direction:column; gap:4px;">
                 ${asset.poNumber || asset.poValue || asset.assetValue 
                   ? `<div style="font-size:0.72rem; color:var(--text-secondary); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; display:inline-flex; flex-wrap:wrap; gap:8px; border:1px solid var(--border); width:fit-content;">
-                      ${asset.poNumber ? `<span>PO: <strong>${asset.poNumber}</strong></span>` : ''}
-                      ${asset.poValue ? `<span>PO Val: <strong>₹${parseFloat(asset.poValue).toLocaleString()}</strong></span>` : ''}
-                      ${asset.assetValue ? `<span>Asset Val: <strong>₹${parseFloat(asset.assetValue).toLocaleString()}</strong></span>` : ''}
+                       ${asset.poNumber ? `<span>PO: <strong>${asset.poNumber}</strong></span>` : ''}
+                       ${asset.poValue ? `<span>PO Val: <strong>₹${parseFloat(asset.poValue).toLocaleString()}</strong></span>` : ''}
+                       ${asset.assetValue ? `<span>Asset Val: <strong>₹${parseFloat(asset.assetValue).toLocaleString()}</strong></span>` : ''}
                      </div>` 
                   : ''}
                 ${asset.invoiceCopy || asset.poCopy ? `
@@ -754,6 +834,9 @@ function renderAdminAssets() {
     `;
     tbody.appendChild(tr);
   });
+
+  updateSelectAllCheckboxState();
+  updateBulkPrintButton();
 }
 
 function populateAssigneeDropdown() {
@@ -3220,7 +3303,616 @@ function submitAuditFromScan() {
   closeScannerModal();
 }
 
+// Bulk Print and Custom Label Helper Functions
+function handleRowCheckboxChange(e) {
+  const chk = e.target;
+  const assetId = chk.dataset.id;
+  if (chk.checked) {
+    selectedAssetIds.add(assetId);
+  } else {
+    selectedAssetIds.delete(assetId);
+  }
+  updateSelectAllCheckboxState();
+  updateBulkPrintButton();
+}
+
+function handleSelectAllChange(e) {
+  const isChecked = e.target.checked;
+  const rowCheckboxes = document.querySelectorAll('.asset-row-chk');
+  rowCheckboxes.forEach(chk => {
+    chk.checked = isChecked;
+    const id = chk.dataset.id;
+    if (isChecked) {
+      selectedAssetIds.add(id);
+    } else {
+      selectedAssetIds.delete(id);
+    }
+  });
+  updateBulkPrintButton();
+}
+
+function updateSelectAllCheckboxState() {
+  const selectAllChk = document.getElementById('chk-select-all-assets');
+  if (!selectAllChk) return;
+  const rowCheckboxes = document.querySelectorAll('.asset-row-chk');
+  if (rowCheckboxes.length === 0) {
+    selectAllChk.checked = false;
+    return;
+  }
+  let allChecked = true;
+  rowCheckboxes.forEach(chk => {
+    if (!chk.checked) {
+      allChecked = false;
+    }
+  });
+  selectAllChk.checked = allChecked;
+}
+
+function updateBulkPrintButton() {
+  const btn = document.getElementById('btn-bulk-print-labels');
+  const countSpan = document.getElementById('bulk-print-count');
+  if (btn) {
+    if (selectedAssetIds.size > 0) {
+      btn.style.display = 'flex';
+      if (countSpan) countSpan.textContent = selectedAssetIds.size;
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+}
+
+function generateQRCodeDataURL(text) {
+  const tempDiv = document.createElement('div');
+  tempDiv.style.display = 'none';
+  document.body.appendChild(tempDiv);
+  new QRCode(tempDiv, {
+    text: text,
+    width: 90,
+    height: 90,
+    colorDark: "#000000",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+  const canvas = tempDiv.querySelector('canvas');
+  const qrSrc = canvas ? canvas.toDataURL('image/png') : '';
+  document.body.removeChild(tempDiv);
+  return qrSrc;
+}
+
+function bulkPrintLabels() {
+  if (selectedAssetIds.size === 0) {
+    if (typeof showToast === 'function') {
+      showToast('❌ No assets selected for bulk printing.', 'error');
+    }
+    return;
+  }
+
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const selectedAssets = assets.filter(a => selectedAssetIds.has(a.id));
+
+  if (selectedAssets.length === 0) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Selected assets could not be found.', 'error');
+    }
+    return;
+  }
+
+  const printWindow = window.open('', '_blank', 'width=600,height=500');
+  if (!printWindow) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Pop-up blocker prevented bulk printing. Please enable pop-ups.', 'error');
+    }
+    return;
+  }
+
+  let stickersHTML = '';
+  selectedAssets.forEach(asset => {
+    const qrSrc = generateQRCodeDataURL(asset.id);
+
+    stickersHTML += `
+      <div class="sticker-container">
+        <div class="header-row">
+          <span class="brand-text">PROPERTY OF IT DEPT</span>
+          <span class="tag-id">${asset.id}</span>
+        </div>
+        <div class="content-row">
+          <div class="qr-box">
+            <img src="${qrSrc}" />
+          </div>
+          <div class="details-box">
+            <span class="field-label">Asset Name</span>
+            <span class="field-value">${asset.name}</span>
+            <span class="field-label">Model</span>
+            <span class="field-value">${asset.model || 'N/A'}</span>
+            <span class="field-label">Serial</span>
+            <span class="field-value" style="font-family:monospace;">${asset.serial || 'N/A'}</span>
+          </div>
+        </div>
+        <div class="footer-row">
+          Scan QR Code to Verify or Audit this Asset
+        </div>
+      </div>
+    `;
+  });
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Bulk Print Labels</title>
+        <style>
+          @page {
+            size: 3in 2in;
+            margin: 0;
+          }
+          html, body {
+            margin: 0;
+            padding: 0;
+            background: #ffffff;
+            color: #000000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .sticker-container {
+            width: 3in;
+            height: 2in;
+            border: 2px solid #000000;
+            box-sizing: border-box;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            background: #ffffff;
+            page-break-after: always;
+          }
+          .sticker-container:last-child {
+            page-break-after: avoid;
+          }
+          .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #000000;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+          }
+          .brand-text {
+            font-size: 8px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 70%;
+          }
+          .tag-id {
+            font-size: 9px;
+            font-weight: 800;
+            font-family: monospace;
+            background: #000000;
+            color: #ffffff;
+            padding: 1px 4px;
+            border-radius: 2px;
+          }
+          .content-row {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+            align-items: center;
+            min-height: 0;
+          }
+          .qr-box {
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+          .qr-box img {
+            width: 70px;
+            height: 70px;
+          }
+          .details-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 2px;
+            flex: 1;
+            min-width: 0;
+          }
+          .field-label {
+            font-size: 6px;
+            color: #555555;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: -2px;
+          }
+          .field-value {
+            font-size: 9px;
+            font-weight: 700;
+            line-height: 1.1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .footer-row {
+            font-size: 6px;
+            text-align: center;
+            color: #444444;
+            border-top: 1px dashed #cccccc;
+            padding-top: 2px;
+            margin-top: 4px;
+            white-space: nowrap;
+          }
+          @media print {
+            .sticker-container {
+              page-break-after: always;
+            }
+            .sticker-container:last-child {
+              page-break-after: avoid;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        ${stickersHTML}
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            }, 300);
+          };
+        </script>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
+function openCustomLabelModal() {
+  const overlay = document.getElementById('custom-label-modal-overlay');
+  if (overlay) {
+    overlay.style.display = 'flex';
+    document.getElementById('cust-label-header').value = 'PROPERTY OF IT DEPT';
+    document.getElementById('cust-label-id').value = 'AST-XXXX';
+    document.getElementById('cust-label-name').value = 'Generic IT Asset';
+    document.getElementById('cust-label-model').value = 'N/A';
+    document.getElementById('cust-label-serial').value = 'N/A';
+    document.getElementById('cust-label-size').value = 'medium';
+    document.getElementById('cust-label-theme').value = 'bw';
+    document.getElementById('cust-label-show-name').checked = true;
+    document.getElementById('cust-label-show-model').checked = true;
+    document.getElementById('cust-label-show-serial').checked = true;
+    
+    updateCustomLabelQR();
+    updateCustomLabelPreview();
+  }
+}
+
+function closeCustomLabelModal() {
+  const overlay = document.getElementById('custom-label-modal-overlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+}
+
+function updateCustomLabelQR() {
+  const qrContainer = document.getElementById('customm-qr-container');
+  if (!qrContainer) return;
+  qrContainer.innerHTML = '';
+  const idVal = document.getElementById('cust-label-id').value.trim() || 'AST-XXXX';
+  new QRCode(qrContainer, {
+    text: idVal,
+    width: 90,
+    height: 90,
+    colorDark : "#000000",
+    colorLight : "#ffffff",
+    correctLevel : QRCode.CorrectLevel.H
+  });
+}
+
+function updateCustomLabelPreview() {
+  const headerVal = document.getElementById('cust-label-header').value.trim() || 'PROPERTY OF IT DEPT';
+  const idVal = document.getElementById('cust-label-id').value.trim() || 'AST-XXXX';
+  const nameVal = document.getElementById('cust-label-name').value.trim() || 'Generic IT Asset';
+  const modelVal = document.getElementById('cust-label-model').value.trim() || 'N/A';
+  const serialVal = document.getElementById('cust-label-serial').value.trim() || 'N/A';
+  const sizeVal = document.getElementById('cust-label-size').value;
+  const themeVal = document.getElementById('cust-label-theme').value;
+  const showName = document.getElementById('cust-label-show-name').checked;
+  const showModel = document.getElementById('cust-label-show-model').checked;
+  const showSerial = document.getElementById('cust-label-show-serial').checked;
+
+  document.getElementById('cust-preview-label-header').textContent = headerVal;
+  document.getElementById('cust-preview-label-id').textContent = idVal;
+
+  const nameLbl = document.getElementById('cust-preview-label-name-lbl');
+  const nameText = document.getElementById('cust-preview-label-name');
+  if (showName) {
+    if (nameLbl) nameLbl.style.display = 'block';
+    if (nameText) {
+      nameText.style.display = '-webkit-box';
+      nameText.textContent = nameVal;
+    }
+  } else {
+    if (nameLbl) nameLbl.style.display = 'none';
+    if (nameText) nameText.style.display = 'none';
+  }
+
+  const modelLbl = document.getElementById('cust-preview-label-model-lbl');
+  const modelText = document.getElementById('cust-preview-label-model');
+  if (showModel) {
+    if (modelLbl) modelLbl.style.display = 'block';
+    if (modelText) {
+      modelText.style.display = 'block';
+      modelText.textContent = modelVal;
+    }
+  } else {
+    if (modelLbl) modelLbl.style.display = 'none';
+    if (modelText) modelText.style.display = 'none';
+  }
+
+  const serialLbl = document.getElementById('cust-preview-label-serial-lbl');
+  const serialText = document.getElementById('cust-preview-label-serial');
+  if (showSerial) {
+    if (serialLbl) serialLbl.style.display = 'block';
+    if (serialText) {
+      serialText.style.display = 'block';
+      serialText.textContent = serialVal;
+    }
+  } else {
+    if (serialLbl) serialLbl.style.display = 'none';
+    if (serialText) serialText.style.display = 'none';
+  }
+
+  const container = document.getElementById('custom-label-preview-container');
+  if (container) {
+    if (sizeVal === 'small') {
+      container.style.width = '240px';
+      container.style.height = '140px';
+      container.style.padding = '8px';
+    } else if (sizeVal === 'large') {
+      container.style.width = '340px';
+      container.style.height = '220px';
+      container.style.padding = '16px';
+    } else {
+      container.style.width = '280px';
+      container.style.height = '180px';
+      container.style.padding = '12px';
+    }
+  }
+
+  const idBadge = document.getElementById('cust-preview-label-id');
+  if (container && idBadge) {
+    if (themeVal === 'blue') {
+      container.style.borderColor = '#0066cc';
+      idBadge.style.background = '#0066cc';
+      idBadge.style.color = '#ffffff';
+    } else if (themeVal === 'green') {
+      container.style.borderColor = '#2ea043';
+      idBadge.style.background = '#2ea043';
+      idBadge.style.color = '#ffffff';
+    } else {
+      container.style.borderColor = '#000000';
+      idBadge.style.background = '#000000';
+      idBadge.style.color = '#ffffff';
+    }
+  }
+}
+
+function printCustomLabel() {
+  const headerVal = document.getElementById('cust-label-header').value.trim() || 'PROPERTY OF IT DEPT';
+  const idVal = document.getElementById('cust-label-id').value.trim() || 'AST-XXXX';
+  const nameVal = document.getElementById('cust-label-name').value.trim() || 'Generic IT Asset';
+  const modelVal = document.getElementById('cust-label-model').value.trim() || 'N/A';
+  const serialVal = document.getElementById('cust-label-serial').value.trim() || 'N/A';
+  const sizeVal = document.getElementById('cust-label-size').value;
+  const themeVal = document.getElementById('cust-label-theme').value;
+  const showName = document.getElementById('cust-label-show-name').checked;
+  const showModel = document.getElementById('cust-label-show-model').checked;
+  const showSerial = document.getElementById('cust-label-show-serial').checked;
+
+  let printWidth = '3in';
+  let printHeight = '2in';
+  let padding = '12px';
+  if (sizeVal === 'small') {
+    printWidth = '2in';
+    printHeight = '1in';
+    padding = '6px';
+  } else if (sizeVal === 'large') {
+    printWidth = '4in';
+    printHeight = '3in';
+    padding = '18px';
+  }
+
+  let themeColor = '#000000';
+  if (themeVal === 'blue') themeColor = '#0066cc';
+  if (themeVal === 'green') themeColor = '#2ea043';
+
+  const qrImg = document.getElementById('customm-qr-container').querySelector('img');
+  const qrSrc = qrImg ? qrImg.src : '';
+
+  const printWindow = window.open('', '_blank', 'width=600,height=500');
+  if (!printWindow) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Pop-up blocker prevented printing label. Please enable pop-ups.', 'error');
+    }
+    return;
+  }
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Print Custom Label - ${idVal}</title>
+        <style>
+          @page {
+            size: ${printWidth} ${printHeight};
+            margin: 0;
+          }
+          html, body {
+            margin: 0;
+            padding: 0;
+            width: ${printWidth};
+            height: ${printHeight};
+            background: #ffffff;
+            color: #000000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .sticker-container {
+            width: ${printWidth};
+            height: ${printHeight};
+            border: 2px solid ${themeColor};
+            box-sizing: border-box;
+            padding: ${padding};
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            background: #ffffff;
+          }
+          .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #000000;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+          }
+          .brand-text {
+            font-size: 8px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 70%;
+          }
+          .tag-id {
+            font-size: 9px;
+            font-weight: 800;
+            font-family: monospace;
+            background: ${themeColor};
+            color: #ffffff;
+            padding: 1px 4px;
+            border-radius: 2px;
+          }
+          .content-row {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+            align-items: center;
+            min-height: 0;
+          }
+          .qr-box {
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+          .qr-box img {
+            width: 70px;
+            height: 70px;
+          }
+          .details-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 2px;
+            flex: 1;
+            min-width: 0;
+          }
+          .field-label {
+            font-size: 6px;
+            color: #555555;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: -2px;
+          }
+          .field-value {
+            font-size: 9px;
+            font-weight: 700;
+            line-height: 1.1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .footer-row {
+            font-size: 6px;
+            text-align: center;
+            color: #444444;
+            border-top: 1px dashed #cccccc;
+            padding-top: 2px;
+            margin-top: 4px;
+            white-space: nowrap;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="sticker-container">
+          <div class="header-row">
+            <span class="brand-text">${headerVal}</span>
+            <span class="tag-id">${idVal}</span>
+          </div>
+          <div class="content-row">
+            <div class="qr-box">
+              <img src="${qrSrc}" />
+            </div>
+            <div class="details-box">
+              ${showName ? `
+                <span class="field-label">Asset Name</span>
+                <span class="field-value">${nameVal}</span>
+              ` : ''}
+              ${showModel ? `
+                <span class="field-label">Model</span>
+                <span class="field-value">${modelVal}</span>
+              ` : ''}
+              ${showSerial ? `
+                <span class="field-label">Serial</span>
+                <span class="field-value" style="font-family:monospace;">${serialVal}</span>
+              ` : ''}
+            </div>
+          </div>
+          <div class="footer-row">
+            Scan QR Code to Verify or Audit this Asset
+          </div>
+        </div>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            }, 300);
+          };
+        </script>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
 // Global exposure
+window.openCustomLabelModal = openCustomLabelModal;
+window.closeCustomLabelModal = closeCustomLabelModal;
+window.updateCustomLabelQR = updateCustomLabelQR;
+window.updateCustomLabelPreview = updateCustomLabelPreview;
+window.printCustomLabel = printCustomLabel;
+window.bulkPrintLabels = bulkPrintLabels;
+window.handleRowCheckboxChange = handleRowCheckboxChange;
+window.handleSelectAllChange = handleSelectAllChange;
+window.updateSelectAllCheckboxState = updateSelectAllCheckboxState;
+window.updateBulkPrintButton = updateBulkPrintButton;
+window.generateQRCodeDataURL = generateQRCodeDataURL;
 window.renderAssetQRLabel = renderAssetQRLabel;
 window.updateLabelPreview = updateLabelPreview;
 window.printAssetLabel = printAssetLabel;
