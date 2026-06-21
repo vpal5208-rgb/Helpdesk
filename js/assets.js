@@ -99,6 +99,96 @@ function calculateNextAuditDate(lastAuditDateStr, frequency) {
   return date.toISOString().split('T')[0];
 }
 
+function checkAssetAMCNotifications() {
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  assets.forEach(asset => {
+    if (asset.amcEnabled && asset.amcEnd) {
+      const endDate = new Date(asset.amcEnd);
+      endDate.setHours(0,0,0,0);
+      const diffTime = endDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays <= 30) {
+        const sessionKey = `hd_amc_notified_${asset.id}_${asset.amcEnd}`;
+        if (!sessionStorage.getItem(sessionKey)) {
+          let text = '';
+          if (diffDays < 0) {
+            text = `🛡️ AMC Expired: Contract for asset "${asset.name}" (${asset.id}) has expired on ${asset.amcEnd}.`;
+          } else {
+            const daysText = diffDays === 0 ? 'today' : (diffDays === 1 ? 'tomorrow' : `in ${diffDays} days`);
+            text = `🛡️ AMC Expiring: Contract for asset "${asset.name}" (${asset.id}) expires ${daysText} on ${asset.amcEnd}.`;
+          }
+          
+          if (typeof addNotification === 'function') {
+            addNotification(text);
+          }
+          if (typeof showToast === 'function') {
+            showToast(text, diffDays < 0 ? 'error' : 'warning');
+          }
+          
+          sessionStorage.setItem(sessionKey, 'true');
+        }
+      }
+    }
+  });
+}
+
+function updateAMCStatusBadge() {
+  const amcEnabled = document.getElementById('assetm-amc-enabled')?.checked;
+  const badge = document.getElementById('assetm-amc-status-badge');
+  const fieldsContainer = document.getElementById('amc-fields-container');
+  if (!badge) return;
+
+  if (fieldsContainer) {
+    fieldsContainer.style.display = amcEnabled ? 'block' : 'none';
+  }
+
+  if (!amcEnabled) {
+    badge.textContent = 'None';
+    badge.style.background = 'var(--bg-elevated)';
+    badge.style.color = 'var(--text-secondary)';
+    badge.style.border = 'none';
+    return;
+  }
+
+  const endDateVal = document.getElementById('assetm-amc-end')?.value;
+  if (!endDateVal) {
+    badge.textContent = 'Active';
+    badge.style.background = 'rgba(63, 185, 80, 0.15)';
+    badge.style.color = '#3fb950';
+    badge.style.border = '1px solid rgba(63, 185, 80, 0.2)';
+    return;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const endDate = new Date(endDateVal);
+  endDate.setHours(0, 0, 0, 0);
+
+  const diffTime = endDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    badge.textContent = 'Expired';
+    badge.style.background = 'rgba(248, 81, 73, 0.15)';
+    badge.style.color = '#f85149';
+    badge.style.border = '1px solid rgba(248, 81, 73, 0.2)';
+  } else if (diffDays <= 30) {
+    badge.textContent = 'Expiring Soon';
+    badge.style.background = 'rgba(210, 153, 34, 0.15)';
+    badge.style.color = '#d29922';
+    badge.style.border = '1px solid rgba(210, 153, 34, 0.2)';
+  } else {
+    badge.textContent = 'Active';
+    badge.style.background = 'rgba(63, 185, 80, 0.15)';
+    badge.style.color = '#3fb950';
+    badge.style.border = '1px solid rgba(63, 185, 80, 0.2)';
+  }
+}
+
 function checkAssetAuditsNotifications() {
   const assets = typeof loadAssets === 'function' ? loadAssets() : [];
   const today = new Date();
@@ -157,6 +247,7 @@ function initAssets() {
   
   if (isAdminPage) {
     checkAssetAuditsNotifications();
+    checkAssetAMCNotifications();
     // Load existing settings into UI
     const settings = typeof loadSnipeSettings === 'function' ? loadSnipeSettings() : { enabled: true, url: '', token: '' };
     const enabledInput = document.getElementById('snipe-enabled');
@@ -350,9 +441,12 @@ function initAssets() {
     }
 
     // Search and filters
-    ['asset-search', 'asset-filter-category'].forEach(id => {
+    ['asset-search', 'asset-filter-category', 'asset-filter-amc'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.addEventListener('input', renderAdminAssets);
+      if (el) {
+        el.addEventListener('input', renderAdminAssets);
+        el.addEventListener('change', renderAdminAssets);
+      }
     });
 
     const statusTabs = document.getElementById('asset-status-tabs');
@@ -401,6 +495,17 @@ function initAssets() {
         }
       });
     }
+    }
+
+    // AMC listeners
+    const amcEnabledChk = document.getElementById('assetm-amc-enabled');
+    const amcEndDateInput = document.getElementById('assetm-amc-end');
+    if (amcEnabledChk) {
+      amcEnabledChk.addEventListener('change', updateAMCStatusBadge);
+    }
+    if (amcEndDateInput) {
+      amcEndDateInput.addEventListener('change', updateAMCStatusBadge);
+      amcEndDateInput.addEventListener('input', updateAMCStatusBadge);
     }
 
     // Setup file attachment listeners for Asset modal
@@ -725,7 +830,36 @@ function renderAdminAssets() {
       matchesStatus = asset.status === statusFilter;
     }
 
-    return matchesSearch && matchesCategory && matchesStatus;
+    // 4. AMC Filter
+    const amcFilter = document.getElementById('asset-filter-amc')?.value || '';
+    let matchesAMC = true;
+    if (amcFilter) {
+      if (amcFilter === 'none') {
+        matchesAMC = !asset.amcEnabled;
+      } else {
+        if (!asset.amcEnabled) {
+          matchesAMC = false;
+        } else {
+          let amcStatus = 'active';
+          if (asset.amcEnd) {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const endDate = new Date(asset.amcEnd);
+            endDate.setHours(0,0,0,0);
+            const diffTime = endDate.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays < 0) {
+              amcStatus = 'expired';
+            } else if (diffDays <= 30) {
+              amcStatus = 'expiring';
+            }
+          }
+          matchesAMC = amcStatus === amcFilter;
+        }
+      }
+    }
+
+    return matchesSearch && matchesCategory && matchesStatus && matchesAMC;
   });
 
   if (filtered.length === 0) {
@@ -796,6 +930,41 @@ function renderAdminAssets() {
       }
     }
 
+    // AMC badge styling
+    let amcBadgeHTML = '';
+    if (asset.amcEnabled) {
+      let amcStatus = 'Active';
+      let amcColor = '#3fb950';
+      let amcBg = 'rgba(63, 185, 80, 0.1)';
+      
+      if (asset.amcEnd) {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const endDate = new Date(asset.amcEnd);
+        endDate.setHours(0,0,0,0);
+        const diffTime = endDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays < 0) {
+          amcStatus = 'Expired';
+          amcColor = '#f85149';
+          amcBg = 'rgba(248, 81, 73, 0.1)';
+        } else if (diffDays <= 30) {
+          amcStatus = 'Expiring Soon';
+          amcColor = '#d29922';
+          amcBg = 'rgba(210, 153, 34, 0.1)';
+        }
+      }
+      
+      amcBadgeHTML = `
+        <div style="margin-top: 4px;">
+          <span class="badge" title="AMC: ${amcStatus} (End: ${asset.amcEnd || 'N/A'})" style="font-size:0.65rem; padding:2px 6px; border-radius:3px; background:${amcBg}; color:${amcColor}; border:1px solid ${amcColor}; display:inline-flex; align-items:center; gap:2px; cursor:pointer;" onclick="openAssetModal('${asset.id}')">
+            🛡️ AMC: ${amcStatus}
+          </span>
+        </div>
+      `;
+    }
+
     tr.innerHTML = `
       <td style="padding: 12px; text-align: center;">
         <input type="checkbox" class="asset-row-chk" data-id="${asset.id}" style="cursor:pointer;" ${selectedAssetIds.has(asset.id) ? 'checked' : ''} />
@@ -810,6 +979,7 @@ function renderAdminAssets() {
             <div style="font-weight: 600; color: var(--text-primary);">${asset.name}</div>
             ${asset.purchaseDate ? `<div style="font-size:0.72rem; color:var(--text-secondary); margin-top:2px;">Purchased: ${asset.purchaseDate}${asset.warrantyMonths ? ` (${asset.warrantyMonths} mo. warranty)` : ''}</div>` : ''}
             ${auditWarningHTML}
+            ${amcBadgeHTML}
             
             ${(asset.poNumber || asset.poValue || asset.assetValue || asset.invoiceCopy || asset.poCopy) ? `
               <div style="margin-top:6px; display:flex; flex-direction:column; gap:4px;">
@@ -882,6 +1052,7 @@ function populateAssigneeDropdown() {
 function populateVendorDropdown() {
   const select = document.getElementById('assetm-vendor');
   const maintSelect = document.getElementById('assetm-maint-vendor');
+  const amcSelect = document.getElementById('assetm-amc-vendor');
   const vendors = typeof loadVendors === 'function' ? loadVendors() : [];
 
   if (select) {
@@ -896,6 +1067,13 @@ function populateVendorDropdown() {
     maintSelect.innerHTML = '<option value="">No Vendor</option>';
     vendors.forEach(v => {
       maintSelect.innerHTML += `<option value="${v.name}">${v.name}</option>`;
+    });
+  }
+
+  if (amcSelect) {
+    amcSelect.innerHTML = '<option value="">No Vendor</option>';
+    vendors.forEach(v => {
+      amcSelect.innerHTML += `<option value="${v.name}">${v.name}</option>`;
     });
   }
 }
@@ -948,9 +1126,16 @@ function openAssetModal(id = '') {
     // In edit mode we show tabs, in add mode we hide the tabs container (just show general edit details)
     tabsContainer.style.display = id ? 'flex' : 'none';
   }
+  const depreciationContent = document.getElementById('asset-modal-tab-depreciation-content');
+  const qrContent = document.getElementById('asset-modal-tab-qr-content');
+  const amcContent = document.getElementById('asset-modal-tab-amc-content');
+
   if (detailsContent) detailsContent.style.display = 'block';
   if (historyContent) historyContent.style.display = 'none';
   if (maintenanceContent) maintenanceContent.style.display = 'none';
+  if (depreciationContent) depreciationContent.style.display = 'none';
+  if (qrContent) qrContent.style.display = 'none';
+  if (amcContent) amcContent.style.display = 'none';
 
   // Hide maintenance form
   const maintForm = document.getElementById('assetm-maintenance-form');
@@ -1077,6 +1262,36 @@ function openAssetModal(id = '') {
     if (depRateInput) depRateInput.value = asset.depreciationRate !== undefined ? asset.depreciationRate : 40;
     if (depPutToUseInput) depPutToUseInput.value = asset.depreciationPutToUse || asset.purchaseDate || '';
     if (depSalvageInput) depSalvageInput.value = asset.depreciationSalvage !== undefined ? asset.depreciationSalvage : '';
+
+    // Populate AMC details
+    const amcEnabled = !!asset.amcEnabled;
+    const amcEnabledCheckbox = document.getElementById('assetm-amc-enabled');
+    if (amcEnabledCheckbox) amcEnabledCheckbox.checked = amcEnabled;
+
+    const amcFieldsContainer = document.getElementById('amc-fields-container');
+    if (amcFieldsContainer) amcFieldsContainer.style.display = amcEnabled ? 'block' : 'none';
+
+    const amcVendor = document.getElementById('assetm-amc-vendor');
+    if (amcVendor) amcVendor.value = asset.amcVendor || '';
+
+    const amcContract = document.getElementById('assetm-amc-contract');
+    if (amcContract) amcContract.value = asset.amcContract || '';
+
+    const amcStart = document.getElementById('assetm-amc-start');
+    if (amcStart) amcStart.value = asset.amcStart || '';
+
+    const amcEnd = document.getElementById('assetm-amc-end');
+    if (amcEnd) amcEnd.value = asset.amcEnd || '';
+
+    const amcCost = document.getElementById('assetm-amc-cost');
+    if (amcCost) amcCost.value = asset.amcCost !== undefined ? asset.amcCost : '';
+
+    const amcDetails = document.getElementById('assetm-amc-details');
+    if (amcDetails) amcDetails.value = asset.amcDetails || '';
+
+    if (typeof updateAMCStatusBadge === 'function') {
+      updateAMCStatusBadge();
+    }
   } else {
     // Add mode
     titleEl.textContent = '🖥️ Add New Asset';
@@ -1175,6 +1390,35 @@ function openAssetModal(id = '') {
       depPutToUseInput.value = new Date().toISOString().split('T')[0];
     }
     if (depSalvageInput) depSalvageInput.value = '';
+
+    // Reset AMC fields
+    const amcEnabledCheckbox = document.getElementById('assetm-amc-enabled');
+    if (amcEnabledCheckbox) amcEnabledCheckbox.checked = false;
+
+    const amcFieldsContainer = document.getElementById('amc-fields-container');
+    if (amcFieldsContainer) amcFieldsContainer.style.display = 'none';
+
+    const amcVendor = document.getElementById('assetm-amc-vendor');
+    if (amcVendor) amcVendor.value = '';
+
+    const amcContract = document.getElementById('assetm-amc-contract');
+    if (amcContract) amcContract.value = '';
+
+    const amcStart = document.getElementById('assetm-amc-start');
+    if (amcStart) amcStart.value = '';
+
+    const amcEnd = document.getElementById('assetm-amc-end');
+    if (amcEnd) amcEnd.value = '';
+
+    const amcCost = document.getElementById('assetm-amc-cost');
+    if (amcCost) amcCost.value = '';
+
+    const amcDetails = document.getElementById('assetm-amc-details');
+    if (amcDetails) amcDetails.value = '';
+
+    if (typeof updateAMCStatusBadge === 'function') {
+      updateAMCStatusBadge();
+    }
   }
 
   overlay.style.display = 'flex';
@@ -1229,6 +1473,39 @@ function saveAssetFromModal() {
   const depreciationPutToUse = document.getElementById('assetm-dep-put-to-use')?.value || '';
   const depreciationSalvageVal = document.getElementById('assetm-dep-salvage')?.value;
   const depreciationSalvage = depreciationSalvageVal ? parseFloat(depreciationSalvageVal) : '';
+
+  // Retrieve AMC fields
+  const amcEnabled = document.getElementById('assetm-amc-enabled')?.checked || false;
+  const amcVendor = document.getElementById('assetm-amc-vendor')?.value || '';
+  const amcContract = document.getElementById('assetm-amc-contract')?.value.trim() || '';
+  const amcStart = document.getElementById('assetm-amc-start')?.value || '';
+  const amcEnd = document.getElementById('assetm-amc-end')?.value || '';
+  const amcCostVal = document.getElementById('assetm-amc-cost')?.value || '';
+  const amcCost = amcCostVal ? parseFloat(amcCostVal) : '';
+  const amcDetails = document.getElementById('assetm-amc-details')?.value.trim() || '';
+
+  if (amcEnabled) {
+    if (!amcVendor) {
+      if (typeof showToast === 'function') showToast('❌ AMC Vendor is required when AMC is enabled.', 'error');
+      return;
+    }
+    if (!amcContract) {
+      if (typeof showToast === 'function') showToast('❌ AMC Contract / Ref No. is required when AMC is enabled.', 'error');
+      return;
+    }
+    if (!amcStart) {
+      if (typeof showToast === 'function') showToast('❌ AMC Start Date is required when AMC is enabled.', 'error');
+      return;
+    }
+    if (!amcEnd) {
+      if (typeof showToast === 'function') showToast('❌ AMC End Date is required when AMC is enabled.', 'error');
+      return;
+    }
+    if (amcStart && amcEnd && amcStart > amcEnd) {
+      if (typeof showToast === 'function') showToast('❌ AMC End Date cannot be before Start Date.', 'error');
+      return;
+    }
+  }
 
   if (!tag) {
     if (typeof showToast === 'function') {
@@ -1349,7 +1626,14 @@ function saveAssetFromModal() {
     depreciationMethod,
     depreciationRate,
     depreciationPutToUse,
-    depreciationSalvage
+    depreciationSalvage,
+    amcEnabled,
+    amcVendor,
+    amcContract,
+    amcStart,
+    amcEnd,
+    amcCost,
+    amcDetails
   };
 
   let oldStatus = '';
@@ -2179,6 +2463,7 @@ function initAssetModalTabs() {
   const maintenanceContent = document.getElementById('asset-modal-tab-maintenance-content');
   const depreciationContent = document.getElementById('asset-modal-tab-depreciation-content');
   const qrContent = document.getElementById('asset-modal-tab-qr-content');
+  const amcContent = document.getElementById('asset-modal-tab-amc-content');
 
   // Tab switching click handler
   tabButtons.forEach(btn => {
@@ -2193,41 +2478,22 @@ function initAssetModalTabs() {
       btn.style.color = 'var(--text-primary)';
 
       const tab = btn.dataset.tab;
-      if (qrContent) qrContent.style.display = 'none';
+      if (detailsContent) detailsContent.style.display = tab === 'details' ? 'block' : 'none';
+      if (historyContent) historyContent.style.display = tab === 'history' ? 'block' : 'none';
+      if (maintenanceContent) maintenanceContent.style.display = tab === 'maintenance' ? 'block' : 'none';
+      if (depreciationContent) depreciationContent.style.display = tab === 'depreciation' ? 'block' : 'none';
+      if (qrContent) qrContent.style.display = tab === 'qr' ? 'block' : 'none';
+      if (amcContent) amcContent.style.display = tab === 'amc' ? 'block' : 'none';
 
-      if (tab === 'details') {
-        if (detailsContent) detailsContent.style.display = 'block';
-        if (historyContent) historyContent.style.display = 'none';
-        if (maintenanceContent) maintenanceContent.style.display = 'none';
-        if (depreciationContent) depreciationContent.style.display = 'none';
-      } else if (tab === 'history') {
-        if (detailsContent) detailsContent.style.display = 'none';
-        if (historyContent) historyContent.style.display = 'block';
-        if (maintenanceContent) maintenanceContent.style.display = 'none';
-        if (depreciationContent) depreciationContent.style.display = 'none';
-        // Render history
+      if (tab === 'history') {
         const id = document.getElementById('assetm-id').value;
         renderAssetHistory(id);
       } else if (tab === 'maintenance') {
-        if (detailsContent) detailsContent.style.display = 'none';
-        if (historyContent) historyContent.style.display = 'none';
-        if (maintenanceContent) maintenanceContent.style.display = 'block';
-        if (depreciationContent) depreciationContent.style.display = 'none';
-        // Render maintenance
         const id = document.getElementById('assetm-id').value;
         renderAssetHistory(id);
       } else if (tab === 'depreciation') {
-        if (detailsContent) detailsContent.style.display = 'none';
-        if (historyContent) historyContent.style.display = 'none';
-        if (maintenanceContent) maintenanceContent.style.display = 'none';
-        if (depreciationContent) depreciationContent.style.display = 'block';
         calculateAndRenderDepreciation();
       } else if (tab === 'qr') {
-        if (detailsContent) detailsContent.style.display = 'none';
-        if (historyContent) historyContent.style.display = 'none';
-        if (maintenanceContent) maintenanceContent.style.display = 'none';
-        if (depreciationContent) depreciationContent.style.display = 'none';
-        if (qrContent) qrContent.style.display = 'block';
         const id = document.getElementById('assetm-id').value;
         if (typeof renderAssetQRLabel === 'function') {
           renderAssetQRLabel(id);
@@ -3322,6 +3588,9 @@ function submitAuditFromScan() {
   if (typeof checkAssetAuditsNotifications === 'function') {
     checkAssetAuditsNotifications();
   }
+  if (typeof checkAssetAMCNotifications === 'function') {
+    checkAssetAMCNotifications();
+  }
 
   if (typeof showToast === 'function') {
     showToast(`IT Asset ${asset.id} successfully verified & audited!`, 'success');
@@ -4153,6 +4422,8 @@ window.initAssetModalTabs = initAssetModalTabs;
 window.renderAssetHistory = renderAssetHistory;
 window.openLightbox = openLightbox;
 window.closeLightbox = closeLightbox;
+window.updateAMCStatusBadge = updateAMCStatusBadge;
+window.checkAssetAMCNotifications = checkAssetAMCNotifications;
 
 // Load event binder
 if (document.readyState === 'loading') {

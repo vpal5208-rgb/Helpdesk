@@ -1352,6 +1352,13 @@ support@company.com | +1 (800) 555-0199</textarea>
             <option>Hardware</option>
             <option>Software</option>
           </select>
+          <select id="asset-filter-amc" class="form-input" style="max-width: 180px;">
+            <option value="">All AMC Status</option>
+            <option value="none">No AMC</option>
+            <option value="active">Active AMC</option>
+            <option value="expiring">Expiring Soon</option>
+            <option value="expired">Expired AMC</option>
+          </select>
         </div>
         <div class="toolbar-right" style="display:flex; gap:10px;">
           <button class="btn btn-ghost" id="btn-bulk-print-labels" style="display:none; color:var(--accent-blue); border:1px solid rgba(88,166,255,0.25); display:flex; align-items:center; gap:6px; font-weight:600;" title="Print labels for selected assets">
@@ -1763,6 +1770,7 @@ support@company.com | +1 (800) 555-0199</textarea>
         <button type="button" class="modal-tab-btn" data-tab="maintenance" style="flex:1; padding:10px; background:none; border:none; border-bottom:2px solid transparent; color:var(--text-secondary); font-weight:600; cursor:pointer;">🔧 Maintenance</button>
         <button type="button" class="modal-tab-btn" data-tab="depreciation" style="flex:1; padding:10px; background:none; border:none; border-bottom:2px solid transparent; color:var(--text-secondary); font-weight:600; cursor:pointer;">💸 Depreciation</button>
         <button type="button" class="modal-tab-btn" data-tab="qr" style="flex:1; padding:10px; background:none; border:none; border-bottom:2px solid transparent; color:var(--text-secondary); font-weight:600; cursor:pointer;">🏷️ QR & Label</button>
+        <button type="button" class="modal-tab-btn" data-tab="amc" style="flex:1; padding:10px; background:none; border:none; border-bottom:2px solid transparent; color:var(--text-secondary); font-weight:600; cursor:pointer;">🛡️ AMC</button>
       </div>
 
       <!-- Tab Content: Details -->
@@ -2179,6 +2187,56 @@ support@company.com | +1 (800) 555-0199</textarea>
         </div>
       </div>
 
+      <!-- Tab Content: AMC Details -->
+      <div id="asset-modal-tab-amc-content" style="display:none; animation: fadeIn 0.2s ease;">
+        <div class="form-group" style="margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="assetm-amc-enabled" style="width:16px; height:16px; cursor:pointer; margin:0;"/>
+          <label for="assetm-amc-enabled" style="font-size:0.85rem; font-weight:600; color:var(--text-primary); cursor:pointer; user-select:none;">Enable AMC (Annual Maintenance Contract)</label>
+        </div>
+
+        <div id="amc-fields-container" style="display:none; border-top:1px solid var(--border); padding-top:16px;">
+          <div class="form-row" style="display:flex; gap:16px; margin-bottom:16px;">
+            <div class="form-group" style="flex:1;">
+              <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">AMC Vendor *</label>
+              <select id="assetm-amc-vendor" class="form-input" style="width:100%">
+                <option value="">Select Vendor...</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">AMC Contract / Ref No. *</label>
+              <input type="text" id="assetm-amc-contract" class="form-input" style="width:100%" placeholder="e.g. AMC-2026-9843"/>
+            </div>
+          </div>
+
+          <div class="form-row" style="display:flex; gap:16px; margin-bottom:16px;">
+            <div class="form-group" style="flex:1;">
+              <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">AMC Start Date *</label>
+              <input type="date" id="assetm-amc-start" class="form-input" style="width:100%"/>
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">AMC End Date *</label>
+              <input type="date" id="assetm-amc-end" class="form-input" style="width:100%"/>
+            </div>
+          </div>
+
+          <div class="form-row" style="display:flex; gap:16px; margin-bottom:16px;">
+            <div class="form-group" style="flex:1;">
+              <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">AMC Cost (₹)</label>
+              <input type="number" id="assetm-amc-cost" class="form-input" style="width:100%" placeholder="e.g. 5000" min="0"/>
+            </div>
+            <div class="form-group" style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+              <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">AMC Status</label>
+              <div id="assetm-amc-status-badge" style="display:inline-block; font-size:0.75rem; font-weight:700; padding:4px 8px; border-radius:4px; text-align:center; width:fit-content; background:var(--bg-elevated); color:var(--text-secondary);">None</div>
+            </div>
+          </div>
+          
+          <div class="form-group" style="margin-bottom:16px;">
+            <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary)">Maintenance/Support Coverage Details</label>
+            <textarea id="assetm-amc-details" class="form-input" style="width:100%; height:80px;" placeholder="Describe what is covered under this AMC contract..."></textarea>
+          </div>
+        </div>
+      </div>
+
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" id="asset-modal-cancel">Cancel</button>
@@ -2566,18 +2624,18 @@ support@company.com | +1 (800) 555-0199</textarea>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
 
-<script src="js/data.js?v=41"></script>
-<script src="js/tickets.js?v=41"></script>
-<script src="js/dashboard.js?v=41"></script>
-<script src="js/ui.js?v=41"></script>
-<script src="js/email.js?v=41"></script>
-<script src="js/roles.js?v=41"></script>
-<script src="js/users.js?v=41"></script>
-<script src="js/audit.js?v=41"></script>
-<script src="js/chat.js?v=41"></script>
-<script src="js/sso.js?v=41"></script>
-<script src="js/kb.js?v=41"></script>
-<script src="js/assets.js?v=41"></script>
-<script src="js/app.js?v=41"></script>
+<script src="js/data.js?v=42"></script>
+<script src="js/tickets.js?v=42"></script>
+<script src="js/dashboard.js?v=42"></script>
+<script src="js/ui.js?v=42"></script>
+<script src="js/email.js?v=42"></script>
+<script src="js/roles.js?v=42"></script>
+<script src="js/users.js?v=42"></script>
+<script src="js/audit.js?v=42"></script>
+<script src="js/chat.js?v=42"></script>
+<script src="js/sso.js?v=42"></script>
+<script src="js/kb.js?v=42"></script>
+<script src="js/assets.js?v=42"></script>
+<script src="js/app.js?v=42"></script>
 </body>
 </html>
