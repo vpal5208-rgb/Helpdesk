@@ -15,20 +15,9 @@ function initTickets() {
 }
 
 function renderAgentFilter() {
-  const sel = document.getElementById('filter-agent');
-  AGENTS.forEach(a => {
-    const opt = document.createElement('option');
-    opt.value = a.id; opt.textContent = a.name;
-    sel.appendChild(opt);
-  });
-  // Modal agent select
-  const fAgent = document.getElementById('f-agent');
-  AGENTS.forEach(a => {
-    const opt = document.createElement('option');
-    opt.value = a.id; opt.textContent = a.name;
-    fAgent.appendChild(opt);
-  });
+  // All agent lists are removed from the system. Option lists remain empty (only "All Agents" or "Unassigned" are available).
 }
+
 
 function applyFilters() {
   const status = document.getElementById('filter-status').value;

@@ -644,7 +644,6 @@ function rebuildCustomReportBuilder() {
       <label>Agent</label>
       <select id="cr-filter-agent" class="form-input">
         <option value="">All Agents</option>
-        ${(typeof AGENTS !== 'undefined' ? AGENTS : []).map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
       </select>
     `;
     filtersContainer.appendChild(agentDiv);
