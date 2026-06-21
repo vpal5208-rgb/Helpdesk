@@ -486,6 +486,8 @@ function refreshUsersView() {
   allUsersData = loadUsers();
   renderUserStats();
   applyUsersFilters();
+  if (typeof renderAgentFilter === 'function') renderAgentFilter();
+  if (typeof renderAgentsView === 'function') renderAgentsView();
 }
 
 /* ===== INIT ===== */

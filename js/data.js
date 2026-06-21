@@ -247,8 +247,85 @@ function calcSLARemaining(ticket,sla){
   return limitH-elapsedH;
 }
 
-function getAgentById(id){ return AGENTS.find(a=>a.id===id)||null; }
-function getAgentName(id){ const a=getAgentById(id); return a?a.name:'Unassigned'; }
+function getSystemAgents() {
+  let users = [];
+  try {
+    const raw = localStorage.getItem('hd_users_v1');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        users = parsed.filter(Boolean);
+      }
+    }
+  } catch(e){}
+  
+  if (users.length === 0 && typeof window.loadUsers === 'function') {
+    users = window.loadUsers();
+  }
+  
+  const agentsFromUsers = users.filter(u => u.role === 'agent').map(u => {
+    let tickets = [];
+    try {
+      const rawT = localStorage.getItem('hd_tickets_v1');
+      if (rawT) {
+        const parsedT = JSON.parse(rawT);
+        if (Array.isArray(parsedT)) {
+          tickets = parsedT.filter(Boolean);
+        }
+      }
+    } catch(e){}
+
+    const resolved = tickets.filter(t => t.agentId === u.id && (t.status === 'Resolved' || t.status === 'Closed')).length;
+    const open = tickets.filter(t => t.agentId === u.id && t.status === 'Open').length;
+    
+    // Rating calculation
+    const LS_RATINGS = 'hd_ratings_v1';
+    let rating = 5.0;
+    try {
+      const stored = localStorage.getItem(LS_RATINGS);
+      if (stored) {
+        const ratings = JSON.parse(stored);
+        const userRatings = ratings.filter(r => r.agentId === u.id);
+        if (userRatings.length > 0) {
+          const sum = userRatings.reduce((s, r) => s + r.rating, 0);
+          rating = parseFloat((sum / userRatings.length).toFixed(1));
+        }
+      }
+    } catch(e){}
+
+    const initials = (u.fname[0] + (u.lname ? u.lname[0] : '')).toUpperCase();
+    const USER_COLORS = ['#58a6ff','#3fb950','#bc8cff','#d29922','#f85149','#26d4b0','#ff7b72','#79c0ff'];
+    const color = USER_COLORS[(u.fname.charCodeAt(0) + (u.lname ? u.lname.charCodeAt(0) : 0)) % USER_COLORS.length];
+
+    return {
+      id: u.id,
+      name: `${u.fname} ${u.lname || ''}`.trim(),
+      initials,
+      role: 'IT Agent',
+      dept: u.dept || 'IT Support',
+      color,
+      status: u.status === 'active' ? 'online' : 'offline',
+      resolved,
+      open,
+      rating
+    };
+  });
+  return agentsFromUsers;
+}
+
+window.getSystemAgents = getSystemAgents;
+
+function getAgentById(id) {
+  const hardcoded = AGENTS.find(a => a.id === id);
+  if (hardcoded) return hardcoded;
+  return getSystemAgents().find(a => a.id === id) || null;
+}
+
+function getAgentName(id) {
+  const a = getAgentById(id);
+  return a ? a.name : 'Unassigned';
+}
+
 
 const NOTIFICATIONS=[
   { id:'n1', text:'Critical ticket TKT-0001 has breached SLA', time:'2 min ago', read:false },
