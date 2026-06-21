@@ -412,25 +412,13 @@ function renderAgentPerfChart() {
 function renderAgentsView() {
   const grid = document.getElementById('agents-grid');
   if (!grid) return;
-  grid.innerHTML = '';
-  AGENTS.forEach(ag => {
-    const open = allTickets.filter(t=>t.agentId===ag.id&&t.status==='Open').length;
-    const dotCls = ag.status==='online'?'dot-online':ag.status==='busy'?'dot-busy':'dot-offline';
-    const card = document.createElement('div');
-    card.className='agent-card';
-    card.innerHTML=`
-      <div class="agent-avatar-lg" style="background:linear-gradient(135deg,${ag.color},${ag.color}aa)">${ag.initials}</div>
-      <div class="agent-name">${ag.name}</div>
-      <div class="agent-role">${ag.role}</div>
-      <div class="agent-dept">${ag.dept}</div>
-      <div class="agent-stats">
-        <div class="agent-stat"><div class="agent-stat-val">${ag.resolved}</div><div class="agent-stat-lbl">Resolved</div></div>
-        <div class="agent-stat"><div class="agent-stat-val">${open}</div><div class="agent-stat-lbl">Open</div></div>
-        <div class="agent-stat"><div class="agent-stat-val">${ag.rating}</div><div class="agent-stat-lbl">Rating</div></div>
-      </div>
-      <div class="agent-status"><span class="status-dot ${dotCls}"></span>${ag.status.charAt(0).toUpperCase()+ag.status.slice(1)}</div>`;
-    grid.appendChild(card);
-  });
+  grid.innerHTML = `
+    <div style="grid-column: 1 / -1; padding: 48px; text-align: center; color: var(--text-secondary); background: var(--bg-surface); border: 1px dashed var(--border); border-radius: var(--radius); display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 16px 0; width: 100%;">
+      <span style="font-size: 2.5rem;">👥</span>
+      <div style="font-weight: 600; color: var(--text-primary); font-size: 1.1rem;">No Agents Available</div>
+      <p style="margin: 0; font-size: 0.85rem; max-width: 320px; color: var(--text-secondary);">There are no support agents registered in the overview list at this time.</p>
+    </div>
+  `;
 }
 
 /* ====== REPORTS EXPORT & CUSTOM REPORTS ====== */
