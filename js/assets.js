@@ -266,6 +266,10 @@ function initAssets() {
       });
     }
 
+    if (typeof initAssetScanner === 'function') {
+      initAssetScanner();
+    }
+
     // Bulk Audit All Button
     const btnBulkAudit = document.getElementById('btn-bulk-audit-all');
     if (btnBulkAudit) {
@@ -2064,6 +2068,7 @@ function initAssetModalTabs() {
   const historyContent = document.getElementById('asset-modal-tab-history-content');
   const maintenanceContent = document.getElementById('asset-modal-tab-maintenance-content');
   const depreciationContent = document.getElementById('asset-modal-tab-depreciation-content');
+  const qrContent = document.getElementById('asset-modal-tab-qr-content');
 
   // Tab switching click handler
   tabButtons.forEach(btn => {
@@ -2078,6 +2083,8 @@ function initAssetModalTabs() {
       btn.style.color = 'var(--text-primary)';
 
       const tab = btn.dataset.tab;
+      if (qrContent) qrContent.style.display = 'none';
+
       if (tab === 'details') {
         if (detailsContent) detailsContent.style.display = 'block';
         if (historyContent) historyContent.style.display = 'none';
@@ -2105,6 +2112,16 @@ function initAssetModalTabs() {
         if (maintenanceContent) maintenanceContent.style.display = 'none';
         if (depreciationContent) depreciationContent.style.display = 'block';
         calculateAndRenderDepreciation();
+      } else if (tab === 'qr') {
+        if (detailsContent) detailsContent.style.display = 'none';
+        if (historyContent) historyContent.style.display = 'none';
+        if (maintenanceContent) maintenanceContent.style.display = 'none';
+        if (depreciationContent) depreciationContent.style.display = 'none';
+        if (qrContent) qrContent.style.display = 'block';
+        const id = document.getElementById('assetm-id').value;
+        if (typeof renderAssetQRLabel === 'function') {
+          renderAssetQRLabel(id);
+        }
       }
     });
   });
@@ -2121,6 +2138,33 @@ function initAssetModalTabs() {
       el.addEventListener('input', calculateAndRenderDepreciation);
     }
   });
+
+  // Bind customization change/input listeners for label preview
+  const labelHeader = document.getElementById('label-opt-header');
+  const labelShowName = document.getElementById('label-opt-show-name');
+  const labelShowModel = document.getElementById('label-opt-show-model');
+  const labelShowSerial = document.getElementById('label-opt-show-serial');
+  const labelSize = document.getElementById('label-opt-size');
+  const labelTheme = document.getElementById('label-opt-theme');
+
+  [labelHeader, labelShowName, labelShowModel, labelShowSerial, labelSize, labelTheme].forEach(el => {
+    if (el) {
+      el.addEventListener('change', () => {
+        if (typeof updateLabelPreview === 'function') updateLabelPreview();
+      });
+      el.addEventListener('input', () => {
+        if (typeof updateLabelPreview === 'function') updateLabelPreview();
+      });
+    }
+  });
+
+  // Print button click
+  const btnPrintLabel = document.getElementById('btn-print-asset-label');
+  if (btnPrintLabel) {
+    btnPrintLabel.addEventListener('click', () => {
+      if (typeof printAssetLabel === 'function') printAssetLabel();
+    });
+  }
 
   // Sync Date Put to Use with Purchase Date on details tab changes
   const purchaseDateInput = document.getElementById('assetm-purchase-date');
@@ -2413,7 +2457,782 @@ function closeLightbox() {
   if (overlay) overlay.style.display = 'none';
 }
 
+
+/* =============================================
+   QR CODE & SCANNER SYSTEM LOGIC
+   ============================================= */
+
+let html5QrcodeInstance = null;
+let activeCameraId = null;
+
+function renderAssetQRLabel(id) {
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const asset = assets.find(a => a.id === id);
+  if (!asset) return;
+
+  // Clear previous QR
+  const qrContainer = document.getElementById('assetm-qr-container');
+  if (qrContainer) {
+    qrContainer.innerHTML = '';
+    // Generate QR
+    new QRCode(qrContainer, {
+      text: asset.id,
+      width: 90,
+      height: 90,
+      colorDark : "#000000",
+      colorLight : "#ffffff",
+      correctLevel : QRCode.CorrectLevel.H
+    });
+  }
+
+  // Set default settings values
+  document.getElementById('label-opt-header').value = 'PROPERTY OF IT DEPT';
+  document.getElementById('label-opt-show-name').checked = true;
+  document.getElementById('label-opt-show-model').checked = true;
+  document.getElementById('label-opt-show-serial').checked = true;
+  document.getElementById('label-opt-size').value = 'medium';
+  document.getElementById('label-opt-theme').value = 'bw';
+
+  updateLabelPreview();
+}
+
+function updateLabelPreview() {
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const id = document.getElementById('assetm-id').value;
+  const asset = assets.find(a => a.id === id);
+  if (!asset) return;
+
+  const headerVal = document.getElementById('label-opt-header').value.trim() || 'PROPERTY OF IT DEPT';
+  const showName = document.getElementById('label-opt-show-name').checked;
+  const showModel = document.getElementById('label-opt-show-model').checked;
+  const showSerial = document.getElementById('label-opt-show-serial').checked;
+  const sizeVal = document.getElementById('label-opt-size').value;
+  const themeVal = document.getElementById('label-opt-theme').value;
+
+  // Header text
+  document.getElementById('preview-label-header').textContent = headerVal;
+  
+  // Tag ID
+  document.getElementById('preview-label-id').textContent = asset.id;
+
+  // Name visibility
+  const nameLbl = document.getElementById('preview-label-name-lbl');
+  const nameText = document.getElementById('preview-label-name');
+  if (showName) {
+    if (nameLbl) nameLbl.style.display = 'block';
+    if (nameText) {
+      nameText.style.display = '-webkit-box';
+      nameText.textContent = asset.name;
+    }
+  } else {
+    if (nameLbl) nameLbl.style.display = 'none';
+    if (nameText) nameText.style.display = 'none';
+  }
+
+  // Model visibility
+  const modelLbl = document.getElementById('preview-label-model-lbl');
+  const modelText = document.getElementById('preview-label-model');
+  if (showModel) {
+    if (modelLbl) modelLbl.style.display = 'block';
+    if (modelText) {
+      modelText.style.display = 'block';
+      modelText.textContent = asset.model || 'N/A';
+    }
+  } else {
+    if (modelLbl) modelLbl.style.display = 'none';
+    if (modelText) modelText.style.display = 'none';
+  }
+
+  // Serial visibility
+  const serialLbl = document.getElementById('preview-label-serial-lbl');
+  const serialText = document.getElementById('preview-label-serial');
+  if (showSerial) {
+    if (serialLbl) serialLbl.style.display = 'block';
+    if (serialText) {
+      serialText.style.display = 'block';
+      serialText.textContent = asset.serial || 'N/A';
+    }
+  } else {
+    if (serialLbl) serialLbl.style.display = 'none';
+    if (serialText) serialText.style.display = 'none';
+  }
+
+  // Size sizing
+  const container = document.getElementById('asset-label-preview-container');
+  if (container) {
+    if (sizeVal === 'small') {
+      container.style.width = '240px';
+      container.style.height = '140px';
+      container.style.padding = '8px';
+    } else if (sizeVal === 'large') {
+      container.style.width = '340px';
+      container.style.height = '220px';
+      container.style.padding = '16px';
+    } else {
+      // medium
+      container.style.width = '280px';
+      container.style.height = '180px';
+      container.style.padding = '12px';
+    }
+  }
+
+  // Theme application
+  const idBadge = document.getElementById('preview-label-id');
+  if (container && idBadge) {
+    if (themeVal === 'blue') {
+      container.style.borderColor = '#0066cc';
+      idBadge.style.background = '#0066cc';
+      idBadge.style.color = '#ffffff';
+    } else if (themeVal === 'green') {
+      container.style.borderColor = '#2ea043';
+      idBadge.style.background = '#2ea043';
+      idBadge.style.color = '#ffffff';
+    } else {
+      // bw
+      container.style.borderColor = '#000000';
+      idBadge.style.background = '#000000';
+      idBadge.style.color = '#ffffff';
+    }
+  }
+}
+
+function printAssetLabel() {
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const id = document.getElementById('assetm-id').value;
+  const asset = assets.find(a => a.id === id);
+  if (!asset) return;
+
+  const headerVal = document.getElementById('label-opt-header').value.trim() || 'PROPERTY OF IT DEPT';
+  const showName = document.getElementById('label-opt-show-name').checked;
+  const showModel = document.getElementById('label-opt-show-model').checked;
+  const showSerial = document.getElementById('label-opt-show-serial').checked;
+  const sizeVal = document.getElementById('label-opt-size').value;
+  const themeVal = document.getElementById('label-opt-theme').value;
+
+  // Determine physical sticker size for print styling
+  let printWidth = '3in';
+  let printHeight = '2in';
+  let padding = '12px';
+  if (sizeVal === 'small') {
+    printWidth = '2in';
+    printHeight = '1in';
+    padding = '6px';
+  } else if (sizeVal === 'large') {
+    printWidth = '4in';
+    printHeight = '3in';
+    padding = '18px';
+  }
+
+  // Theme color for printing
+  let themeColor = '#000000';
+  if (themeVal === 'blue') themeColor = '#0066cc';
+  if (themeVal === 'green') themeColor = '#2ea043';
+
+  // Get current QR code SVG or Image source
+  const qrImg = document.getElementById('assetm-qr-container').querySelector('img');
+  const qrSrc = qrImg ? qrImg.src : '';
+
+  const printWindow = window.open('', '_blank', 'width=600,height=500');
+  if (!printWindow) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Pop-up blocker prevented printing label. Please enable pop-ups.', 'error');
+    }
+    return;
+  }
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Print Label - ${asset.id}</title>
+        <style>
+          @page {
+            size: ${printWidth} ${printHeight};
+            margin: 0;
+          }
+          html, body {
+            margin: 0;
+            padding: 0;
+            width: ${printWidth};
+            height: ${printHeight};
+            background: #ffffff;
+            color: #000000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .sticker-container {
+            width: ${printWidth};
+            height: ${printHeight};
+            border: 2px solid ${themeColor};
+            box-sizing: border-box;
+            padding: ${padding};
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            background: #ffffff;
+          }
+          .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #000000;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+          }
+          .brand-text {
+            font-size: 8px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 70%;
+          }
+          .tag-id {
+            font-size: 9px;
+            font-weight: 800;
+            font-family: monospace;
+            background: ${themeColor};
+            color: #ffffff;
+            padding: 1px 4px;
+            border-radius: 2px;
+          }
+          .content-row {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+            align-items: center;
+            min-height: 0;
+          }
+          .qr-box {
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+          .qr-box img {
+            width: 70px;
+            height: 70px;
+          }
+          .details-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 2px;
+            flex: 1;
+            min-width: 0;
+          }
+          .field-label {
+            font-size: 6px;
+            color: #555555;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: -2px;
+          }
+          .field-value {
+            font-size: 9px;
+            font-weight: 700;
+            line-height: 1.1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .footer-row {
+            font-size: 6px;
+            text-align: center;
+            color: #444444;
+            border-top: 1px dashed #cccccc;
+            padding-top: 2px;
+            margin-top: 4px;
+            white-space: nowrap;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="sticker-container">
+          <div class="header-row">
+            <span class="brand-text">${headerVal}</span>
+            <span class="tag-id">${asset.id}</span>
+          </div>
+          <div class="content-row">
+            <div class="qr-box">
+              <img src="${qrSrc}" />
+            </div>
+            <div class="details-box">
+              ${showName ? `
+                <span class="field-label">Asset Name</span>
+                <span class="field-value">${asset.name}</span>
+              ` : ''}
+              ${showModel ? `
+                <span class="field-label">Model</span>
+                <span class="field-value">${asset.model || 'N/A'}</span>
+              ` : ''}
+              ${showSerial ? `
+                <span class="field-label">Serial</span>
+                <span class="field-value" style="font-family:monospace;">${asset.serial || 'N/A'}</span>
+              ` : ''}
+            </div>
+          </div>
+          <div class="footer-row">
+            Scan QR Code to Verify or Audit this Asset
+          </div>
+        </div>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            }, 300);
+          };
+        <\/script>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
+function initAssetScanner() {
+  const btnScanAsset = document.getElementById('btn-scan-asset');
+  if (btnScanAsset && !btnScanAsset.dataset.initialized) {
+    btnScanAsset.addEventListener('click', openScannerModal);
+    btnScanAsset.dataset.initialized = 'true';
+  }
+
+  const btnClose = document.getElementById('asset-scanner-modal-close');
+  const btnCancel = document.getElementById('asset-scanner-modal-cancel');
+  [btnClose, btnCancel].forEach(btn => {
+    if (btn && !btn.dataset.initialized) {
+      btn.addEventListener('click', closeScannerModal);
+      btn.dataset.initialized = 'true';
+    }
+  });
+
+  const btnSubmitAudit = document.getElementById('btn-scan-submit-audit');
+  if (btnSubmitAudit && !btnSubmitAudit.dataset.initialized) {
+    btnSubmitAudit.addEventListener('click', submitAuditFromScan);
+    btnSubmitAudit.dataset.initialized = 'true';
+  }
+
+  // Scanner reset
+  const btnReset = document.getElementById('btn-scanner-reset');
+  if (btnReset && !btnReset.dataset.initialized) {
+    btnReset.addEventListener('click', () => {
+      document.getElementById('scanner-result-panel').style.display = 'none';
+      document.getElementById('scanner-uploaded-preview-container').style.display = 'none';
+      document.getElementById('scanner-file-input').value = '';
+      btnReset.style.display = 'none';
+      document.getElementById('scanner-status-text').textContent = 'Ready to scan asset QR code...';
+
+      const activeTab = document.querySelector('#scanner-mode-tabs .settings-tab.active');
+      if (activeTab && activeTab.dataset.mode === 'camera') {
+        const select = document.getElementById('scanner-camera-select');
+        if (select && select.value) {
+          startWebcam(select.value);
+        }
+      }
+    });
+    btnReset.dataset.initialized = 'true';
+  }
+
+  // Edit asset
+  const btnEditAsset = document.getElementById('btn-scan-edit-asset');
+  if (btnEditAsset && !btnEditAsset.dataset.initialized) {
+    btnEditAsset.addEventListener('click', () => {
+      const tag = document.getElementById('scan-res-tag').textContent;
+      if (tag) {
+        closeScannerModal();
+        if (typeof openAssetModal === 'function') {
+          openAssetModal(tag);
+        }
+      }
+    });
+    btnEditAsset.dataset.initialized = 'true';
+  }
+
+  // Scanner tabs
+  const modeTabs = document.getElementById('scanner-mode-tabs');
+  if (modeTabs && !modeTabs.dataset.initialized) {
+    const buttons = modeTabs.querySelectorAll('.settings-tab');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const mode = btn.dataset.mode;
+        if (mode === 'camera') {
+          document.getElementById('scanner-camera-pane').style.display = 'flex';
+          document.getElementById('scanner-file-pane').style.display = 'none';
+          const select = document.getElementById('scanner-camera-select');
+          if (select && select.value) {
+            startWebcam(select.value);
+          }
+        } else {
+          document.getElementById('scanner-camera-pane').style.display = 'none';
+          document.getElementById('scanner-file-pane').style.display = 'flex';
+          stopWebcam();
+        }
+      });
+    });
+    modeTabs.dataset.initialized = 'true';
+  }
+
+  // Camera select change
+  const cameraSelect = document.getElementById('scanner-camera-select');
+  if (cameraSelect && !cameraSelect.dataset.initialized) {
+    cameraSelect.addEventListener('change', () => {
+      if (cameraSelect.value) {
+        startWebcam(cameraSelect.value);
+      }
+    });
+    cameraSelect.dataset.initialized = 'true';
+  }
+
+  // File upload dropzone
+  const dropzone = document.getElementById('scanner-upload-dropzone');
+  const fileInput = document.getElementById('scanner-file-input');
+  if (dropzone && fileInput && !dropzone.dataset.initialized) {
+    dropzone.addEventListener('click', () => fileInput.click());
+    
+    dropzone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('dragover');
+    });
+    
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        fileInput.files = e.dataTransfer.files;
+        const event = new Event('change');
+        fileInput.dispatchEvent(event);
+      }
+    });
+
+    fileInput.addEventListener('change', handleFileSelect);
+    dropzone.dataset.initialized = 'true';
+  }
+
+  // Clear uploaded QR file
+  const btnClearQr = document.getElementById('btn-clear-uploaded-qr');
+  if (btnClearQr && !btnClearQr.dataset.initialized) {
+    btnClearQr.addEventListener('click', () => {
+      document.getElementById('scanner-file-input').value = '';
+      document.getElementById('scanner-uploaded-preview-container').style.display = 'none';
+      document.getElementById('scanner-result-panel').style.display = 'none';
+      document.getElementById('btn-scanner-reset').style.display = 'none';
+      document.getElementById('scanner-status-text').textContent = 'Ready to scan asset QR code...';
+    });
+    btnClearQr.dataset.initialized = 'true';
+  }
+}
+
+function openScannerModal() {
+  const overlay = document.getElementById('asset-scanner-modal-overlay');
+  if (!overlay) return;
+  
+  // Reset results
+  document.getElementById('scanner-result-panel').style.display = 'none';
+  document.getElementById('scanner-uploaded-preview-container').style.display = 'none';
+  document.getElementById('scanner-file-input').value = '';
+  document.getElementById('btn-scanner-reset').style.display = 'none';
+  document.getElementById('scanner-status-text').textContent = 'Ready to scan asset QR code...';
+
+  // Toggle default camera tab active
+  const tabs = document.getElementById('scanner-mode-tabs');
+  if (tabs) {
+    const tabButtons = tabs.querySelectorAll('.settings-tab');
+    tabButtons.forEach(btn => {
+      btn.classList.remove('active');
+      if (btn.dataset.mode === 'camera') {
+        btn.classList.add('active');
+      }
+    });
+  }
+  document.getElementById('scanner-camera-pane').style.display = 'flex';
+  document.getElementById('scanner-file-pane').style.display = 'none';
+
+  overlay.style.display = 'flex';
+
+  // Query cameras
+  Html5Qrcode.getCameras().then(devices => {
+    const select = document.getElementById('scanner-camera-select');
+    select.innerHTML = '';
+    if (devices && devices.length > 0) {
+      devices.forEach(device => {
+        const option = document.createElement('option');
+        option.value = device.id;
+        option.textContent = device.label || `Camera ${select.length + 1}`;
+        select.appendChild(option);
+      });
+      // Start camera stream
+      startWebcam(devices[0].id);
+    } else {
+      select.innerHTML = '<option value="">No cameras detected</option>';
+      document.getElementById('scanner-status-text').textContent = '⚠️ No cameras found. Use image file upload.';
+    }
+  }).catch(err => {
+    console.error(err);
+    const select = document.getElementById('scanner-camera-select');
+    if (select) select.innerHTML = '<option value="">No camera permission / device</option>';
+    document.getElementById('scanner-status-text').textContent = '⚠️ Camera access denied. Use image file upload.';
+  });
+}
+
+function closeScannerModal() {
+  stopWebcam();
+  const overlay = document.getElementById('asset-scanner-modal-overlay');
+  if (overlay) overlay.style.display = 'none';
+  
+  // Clear inputs and reset UI
+  document.getElementById('scanner-result-panel').style.display = 'none';
+  document.getElementById('scanner-uploaded-preview-container').style.display = 'none';
+  document.getElementById('scanner-file-input').value = '';
+  document.getElementById('btn-scanner-reset').style.display = 'none';
+  document.getElementById('scanner-status-text').textContent = 'Ready to scan asset QR code...';
+}
+
+function startWebcam(cameraId) {
+  if (html5QrcodeInstance) {
+    html5QrcodeInstance.stop().then(() => {
+      initAndStart(cameraId);
+    }).catch(err => {
+      console.warn("Error stopping scanner:", err);
+      initAndStart(cameraId);
+    });
+  } else {
+    initAndStart(cameraId);
+  }
+
+  function initAndStart(id) {
+    html5QrcodeInstance = new Html5Qrcode("qr-reader");
+    activeCameraId = id;
+    
+    html5QrcodeInstance.start(
+      id,
+      {
+        fps: 10,
+        qrbox: 200
+      },
+      (decodedText, decodedResult) => {
+        handleDecodedTag(decodedText);
+      },
+      (errorMessage) => {
+        // Silent scanning error callbacks
+      }
+    ).then(() => {
+      document.getElementById('scanner-status-text').textContent = '🟢 Camera active. Scan QR code...';
+    }).catch(err => {
+      console.error("Failed to start camera:", err);
+      document.getElementById('scanner-status-text').textContent = '❌ Failed to start camera: ' + err;
+    });
+  }
+}
+
+function stopWebcam() {
+  if (html5QrcodeInstance && html5QrcodeInstance.isScanning) {
+    return html5QrcodeInstance.stop().then(() => {
+      html5QrcodeInstance = null;
+      activeCameraId = null;
+    }).catch(err => {
+      console.error("Error stopping webcam:", err);
+    });
+  } else {
+    html5QrcodeInstance = null;
+    activeCameraId = null;
+    return Promise.resolve();
+  }
+}
+
+function handleDecodedTag(tag) {
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const cleanTag = tag.trim().replace(/^.*\/|[^\w-]/g, '').toUpperCase();
+  
+  let asset = assets.find(a => a.id.toUpperCase() === cleanTag);
+  if (!asset) {
+    const matchNumber = cleanTag.match(/^(\d+)$/);
+    if (matchNumber) {
+      const paddedId = 'AST-' + matchNumber[1].padStart(4, '0');
+      asset = assets.find(a => a.id === paddedId);
+    }
+  }
+
+  // Play premium beep sound
+  try {
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = context.createOscillator();
+    const gain = context.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    osc.connect(gain);
+    gain.connect(context.destination);
+    gain.gain.setValueAtTime(0.2, context.currentTime);
+    osc.start();
+    osc.stop(context.currentTime + 0.1);
+  } catch (e) {
+    console.log("AudioContext blocked or unsupported", e);
+  }
+
+  if (typeof showToast === 'function') {
+    showToast(`QR Code Decoded: "${cleanTag}"`, 'success');
+  }
+
+  const resultPanel = document.getElementById('scanner-result-panel');
+  const alertEl = document.getElementById('scanner-result-alert');
+  const detailsCard = document.getElementById('scanner-asset-details-card');
+  const auditForm = document.getElementById('scanner-audit-form');
+
+  if (!asset) {
+    resultPanel.style.display = 'block';
+    alertEl.style.display = 'flex';
+    alertEl.style.background = 'rgba(235,87,87,0.1)';
+    alertEl.style.border = '1px solid rgba(235,87,87,0.3)';
+    alertEl.style.color = 'var(--accent-red)';
+    alertEl.innerHTML = `❌ <strong>Asset Not Found:</strong> The tag "${cleanTag}" does not match any registered asset.`;
+    detailsCard.style.display = 'none';
+    auditForm.style.display = 'none';
+    document.getElementById('scanner-status-text').textContent = '⚠️ Tag not found. Try scanning another.';
+    document.getElementById('btn-scanner-reset').style.display = 'inline-block';
+    return;
+  }
+
+  resultPanel.style.display = 'block';
+  alertEl.style.display = 'flex';
+  alertEl.style.background = 'rgba(46,160,67,0.1)';
+  alertEl.style.border = '1px solid rgba(46,160,67,0.3)';
+  alertEl.style.color = 'var(--accent-green)';
+  alertEl.innerHTML = `🟢 <strong>Asset Verified:</strong> Decoded tag successfully matched database record!`;
+
+  detailsCard.style.display = 'flex';
+  auditForm.style.display = 'block';
+
+  document.getElementById('scan-res-tag').textContent = asset.id;
+  const statusBadge = document.getElementById('scan-res-status');
+  statusBadge.textContent = asset.status;
+  
+  statusBadge.className = 'badge';
+  if (asset.status === 'Ready to Deploy') {
+    statusBadge.style.background = 'rgba(46,160,67,0.15)';
+    statusBadge.style.color = 'var(--accent-green)';
+    statusBadge.style.border = '1px solid var(--accent-green)';
+  } else if (asset.status === 'Deployed') {
+    statusBadge.style.background = 'rgba(88,166,255,0.15)';
+    statusBadge.style.color = 'var(--accent-blue)';
+    statusBadge.style.border = '1px solid var(--accent-blue)';
+  } else {
+    statusBadge.style.background = 'rgba(210,153,34,0.15)';
+    statusBadge.style.color = 'var(--accent-orange)';
+    statusBadge.style.border = '1px solid var(--accent-orange)';
+  }
+
+  document.getElementById('scan-res-name').textContent = asset.name;
+  document.getElementById('scan-res-model').textContent = `${asset.make || ''} ${asset.model || ''} ${asset.modelNumber ? `(Model #: ${asset.modelNumber})` : ''}`;
+  document.getElementById('scan-res-serial').textContent = asset.serial ? `Serial: ${asset.serial}` : 'Serial: N/A';
+  
+  const assigneeEl = document.getElementById('scan-res-assignee');
+  if (asset.assignedTo) {
+    assigneeEl.textContent = `${asset.assignedTo} (${asset.assignedEmail || ''})`;
+  } else {
+    assigneeEl.textContent = 'Unassigned / Available';
+  }
+
+  document.getElementById('scan-res-last-audit').textContent = asset.lastAuditDate || 'Never';
+  document.getElementById('scan-res-next-audit').textContent = asset.nextAuditDate || 'N/A';
+  document.getElementById('scan-audit-comment').value = 'Audited via QR Code Scan';
+
+  document.getElementById('scanner-status-text').textContent = `Verified asset ${asset.id}.`;
+  document.getElementById('btn-scanner-reset').style.display = 'inline-block';
+
+  stopWebcam();
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  document.getElementById('scanner-uploaded-filename').textContent = file.name;
+  document.getElementById('scanner-uploaded-preview-container').style.display = 'flex';
+  document.getElementById('scanner-status-text').textContent = '⏳ Decoding QR code from image...';
+
+  const localHtml5Qrcode = new Html5Qrcode("qr-reader");
+  localHtml5Qrcode.scanFile(file, true)
+    .then(decodedText => {
+      handleDecodedTag(decodedText);
+    })
+    .catch(err => {
+      console.error(err);
+      if (typeof showToast === 'function') {
+        showToast('❌ Could not decode QR code from the uploaded image. Please ensure it is clear.', 'error');
+      }
+      document.getElementById('scanner-status-text').textContent = '❌ Decoding failed. Try another photo.';
+    });
+}
+
+function submitAuditFromScan() {
+  const tag = document.getElementById('scan-res-tag').textContent;
+  const comment = document.getElementById('scan-audit-comment').value.trim();
+
+  if (!comment) {
+    if (typeof showToast === 'function') {
+      showToast('❌ Audit comment is required.', 'error');
+    }
+    return;
+  }
+
+  const assets = typeof loadAssets === 'function' ? loadAssets() : [];
+  const asset = assets.find(a => a.id === tag);
+  if (!asset) return;
+
+  const today = new Date().toISOString().split('T')[0];
+  asset.lastAuditDate = today;
+  
+  if (asset.auditFrequency) {
+    const calculated = calculateNextAuditDate(today, asset.auditFrequency);
+    if (calculated) {
+      asset.nextAuditDate = calculated;
+    }
+  }
+
+  if (typeof saveAssets === 'function') saveAssets(assets);
+
+  if (typeof addAuditLog === 'function') {
+    addAuditLog(`🔍 IT Asset Verified & Audited via QR Code scan. Comment: ${comment}`, 'System', asset.id, 'asset');
+  }
+
+  renderAdminAssets();
+  if (typeof checkAssetAuditsNotifications === 'function') {
+    checkAssetAuditsNotifications();
+  }
+
+  if (typeof showToast === 'function') {
+    showToast(`IT Asset ${asset.id} successfully verified & audited!`, 'success');
+  }
+
+  closeScannerModal();
+}
+
 // Global exposure
+window.renderAssetQRLabel = renderAssetQRLabel;
+window.updateLabelPreview = updateLabelPreview;
+window.printAssetLabel = printAssetLabel;
+window.initAssetScanner = initAssetScanner;
+window.openScannerModal = openScannerModal;
+window.closeScannerModal = closeScannerModal;
+window.startWebcam = startWebcam;
+window.stopWebcam = stopWebcam;
+window.handleDecodedTag = handleDecodedTag;
+window.handleFileSelect = handleFileSelect;
+window.submitAuditFromScan = submitAuditFromScan;
+
 window.initAssets = initAssets;
 window.renderAdminAssets = renderAdminAssets;
 window.openAssetModal = openAssetModal;

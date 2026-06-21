@@ -449,6 +449,7 @@ select.form-input { cursor: pointer; }
   color: var(--text-secondary);
 }
 
+
 /* ====== RESPONSIVE ====== */
 @media (max-width: 768px) {
   .sidebar { transform: translateX(-100%); }
@@ -458,3 +459,41 @@ select.form-input { cursor: pointer; }
   .form-row.two-col { grid-template-columns: 1fr; }
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ====== QR STICKER & SCANNER ====== */
+.sticker-preview-card {
+  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+  transition: transform var(--transition), border-color var(--transition);
+}
+.scanner-dropzone {
+  border: 2px dashed var(--border);
+  background: var(--bg-elevated);
+  transition: background-color var(--transition), border-color var(--transition), transform 0.15s ease;
+}
+.scanner-dropzone:hover, .scanner-dropzone.dragover {
+  border-color: var(--accent-green);
+  background: rgba(46,160,67,0.05);
+  transform: scale(1.02);
+}
+@keyframes laserMove {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.pulse-indicator {
+  animation: pulse 1.5s infinite ease-in-out;
+}
+@keyframes pulse {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.6; }
+}
+
