@@ -12,7 +12,8 @@ export default {
     
     // Construct the target URL pointing to GitHub Pages
     const targetBase = 'https://vpal5208-rgb.github.io/Helpdesk';
-    const targetUrl = targetBase + pathname + url.search;
+    const buster = `_cb=${Date.now()}`;
+    const targetUrl = targetBase + pathname + (url.search ? `${url.search}&${buster}` : `?${buster}`);
     
     // Fetch the asset from GitHub Pages
     const response = await fetch(targetUrl, {

@@ -24,17 +24,19 @@ function loadRoles() {
             r.permissions = defMatch ? [...defMatch.permissions] : ['dashboard'];
             migrated = true;
           }
-          // Ensure default manager role has settings, kb and assets permission
+          // Ensure default manager role has settings, kb, assets and agents permission
           if (r.key === 'manager') {
             if (!r.permissions.includes('settings')) { r.permissions.push('settings'); migrated = true; }
             if (!r.permissions.includes('kb')) { r.permissions.push('kb'); migrated = true; }
             if (!r.permissions.includes('assets')) { r.permissions.push('assets'); migrated = true; }
+            if (!r.permissions.includes('agents')) { r.permissions.push('agents'); migrated = true; }
           }
-          // Ensure default admin role has settings, kb and assets permission
+          // Ensure default admin role has settings, kb, assets and agents permission
           if (r.key === 'admin') {
             if (!r.permissions.includes('settings')) { r.permissions.push('settings'); migrated = true; }
             if (!r.permissions.includes('kb')) { r.permissions.push('kb'); migrated = true; }
             if (!r.permissions.includes('assets')) { r.permissions.push('assets'); migrated = true; }
+            if (!r.permissions.includes('agents')) { r.permissions.push('agents'); migrated = true; }
           }
           // Ensure default agent role has kb and assets permission
           if (r.key === 'agent') {
