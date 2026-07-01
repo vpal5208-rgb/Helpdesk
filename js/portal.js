@@ -26,6 +26,18 @@ function initPortal() {
   };
 
   initPortalTheme();
+  const applyPortalBrandName = () => {
+    const brand = localStorage.getItem('hd_brand_name') || 'HelpDeskPro';
+    const loginBrandName = document.querySelector('.login-brand-name');
+    if (loginBrandName) {
+      loginBrandName.innerHTML = brand === 'HelpDeskPro' ? 'HelpDesk<span class="accent">Pro</span>' : brand;
+    }
+    const navBrandSpan = document.querySelector('.portal-nav-brand span:nth-child(2)');
+    if (navBrandSpan) {
+      navBrandSpan.innerHTML = brand === 'HelpDeskPro' ? 'HelpDesk<span class="accent">Pro</span> Portal' : `${brand} Portal`;
+    }
+  };
+  applyPortalBrandName();
   const portalThemeToggle = document.getElementById('portal-theme-toggle');
   if (portalThemeToggle) {
     portalThemeToggle.addEventListener('click', togglePortalTheme);

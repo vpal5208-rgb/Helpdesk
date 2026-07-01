@@ -78,7 +78,7 @@
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">
       <div id="login-brand-icon" style="width:44px;height:44px;background:linear-gradient(135deg,#58a6ff,#bc8cff);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">⚡</div>
       <div>
-        <div style="font-size:1.15rem;font-weight:800;color:#fff">HelpDesk<span style="color:#58a6ff">Pro</span></div>
+        <div id="login-brand-text" style="font-size:1.15rem;font-weight:800;color:#fff">HelpDesk<span style="color:#58a6ff">Pro</span></div>
         <div style="font-size:.75rem;color:rgba(255,255,255,0.45);margin-top:2px">Admin Portal</div>
       </div>
     </div>
@@ -1006,6 +1006,15 @@ support@company.com | +1 (800) 555-0199</textarea>
                   <button class="btn btn-ghost btn-sm" onclick="document.getElementById('company-logo-input').click()">Upload Logo</button>
                   <button class="btn btn-ghost btn-sm" id="btn-reset-company-logo" style="color:var(--red); border-color:rgba(248,81,73,0.15)">Reset</button>
                 </div>
+              </div>
+            </div>
+            <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;"/>
+            <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
+              <label style="font-weight:600;">Application Name (Brand Name)</label>
+              <div style="display:flex; gap:10px; width:100%;">
+                <input type="text" id="brand-name-input" class="form-input" style="max-width:300px;" placeholder="e.g. HelpDeskPro"/>
+                <button class="btn btn-primary btn-sm" id="btn-save-brand-name" style="padding: 6px 12px; font-size: 0.8rem;">Save Name</button>
+                <button class="btn btn-ghost btn-sm" id="btn-reset-brand-name" style="padding: 6px 12px; font-size: 0.8rem; color:var(--red); border-color:rgba(248,81,73,0.15)">Reset</button>
               </div>
             </div>
           </div>

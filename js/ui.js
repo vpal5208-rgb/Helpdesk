@@ -476,6 +476,31 @@ function applyCompanyLogo() {
 
 window.renderSettingsRolesTable = renderSettingsRolesTable;
 window.applyCompanyLogo = applyCompanyLogo;
+window.applyBrandName = applyBrandName;
+
+function applyBrandName() {
+  const brand = localStorage.getItem('hd_brand_name') || 'HelpDeskPro';
+  
+  // Update inputs in settings if present
+  const input = document.getElementById('brand-name-input');
+  if (input) input.value = brand === 'HelpDeskPro' ? '' : brand;
+
+  // Render format
+  let brandHtml = brand;
+  if (brand === 'HelpDeskPro') {
+    brandHtml = 'HelpDesk<span class="brand-accent">Pro</span>';
+  }
+
+  // Update index.html DOM elements
+  const loginBrand = document.getElementById('login-brand-text');
+  if (loginBrand) loginBrand.innerHTML = brandHtml;
+
+  const sidebarBrand = document.querySelector('.brand-name');
+  if (sidebarBrand) sidebarBrand.innerHTML = brandHtml;
+
+  // Also update page document title
+  document.title = `${brand === 'HelpDeskPro' ? 'HelpDesk Pro' : brand} — IT Support Management`;
+}
 
 // Personal Profile Modal logic for Admins and Agents
 function openAdminProfileModal() {
@@ -660,5 +685,34 @@ document.addEventListener('DOMContentLoaded', () => {
       if (avatarFile) avatarFile.value = '';
     });
   }
+
+  // Brand Name Settings Save/Reset
+  const btnSaveBrand = document.getElementById('btn-save-brand-name');
+  const btnResetBrand = document.getElementById('btn-reset-brand-name');
+  const brandInput = document.getElementById('brand-name-input');
+
+  if (btnSaveBrand && brandInput) {
+    btnSaveBrand.addEventListener('click', () => {
+      const val = brandInput.value.trim();
+      if (!val) {
+        showToast('❌ Brand name cannot be empty.', 'error');
+        return;
+      }
+      localStorage.setItem('hd_brand_name', val);
+      applyBrandName();
+      showToast('Application brand name updated successfully!', 'success');
+    });
+  }
+
+  if (btnResetBrand) {
+    btnResetBrand.addEventListener('click', () => {
+      localStorage.removeItem('hd_brand_name');
+      applyBrandName();
+      showToast('Brand name reset to default.', 'info');
+    });
+  }
+
+  // Initial load
+  applyBrandName();
 });
 
