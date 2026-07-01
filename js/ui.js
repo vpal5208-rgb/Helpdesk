@@ -476,3 +476,189 @@ function applyCompanyLogo() {
 
 window.renderSettingsRolesTable = renderSettingsRolesTable;
 window.applyCompanyLogo = applyCompanyLogo;
+
+// Personal Profile Modal logic for Admins and Agents
+function openAdminProfileModal() {
+  const LS_ADMIN_AUTH = 'hd_admin_auth_v1';
+  const s = sessionStorage.getItem(LS_ADMIN_AUTH) || localStorage.getItem(LS_ADMIN_AUTH);
+  if (!s) return;
+
+  try {
+    const sess = JSON.parse(s);
+    const email = sess.email;
+    if (!email) return;
+
+    const uList = typeof loadUsers === 'function' ? loadUsers() : [];
+    let u = uList.find(x => x.email && x.email.toLowerCase() === email.toLowerCase());
+
+    if (!u) {
+      const names = (sess.name || 'Admin User').split(' ');
+      const fname = names[0] || 'Admin';
+      const lname = names.slice(1).join(' ') || 'User';
+      u = {
+        id: 'u_admin_temp_' + Date.now(),
+        fname,
+        lname,
+        email: sess.email,
+        dept: 'IT',
+        role: sess.role === 'IT Manager' ? 'manager' : (sess.role === 'IT Agent' ? 'agent' : 'admin'),
+        status: 'active',
+        phone: '',
+        location: 'HQ Floor 1',
+        notes: 'System auto-provisioned profile settings',
+        created: new Date().toISOString().split('T')[0],
+        lastActive: new Date().toISOString().split('T')[0],
+        avatar: ''
+      };
+      uList.push(u);
+      if (typeof saveUsers === 'function') saveUsers(uList);
+    }
+
+    document.getElementById('apm-id').value = u.id;
+    document.getElementById('apm-fname').value = u.fname || '';
+    document.getElementById('apm-lname').value = u.lname || '';
+    document.getElementById('apm-email').value = u.email || '';
+    document.getElementById('apm-phone').value = u.phone || '';
+    document.getElementById('apm-location').value = u.location || '';
+    document.getElementById('apm-password').value = '';
+
+    const preview = document.getElementById('apm-avatar-preview');
+    const dataInput = document.getElementById('apm-avatar-data');
+    const removeBtn = document.getElementById('apm-avatar-remove');
+
+    if (preview && dataInput && removeBtn) {
+      if (u.avatar) {
+        preview.innerHTML = `<img src="${u.avatar}" style="width:100%; height:100%; object-fit:cover;"/>`;
+        dataInput.value = u.avatar;
+        removeBtn.style.display = 'inline-block';
+      } else {
+        const initials = ((u.fname ? u.fname[0] : '') + (u.lname ? u.lname[0] : '')).toUpperCase() || 'U';
+        preview.innerHTML = initials;
+        dataInput.value = '';
+        removeBtn.style.display = 'none';
+      }
+    }
+
+    document.getElementById('admin-profile-modal-overlay').classList.add('open');
+  } catch (e) {
+    console.error('Failed to open admin profile settings modal:', e);
+  }
+}
+
+function saveAdminProfileForm() {
+  const id = document.getElementById('apm-id').value;
+  const fname = document.getElementById('apm-fname').value.trim();
+  const lname = document.getElementById('apm-lname').value.trim();
+  const phone = document.getElementById('apm-phone').value.trim();
+  const location = document.getElementById('apm-location').value.trim();
+  const password = document.getElementById('apm-password').value;
+  const avatar = document.getElementById('apm-avatar-data').value;
+
+  if (!fname || !lname) {
+    showToast('❌ Please fill in all required fields.', 'error');
+    return;
+  }
+
+  const uList = typeof loadUsers === 'function' ? loadUsers() : [];
+  const idx = uList.findIndex(x => x.id === id);
+  if (idx === -1) return;
+
+  const u = uList[idx];
+  u.fname = fname;
+  u.lname = lname;
+  u.phone = phone;
+  u.location = location;
+  u.avatar = avatar;
+  if (password) {
+    u.password = password;
+  }
+
+  if (typeof saveUsers === 'function') saveUsers(uList);
+
+  const LS_ADMIN_AUTH = 'hd_admin_auth_v1';
+  const s = sessionStorage.getItem(LS_ADMIN_AUTH) || localStorage.getItem(LS_ADMIN_AUTH);
+  if (s) {
+    try {
+      const sess = JSON.parse(s);
+      sess.name = `${fname} ${lname}`;
+      if (sessionStorage.getItem(LS_ADMIN_AUTH)) {
+        sessionStorage.setItem(LS_ADMIN_AUTH, JSON.stringify(sess));
+      } else {
+        localStorage.setItem(LS_ADMIN_AUTH, JSON.stringify(sess));
+      }
+    } catch (e){}
+  }
+
+  if (typeof applyRolePermissions === 'function') {
+    applyRolePermissions();
+  }
+
+  if (typeof refreshUsersView === 'function') {
+    refreshUsersView();
+  }
+
+  showToast('Your profile has been updated successfully!', 'success');
+  document.getElementById('admin-profile-modal-overlay').classList.remove('open');
+}
+
+// Bind event listeners for admin personal profile modal
+document.addEventListener('DOMContentLoaded', () => {
+  const userCardBtn = document.getElementById('sidebar-user-card');
+  if (userCardBtn) {
+    userCardBtn.addEventListener('click', openAdminProfileModal);
+  }
+
+  ['admin-profile-modal-cancel', 'admin-profile-modal-close'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', () => {
+      document.getElementById('admin-profile-modal-overlay').classList.remove('open');
+    });
+  });
+
+  document.getElementById('admin-profile-modal-save')?.addEventListener('click', saveAdminProfileForm);
+
+  const avatarFile = document.getElementById('apm-avatar-file');
+  if (avatarFile) {
+    avatarFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        showToast('❌ Please upload an image file.', 'error');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64Data = event.target.result;
+        const preview = document.getElementById('apm-avatar-preview');
+        const dataInput = document.getElementById('apm-avatar-data');
+        const removeBtn = document.getElementById('apm-avatar-remove');
+        if (preview && dataInput && removeBtn) {
+          preview.innerHTML = `<img src="${base64Data}" style="width:100%; height:100%; object-fit:cover;"/>`;
+          dataInput.value = base64Data;
+          removeBtn.style.display = 'inline-block';
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const avatarRemove = document.getElementById('apm-avatar-remove');
+  if (avatarRemove) {
+    avatarRemove.addEventListener('click', () => {
+      const preview = document.getElementById('apm-avatar-preview');
+      const dataInput = document.getElementById('apm-avatar-data');
+      const removeBtn = document.getElementById('apm-avatar-remove');
+      const fname = document.getElementById('apm-fname').value.trim();
+      const lname = document.getElementById('apm-lname').value.trim();
+      const initials = ((fname ? fname[0] : '') + (lname ? lname[0] : '')).toUpperCase() || 'U';
+      
+      if (preview && dataInput && removeBtn) {
+        preview.innerHTML = initials;
+        dataInput.value = '';
+        removeBtn.style.display = 'none';
+      }
+      if (avatarFile) avatarFile.value = '';
+    });
+  }
+});
+
