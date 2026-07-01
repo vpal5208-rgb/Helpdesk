@@ -36,7 +36,7 @@ function initSoftware() {
   // Modal Cancel/Close buttons
   ['software-modal-cancel', 'software-modal-close'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', () => {
-      document.getElementById('software-modal-overlay').classList.remove('active');
+      document.getElementById('software-modal-overlay').classList.remove('open');
     });
   });
 
@@ -55,7 +55,7 @@ function initSoftware() {
   // Allocation Modal Close buttons
   ['software-alloc-modal-close'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', () => {
-      document.getElementById('software-alloc-modal-overlay').classList.remove('active');
+      document.getElementById('software-alloc-modal-overlay').classList.remove('open');
     });
   });
 
@@ -341,7 +341,7 @@ function openSoftwareModal(id = null) {
   }
 
   updateModalAMCStatusBadge();
-  modal.classList.add('active');
+  modal.classList.add('open');
 }
 
 // Save Software Form
@@ -415,7 +415,7 @@ function saveSoftwareForm() {
   addAuditLog(actionMsg, actor, updatedSoft.id, 'software');
 
   showToast(id ? 'Software updated successfully!' : 'Software application added successfully!', 'success');
-  document.getElementById('software-modal-overlay').classList.remove('active');
+  document.getElementById('software-modal-overlay').classList.remove('open');
   renderSoftwareView();
 }
 
@@ -483,7 +483,7 @@ function openAllocationsModal(softwareId) {
   // Refresh Assignments list inside modal
   refreshAllocationsList(softwareId);
 
-  modal.classList.add('active');
+  modal.classList.add('open');
 }
 
 // Refresh allocations assignments details in modal
