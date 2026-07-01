@@ -1062,7 +1062,9 @@ const db = {
     ROLES: 'hd_roles_v1',
     VENDORS: 'hd_vendors_v1',
     SNIPE: 'hd_snipe_it_settings_v1',
-    THEME: 'hd_theme'
+    THEME: 'hd_theme',
+    SOFTWARE: 'hd_software_v1',
+    SOFTWARE_ASSIGNMENTS: 'hd_software_assignments_v1'
   },
 
   getData(key, defaultValue = []) {
@@ -1164,6 +1166,8 @@ const db = {
       if (typeof loadAssets === 'function') loadAssets();
       if (typeof loadKBArticles === 'function') loadKBArticles();
       if (typeof loadVendors === 'function') loadVendors();
+      if (typeof loadSoftware === 'function') loadSoftware();
+      if (typeof loadSoftwareAssignments === 'function') loadSoftwareAssignments();
       return true;
     } catch(e) {
       console.error('db.hardReset failed:', e);
@@ -1172,5 +1176,122 @@ const db = {
   }
 };
 window.db = db;
+
+const SEED_SOFTWARE = [
+  {
+    id: 'SFT-0001',
+    name: 'Microsoft 365 Business Premium',
+    vendor: 'Microsoft',
+    version: 'v2024',
+    licenseKey: 'AAD83-8BBD9-811C8-99DFA-00213',
+    category: 'Productivity',
+    quantity: 25,
+    cost: 22.00,
+    purchaseDate: '2025-01-15',
+    amcEnabled: true,
+    amcVendor: 'Microsoft Enterprise Reseller',
+    amcContract: 'MS-AMC-2025-998',
+    amcStart: '2025-01-15',
+    amcEnd: '2026-01-14',
+    amcCost: 500.00,
+    renewalCost: 5400.00,
+    amcDetails: 'Enterprise productivity software including Exchange, Teams, Office Apps, and Device Management.'
+  },
+  {
+    id: 'SFT-0002',
+    name: 'Adobe Creative Cloud All Apps',
+    vendor: 'Adobe',
+    version: 'v2024.2',
+    licenseKey: 'ADOBE-CC-99234-88A11-CC321',
+    category: 'Design',
+    quantity: 10,
+    cost: 89.99,
+    purchaseDate: '2025-03-01',
+    amcEnabled: true,
+    amcVendor: 'Adobe Inc.',
+    amcContract: 'AD-2025-551',
+    amcStart: '2025-03-01',
+    amcEnd: '2026-03-01',
+    amcCost: 0.00,
+    renewalCost: 10798.80,
+    amcDetails: 'Creative tools suite including Photoshop, Illustrator, Premiere Pro, and Acrobat.'
+  },
+  {
+    id: 'SFT-0003',
+    name: 'Slack Enterprise Grid',
+    vendor: 'Slack Technologies',
+    version: 'Cloud',
+    licenseKey: 'SLACK-GRID-CLOUD-HQ',
+    category: 'Collaboration',
+    quantity: 100,
+    cost: 15.00,
+    purchaseDate: '2025-06-01',
+    amcEnabled: false,
+    amcVendor: '',
+    amcContract: '',
+    amcStart: '',
+    amcEnd: '',
+    amcCost: 0.00,
+    renewalCost: 18000.00,
+    amcDetails: 'HQ internal collaboration and messaging tool.'
+  }
+];
+
+const SEED_SOFTWARE_ASSIGNMENTS = [
+  { softwareId: 'SFT-0001', userId: 'u1', assignedDate: '2025-01-16' },
+  { softwareId: 'SFT-0001', userId: 'u2', assignedDate: '2025-01-16' },
+  { softwareId: 'SFT-0001', userId: 'u4', assignedDate: '2025-01-16' },
+  { softwareId: 'SFT-0002', userId: 'u8', assignedDate: '2025-03-05' }
+];
+
+const LS_SOFTWARE = 'hd_software_v1';
+const LS_SOFTWARE_ASSIGNMENTS = 'hd_software_assignments_v1';
+
+function loadSoftware() {
+  try {
+    const raw = localStorage.getItem(LS_SOFTWARE);
+    if (raw) return JSON.parse(raw);
+  } catch(e){}
+  
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocal) {
+    saveSoftware(SEED_SOFTWARE);
+    return [...SEED_SOFTWARE];
+  }
+  saveSoftware([]);
+  return [];
+}
+
+function saveSoftware(list) {
+  try {
+    localStorage.setItem(LS_SOFTWARE, JSON.stringify(list));
+  } catch(e){}
+}
+
+function loadSoftwareAssignments() {
+  try {
+    const raw = localStorage.getItem(LS_SOFTWARE_ASSIGNMENTS);
+    if (raw) return JSON.parse(raw);
+  } catch(e){}
+  
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocal) {
+    saveSoftwareAssignments(SEED_SOFTWARE_ASSIGNMENTS);
+    return [...SEED_SOFTWARE_ASSIGNMENTS];
+  }
+  saveSoftwareAssignments([]);
+  return [];
+}
+
+function saveSoftwareAssignments(list) {
+  try {
+    localStorage.setItem(LS_SOFTWARE_ASSIGNMENTS, JSON.stringify(list));
+  } catch(e){}
+}
+
+window.loadSoftware = loadSoftware;
+window.saveSoftware = saveSoftware;
+window.loadSoftwareAssignments = loadSoftwareAssignments;
+window.saveSoftwareAssignments = saveSoftwareAssignments;
 
 

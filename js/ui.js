@@ -405,7 +405,10 @@ function renderSettingsRolesTable() {
     reports: '📈 Reports',
     'live-chats': '💬 Support',
     'audit-trail': '📋 Audit',
-    settings: '⚙️ Settings'
+    settings: '⚙️ Settings',
+    kb: '📚 KB',
+    assets: '🖥️ Assets',
+    software: '💾 Software'
   };
 
   roles.forEach(r => {

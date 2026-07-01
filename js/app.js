@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   try { initAuditTrail(); } catch(e) { console.error('initAuditTrail error:', e); }
   try { initReports(); } catch(e) { console.error('initReports error:', e); }
   try { initAssets(); } catch(e) { console.error('initAssets error:', e); }
+  try { initSoftware(); } catch(e) { console.error('initSoftware error:', e); }
 
   // Render initial views
   try { updateDashboard(); } catch(e) { console.error('updateDashboard error:', e); }
@@ -245,6 +246,7 @@ function navigateTo(view) {
     if (view === 'audit-trail') renderAuditTrail();
     if (view === 'kb') { if (typeof renderAdminKB === 'function') renderAdminKB(); }
     if (view === 'assets') { if (typeof renderAdminAssets === 'function') renderAdminAssets(); }
+    if (view === 'software') { if (typeof renderSoftwareView === 'function') renderSoftwareView(); }
     if (view === 'reports') {
       setTimeout(() => {
         try {

@@ -223,6 +223,24 @@ function editUser(id) {
   document.getElementById('um-location').value = u.location||'';
   document.getElementById('um-notes').value = u.notes||'';
   document.getElementById('um-send-invite').checked = false;
+  
+  // Setup avatar display details
+  const preview = document.getElementById('um-avatar-preview');
+  const removeBtn = document.getElementById('um-avatar-remove');
+  const dataInput = document.getElementById('um-avatar-data');
+  if (preview && removeBtn && dataInput) {
+    if (u.avatar) {
+      preview.innerHTML = `<img src="${u.avatar}" style="width:100%; height:100%; object-fit:cover;"/>`;
+      removeBtn.style.display = 'inline-block';
+      dataInput.value = u.avatar;
+    } else {
+      const initials = ((u.fname ? u.fname[0] : '') + (u.lname ? u.lname[0] : '')).toUpperCase() || 'U';
+      preview.innerHTML = initials;
+      removeBtn.style.display = 'none';
+      dataInput.value = '';
+    }
+  }
+
   document.getElementById('user-modal-save').textContent = 'Update User';
   document.getElementById('user-modal-overlay').classList.add('open');
 }
@@ -397,6 +415,9 @@ function saveUserForm() {
   const dept  = document.getElementById('um-dept').value;
   if (!fname||!lname||!email||!dept) { showToast('Fill in all required fields.','error'); return; }
   const id = document.getElementById('um-id').value;
+  
+  const avatar = document.getElementById('um-avatar-data')?.value || '';
+
   const data = {
     fname, lname, email, dept,
     phone:    document.getElementById('um-phone').value.trim(),
@@ -404,6 +425,7 @@ function saveUserForm() {
     status:   document.getElementById('um-status').value,
     location: document.getElementById('um-location').value.trim(),
     notes:    document.getElementById('um-notes').value.trim(),
+    avatar,
     lastActive: new Date().toISOString().split('T')[0],
   };
   if (id) {
@@ -532,6 +554,15 @@ function initUsersView() {
     document.getElementById('um-role').value='end-user';
     document.getElementById('um-status').value='active';
     document.getElementById('um-send-invite').checked=true;
+
+    // Reset avatar fields
+    const preview = document.getElementById('um-avatar-preview');
+    const dataInput = document.getElementById('um-avatar-data');
+    const removeBtn = document.getElementById('um-avatar-remove');
+    if (preview) preview.innerHTML = 'U';
+    if (dataInput) dataInput.value = '';
+    if (removeBtn) removeBtn.style.display = 'none';
+
     document.getElementById('user-modal-save').textContent='Create User';
     document.getElementById('user-modal-overlay').classList.add('open');
   });
@@ -541,6 +572,53 @@ function initUsersView() {
   document.getElementById('user-modal-cancel').addEventListener('click', ()=>document.getElementById('user-modal-overlay').classList.remove('open'));
   document.getElementById('user-modal-close').addEventListener('click',  ()=>document.getElementById('user-modal-overlay').classList.remove('open'));
   document.getElementById('user-modal-overlay').addEventListener('click', e=>{if(e.target===e.currentTarget) e.currentTarget.classList.remove('open');});
+
+  // Handle avatar upload file select
+  const avatarFile = document.getElementById('um-avatar-file');
+  if (avatarFile) {
+    avatarFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        showToast('❌ Please upload an image file.', 'error');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64Data = event.target.result;
+        const preview = document.getElementById('um-avatar-preview');
+        const dataInput = document.getElementById('um-avatar-data');
+        const removeBtn = document.getElementById('um-avatar-remove');
+        if (preview && dataInput && removeBtn) {
+          preview.innerHTML = `<img src="${base64Data}" style="width:100%; height:100%; object-fit:cover;"/>`;
+          dataInput.value = base64Data;
+          removeBtn.style.display = 'inline-block';
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Handle avatar remove button click
+  const avatarRemove = document.getElementById('um-avatar-remove');
+  if (avatarRemove) {
+    avatarRemove.addEventListener('click', () => {
+      const preview = document.getElementById('um-avatar-preview');
+      const dataInput = document.getElementById('um-avatar-data');
+      const removeBtn = document.getElementById('um-avatar-remove');
+      const fname = document.getElementById('um-fname').value.trim();
+      const lname = document.getElementById('um-lname').value.trim();
+      const initials = ((fname ? fname[0] : '') + (lname ? lname[0] : '')).toUpperCase() || 'U';
+      
+      if (preview && dataInput && removeBtn) {
+        preview.innerHTML = initials;
+        dataInput.value = '';
+        removeBtn.style.display = 'none';
+      }
+      if (avatarFile) avatarFile.value = '';
+    });
+  }
 
   // Bulk action button
   document.getElementById('bulk-action-btn').addEventListener('click', () => {

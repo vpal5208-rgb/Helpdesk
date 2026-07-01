@@ -6,8 +6,8 @@ const DEFAULT_ROLES = [
   { key: 'end-user', name: 'End User', color: 'gray', desc: 'Standard portal user, can view and create their own tickets.', isDefault: true, permissions: [] },
   { key: 'power-user', name: 'Power User', color: 'gray', desc: 'Advanced portal user with elevated access within their department.', isDefault: true, permissions: ['dashboard'] },
   { key: 'agent', name: 'IT Agent', color: 'blue', desc: 'IT support agent, can be assigned tickets, update status, and chat with users.', isDefault: true, permissions: ['dashboard', 'tickets', 'live-chats', 'kb', 'assets'] },
-  { key: 'manager', name: 'IT Manager', color: 'purple', desc: 'IT team manager, can assign tickets, manage settings, and view reports.', isDefault: true, permissions: ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings', 'kb', 'assets'] },
-  { key: 'admin', name: 'Administrator', color: 'red', desc: 'Full system administrator access, including role management and advanced settings.', isDefault: true, permissions: ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings', 'kb', 'assets'] }
+  { key: 'manager', name: 'IT Manager', color: 'purple', desc: 'IT team manager, can assign tickets, manage settings, and view reports.', isDefault: true, permissions: ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings', 'kb', 'assets', 'software'] },
+  { key: 'admin', name: 'Administrator', color: 'red', desc: 'Full system administrator access, including role management and advanced settings.', isDefault: true, permissions: ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings', 'kb', 'assets', 'software'] }
 ];
 
 function loadRoles() {
@@ -24,19 +24,21 @@ function loadRoles() {
             r.permissions = defMatch ? [...defMatch.permissions] : ['dashboard'];
             migrated = true;
           }
-          // Ensure default manager role has settings, kb, assets and agents permission
+          // Ensure default manager role has settings, kb, assets, agents, and software permission
           if (r.key === 'manager') {
             if (!r.permissions.includes('settings')) { r.permissions.push('settings'); migrated = true; }
             if (!r.permissions.includes('kb')) { r.permissions.push('kb'); migrated = true; }
             if (!r.permissions.includes('assets')) { r.permissions.push('assets'); migrated = true; }
             if (!r.permissions.includes('agents')) { r.permissions.push('agents'); migrated = true; }
+            if (!r.permissions.includes('software')) { r.permissions.push('software'); migrated = true; }
           }
-          // Ensure default admin role has settings, kb, assets and agents permission
+          // Ensure default admin role has settings, kb, assets, agents, and software permission
           if (r.key === 'admin') {
             if (!r.permissions.includes('settings')) { r.permissions.push('settings'); migrated = true; }
             if (!r.permissions.includes('kb')) { r.permissions.push('kb'); migrated = true; }
             if (!r.permissions.includes('assets')) { r.permissions.push('assets'); migrated = true; }
             if (!r.permissions.includes('agents')) { r.permissions.push('agents'); migrated = true; }
+            if (!r.permissions.includes('software')) { r.permissions.push('software'); migrated = true; }
           }
           // Ensure default agent role has kb and assets permission
           if (r.key === 'agent') {
@@ -177,13 +179,21 @@ function applyRolePermissions() {
       
       const displayRole = roleObj.name || sess.role;
       if (roleEl && displayRole) roleEl.textContent = displayRole;
-      if (avatarEl && sess.name) avatarEl.textContent = sess.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      if (avatarEl && sess.name) {
+        const uList = typeof loadUsers === 'function' ? loadUsers() : [];
+        const u = uList.find(x => x.email.toLowerCase() === (sess.email || '').toLowerCase());
+        if (u && u.avatar) {
+          avatarEl.innerHTML = `<img src="${u.avatar}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;"/>`;
+        } else {
+          avatarEl.textContent = sess.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        }
+      }
     } catch (e) {
       console.error('Failed to parse admin session for sidebar sync', e);
     }
   }
 
-  const allViews = ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings', 'kb', 'assets'];
+  const allViews = ['dashboard', 'tickets', 'agents', 'users', 'reports', 'live-chats', 'audit-trail', 'settings', 'kb', 'assets', 'software'];
 
   allViews.forEach(view => {
     const navBtn = document.querySelector(`.sidebar-nav .nav-item[data-view="${view}"]`);

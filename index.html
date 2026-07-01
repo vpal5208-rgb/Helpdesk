@@ -271,6 +271,7 @@ function adminLogout() {
     <button class="nav-item" data-view="live-chats"><span class="nav-icon">💬</span><span class="nav-label">Live Support</span><span class="nav-badge" id="chat-count" style="display:none">0</span></button>
     <button class="nav-item" data-view="kb"><span class="nav-icon">📚</span><span class="nav-label">Knowledge Base</span></button>
     <button class="nav-item" data-view="assets"><span class="nav-icon">🖥️</span><span class="nav-label">Assets</span></button>
+    <button class="nav-item" data-view="software"><span class="nav-icon">💾</span><span class="nav-label">Software</span></button>
     <button class="nav-item" data-view="audit-trail"><span class="nav-icon">📋</span><span class="nav-label">Audit Trail</span></button>
     <button class="nav-item" data-view="settings"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></button>
   </nav>
@@ -1397,6 +1398,100 @@ support@company.com | +1 (800) 555-0199</textarea>
       </div>
     </section>
 
+    <!-- SOFTWARE VIEW -->
+    <section class="view" id="view-software">
+      <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="email-card-icon smtp-icon" style="width: 46px; height: 46px; border-radius: 12px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; background: rgba(88,166,255,0.15);">💾</div>
+          <div>
+            <h1 style="margin: 0;">Software Management</h1>
+            <p class="view-sub" style="margin-top: 2px;">Manage software applications, seats allocations, and AMC renewals.</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-primary" id="btn-add-software">+ Add Software</button>
+        </div>
+      </div>
+
+      <!-- KPI row -->
+      <div class="kpi-row" style="margin-bottom: 20px;">
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-icon">💾</div>
+          <div class="kpi-body">
+            <div class="kpi-value" id="kpi-software-total">0</div>
+            <div class="kpi-label">Total Software</div>
+          </div>
+        </div>
+        <div class="kpi-card kpi-teal">
+          <div class="kpi-icon">👥</div>
+          <div class="kpi-body">
+            <div class="kpi-value" id="kpi-software-allocated">0 / 0</div>
+            <div class="kpi-label">Allocated Seats</div>
+          </div>
+        </div>
+        <div class="kpi-card kpi-orange">
+          <div class="kpi-icon">🛡️</div>
+          <div class="kpi-body">
+            <div class="kpi-value" id="kpi-software-amc-alerts">0</div>
+            <div class="kpi-label">AMC / Renewal Alerts</div>
+          </div>
+        </div>
+        <div class="kpi-card kpi-purple">
+          <div class="kpi-icon">💰</div>
+          <div class="kpi-body">
+            <div class="kpi-value" id="kpi-software-cost">$0.00</div>
+            <div class="kpi-label">Total Software Cost</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div class="toolbar-left" style="display:flex; gap:10px; flex: 1;">
+          <input type="text" id="software-search" class="form-input" style="max-width: 300px;" placeholder="Search by name, vendor, license key..."/>
+          <select id="software-filter-category" class="form-input" style="max-width: 180px;">
+            <option value="">All Categories</option>
+            <option>Productivity</option>
+            <option>OS</option>
+            <option>Security</option>
+            <option>Developer Tool</option>
+            <option>Collaboration</option>
+            <option>Design</option>
+            <option>Other</option>
+          </select>
+          <select id="software-filter-amc" class="form-input" style="max-width: 180px;">
+            <option value="">All AMC / Renewal</option>
+            <option value="none">No AMC</option>
+            <option value="active">Active AMC</option>
+            <option value="expiring">Expiring Soon</option>
+            <option value="expired">Expired AMC</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card" style="max-width: 100%; padding: 0; overflow: hidden;">
+        <div class="table-responsive">
+          <table class="data-table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 1.5px solid var(--border); text-align: left; background: var(--bg-elevated);">
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary);">ID</th>
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary);">Software Name</th>
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary);">Vendor</th>
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary);">Version</th>
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary);">Category</th>
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary);">Seats (Allocated / Total)</th>
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary);">License Cost</th>
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary);">AMC Status</th>
+                <th style="padding: 12px; font-weight: 600; color: var(--text-secondary); text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="software-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- AUDIT TRAIL VIEW -->
     <section class="view" id="view-audit-trail">
       <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
@@ -1550,6 +1645,23 @@ support@company.com | +1 (800) 555-0199</textarea>
     </div>
     <div class="modal-body">
       <input type="hidden" id="um-id"/>
+      
+      <!-- Profile Picture Upload Row -->
+      <div style="display: flex; gap: 20px; margin-bottom: 20px; align-items: center; background: var(--bg-surface); padding: 12px; border-radius: var(--radius); border: 1px solid var(--border);">
+        <div id="um-avatar-preview" style="width: 56px; height: 56px; border-radius: 50%; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text-secondary); font-size: 1.2rem; overflow: hidden; border: 2px solid var(--accent-blue); flex-shrink: 0;">
+          U
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="font-weight: 600; font-size: 0.85rem; color: var(--text-primary); margin: 0;">Profile Picture</label>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('um-avatar-file').click()" style="padding: 6px 12px; font-size: 0.78rem;">Upload Photo</button>
+            <button class="btn btn-ghost btn-sm" type="button" id="um-avatar-remove" style="padding: 6px 12px; font-size: 0.78rem; color: var(--accent-red); display: none;">Remove</button>
+          </div>
+          <input type="file" id="um-avatar-file" accept="image/*" style="display: none;"/>
+          <input type="hidden" id="um-avatar-data" value=""/>
+        </div>
+      </div>
+
       <div class="form-row two-col">
         <div class="form-group"><label>First Name *</label><input type="text" id="um-fname" class="form-input" placeholder="John"/></div>
         <div class="form-group"><label>Last Name *</label><input type="text" id="um-lname" class="form-input" placeholder="Smith"/></div>
@@ -1709,6 +1821,7 @@ support@company.com | +1 (800) 555-0199</textarea>
           <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="settings" style="width:auto;margin:0"/> ⚙️ Settings</label>
           <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="kb" style="width:auto;margin:0"/> 📚 Knowledge Base</label>
           <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="assets" style="width:auto;margin:0"/> 🖥️ Assets</label>
+          <label class="user-checkbox-label" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;"><input type="checkbox" class="rm-perm" value="software" style="width:auto;margin:0"/> 💾 Software</label>
         </div>
       </div>
     </div>
@@ -2245,6 +2358,148 @@ support@company.com | +1 (800) 555-0199</textarea>
   </div>
 </div>
 
+<!-- SOFTWARE ADD/EDIT MODAL -->
+<div class="modal-overlay" id="software-modal-overlay">
+  <div class="modal" id="software-modal" style="max-width: 650px;">
+    <div class="modal-header">
+      <h2 id="software-modal-title">Add Software</h2>
+      <button class="modal-close" id="software-modal-close">✕</button>
+    </div>
+    
+    <div class="settings-tabs" id="software-modal-tabs" style="margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 0;">
+      <button class="settings-tab active" data-tab="smodal-general">📋 General Info</button>
+      <button class="settings-tab" data-tab="smodal-amc">🛡️ AMC & Renewal</button>
+    </div>
+    
+    <div class="modal-body">
+      <input type="hidden" id="sm-id" value=""/>
+      
+      <!-- GENERAL INFO TAB -->
+      <div class="modal-tab-content active" id="smodal-general">
+        <div class="form-row two-col">
+          <div class="form-group"><label>Software Name *</label><input type="text" id="sm-name" class="form-input" placeholder="e.g. Adobe Photoshop CC"/></div>
+          <div class="form-group"><label>Vendor *</label><input type="text" id="sm-vendor" class="form-input" placeholder="e.g. Adobe Inc."/></div>
+        </div>
+        <div class="form-row two-col">
+          <div class="form-group"><label>Version</label><input type="text" id="sm-version" class="form-input" placeholder="e.g. v2024.1"/></div>
+          <div class="form-group"><label>Category *</label>
+            <select id="sm-category" class="form-input">
+              <option>Productivity</option>
+              <option>OS</option>
+              <option>Security</option>
+              <option>Developer Tool</option>
+              <option>Collaboration</option>
+              <option>Design</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>License Key / Serial Number</label><input type="text" id="sm-key" class="form-input" placeholder="e.g. AAAA-BBBB-CCCC-DDDD"/></div>
+        </div>
+        <div class="form-row two-col">
+          <div class="form-group"><label>Total Seats / Licenses *</label><input type="number" id="sm-quantity" class="form-input" min="1" placeholder="e.g. 10"/></div>
+          <div class="form-group"><label>License Cost *</label><input type="number" id="sm-cost" class="form-input" min="0" step="0.01" placeholder="e.g. 89.99"/></div>
+        </div>
+        <div class="form-row two-col">
+          <div class="form-group"><label>Purchase Date</label><input type="date" id="sm-purchase-date" class="form-input"/></div>
+        </div>
+      </div>
+      
+      <!-- AMC & RENEWAL TAB -->
+      <div class="modal-tab-content" id="smodal-amc" style="display:none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-elevated); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 16px;">
+          <label style="display:flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; margin:0; color: var(--text-primary);">
+            <input type="checkbox" id="sm-amc-enabled" style="width:auto; margin:0;"/> Enable AMC / Contract Tracking
+          </label>
+          <span id="sm-amc-status-badge" class="badge badge-gray" style="font-weight: 700; padding: 4px 8px; border-radius: var(--radius-sm);">None</span>
+        </div>
+        
+        <div id="sm-amc-fields" style="display:none; flex-direction:column; gap:16px;">
+          <div class="form-row two-col">
+            <div class="form-group"><label>AMC / Renewal Vendor</label><input type="text" id="sm-amc-vendor" class="form-input" placeholder="e.g. Adobe Reseller Corp"/></div>
+            <div class="form-group"><label>Contract / Ref No.</label><input type="text" id="sm-amc-contract" class="form-input" placeholder="e.g. CON-88123-9"/></div>
+          </div>
+          
+          <div class="form-row two-col">
+            <div class="form-group"><label>Start Date</label><input type="date" id="sm-amc-start" class="form-input"/></div>
+            <div class="form-group"><label>End Date / Renewal Date</label><input type="date" id="sm-amc-end" class="form-input"/></div>
+          </div>
+          
+          <div class="form-row two-col">
+            <div class="form-group"><label>AMC Charges (Contract Fee)</label><input type="number" id="sm-amc-cost" class="form-input" min="0" step="0.01" placeholder="e.g. 500.00"/></div>
+            <div class="form-group"><label>Renewal Charges (Next Fee)</label><input type="number" id="sm-renewal-cost" class="form-input" min="0" step="0.01" placeholder="e.g. 10798.80"/></div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group"><label>Coverage & Notes</label><textarea id="sm-amc-details" class="form-input" rows="2" placeholder="Describe contract coverage, billing frequency..."></textarea></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="software-modal-cancel">Cancel</button>
+      <button class="btn btn-primary" id="software-modal-save">Save Software</button>
+    </div>
+  </div>
+</div>
+
+<!-- SOFTWARE ALLOCATION MODAL -->
+<div class="modal-overlay" id="software-alloc-modal-overlay">
+  <div class="modal" id="software-alloc-modal" style="max-width: 550px;">
+    <div class="modal-header">
+      <h2 id="software-alloc-modal-title">Manage Allocations</h2>
+      <button class="modal-close" id="software-alloc-modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="alloc-software-id" value=""/>
+      
+      <div style="background:var(--bg-elevated); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <span id="alloc-software-name" style="font-weight:700; font-size:1.05rem; display:block; color:var(--text-primary);"></span>
+          <span id="alloc-software-vendor" style="font-size:0.85rem; color:var(--text-secondary);"></span>
+        </div>
+        <div style="text-align:right;">
+          <span id="alloc-seats-badge" class="badge badge-blue" style="font-weight:700; font-size:0.9rem;">0 / 0 Seats</span>
+        </div>
+      </div>
+      
+      <!-- Assignment Form -->
+      <div style="background:var(--bg-surface); border:1.5px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:20px;">
+        <h3 style="margin-top:0; margin-bottom:10px; font-size:0.9rem; font-weight:600; color:var(--text-primary);">Assign Seat to User</h3>
+        <div style="display:flex; gap:10px; align-items:flex-end;">
+          <div class="form-group" style="flex:1; margin-bottom:0;">
+            <label style="font-size:0.75rem;">Select User</label>
+            <select id="alloc-user-select" class="form-input" style="width:100%;">
+              <option value="">Select a user...</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="btn-alloc-save" style="flex-shrink:0;">Assign</button>
+        </div>
+      </div>
+      
+      <!-- Assignments Table -->
+      <h3 style="margin-top:0; margin-bottom:8px; font-size:0.9rem; font-weight:600; color:var(--text-primary);">Allocated Users</h3>
+      <div style="max-height:220px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-sm);">
+        <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border); text-align: left; background: var(--bg-elevated);">
+              <th style="padding: 8px 10px; font-weight: 600; color: var(--text-secondary);">User</th>
+              <th style="padding: 8px 10px; font-weight: 600; color: var(--text-secondary);">Email</th>
+              <th style="padding: 8px 10px; font-weight: 600; color: var(--text-secondary);">Assigned Date</th>
+              <th style="padding: 8px 10px; font-weight: 600; color: var(--text-secondary); text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="software-alloc-tbody">
+            <!-- Populate dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ASSET CHECK OUT MODAL -->
 <div class="modal-overlay" id="checkout-modal-overlay">
   <div class="modal" id="checkout-modal" style="max-width: 500px;">
@@ -2636,6 +2891,7 @@ support@company.com | +1 (800) 555-0199</textarea>
 <script src="js/sso.js?v=42"></script>
 <script src="js/kb.js?v=42"></script>
 <script src="js/assets.js?v=42"></script>
+<script src="js/software.js?v=42"></script>
 <script src="js/app.js?v=42"></script>
 </body>
 </html>
