@@ -166,6 +166,14 @@ function applyRolePermissions() {
   const userRole = getCurrentUserRole();
   const roleObj = roles.find(r => r.key === userRole) || { permissions: [] };
 
+  // Safeguard: Ensure admin and manager roles have access to assets and software in memory
+  if (userRole === 'admin' || userRole === 'manager') {
+    if (roleObj.permissions) {
+      if (!roleObj.permissions.includes('software')) roleObj.permissions.push('software');
+      if (!roleObj.permissions.includes('assets')) roleObj.permissions.push('assets');
+    }
+  }
+
   // Sync sidebar user card display with session details
   const LS_ADMIN_AUTH = 'hd_admin_auth_v1';
   const s = sessionStorage.getItem(LS_ADMIN_AUTH) || localStorage.getItem(LS_ADMIN_AUTH);
@@ -181,7 +189,7 @@ function applyRolePermissions() {
       if (roleEl && displayRole) roleEl.textContent = displayRole;
       if (avatarEl && sess.name) {
         const uList = typeof loadUsers === 'function' ? loadUsers() : [];
-        const u = uList.find(x => x.email.toLowerCase() === (sess.email || '').toLowerCase());
+        const u = uList.find(x => x.email && x.email.toLowerCase() === (sess.email || '').toLowerCase());
         if (u && u.avatar) {
           avatarEl.innerHTML = `<img src="${u.avatar}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;"/>`;
         } else {
